@@ -4,7 +4,7 @@
   "private": true,
   "description": "Agent Dev plugins for Vite, Webpack and more bundlers.",
   "type": "module",
-  "packageManager": "pnpm@10.0.0",
+  "packageManager": "pnpm@10.33.2",
   "scripts": {
     "dev": "pnpm --filter @agent-dev/core build && pnpm --filter @agent-dev/vite build && pnpm --filter @agent-dev/playground-vite dev",
     "dev:watch": "pnpm --parallel --filter @agent-dev/core --filter @agent-dev/vite --filter @agent-dev/playground-vite dev",
