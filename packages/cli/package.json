@@ -1,0 +1,25 @@
+{
+  "name": "agent-dev",
+  "version": "0.1.0",
+  "description": "Initialize Agent Dev in Vite and Webpack projects.",
+  "type": "module",
+  "bin": {
+    "agent-dev": "./dist/index.js"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --platform node --target node18 --sourcemap --clean",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3"
+  }
+}
