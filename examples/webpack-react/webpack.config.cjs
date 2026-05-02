@@ -6,6 +6,9 @@ module.exports = {
     port: 5180,
   },
   entry: './src/main.tsx',
+  experiments: {
+    css: true,
+  },
   mode: 'development',
   module: {
     rules: [
