@@ -1,0 +1,30 @@
+{
+  "name": "@agent-dev/core",
+  "version": "0.1.0",
+  "description": "Core runtime for Agent Dev bundler plugins.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --shims && cp src/client-runtime.js dist/client-runtime.js",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --shims --watch --onSuccess \"cp src/client-runtime.js dist/client-runtime.js\"",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {}
+}
