@@ -1,0 +1,23 @@
+{
+  "name": "agent-dev-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Agent Dev plugins for Vite, Webpack and more bundlers.",
+  "type": "module",
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev": "pnpm --filter @agent-dev/core build && pnpm --filter @agent-dev/vite build && pnpm --filter @agent-dev/playground-vite dev",
+    "dev:watch": "pnpm --parallel --filter @agent-dev/core --filter @agent-dev/vite --filter @agent-dev/playground-vite dev",
+    "build": "pnpm -r --filter './packages/*' build",
+    "typecheck": "pnpm -r --filter './packages/*' typecheck",
+    "clean": "pnpm -r --filter './packages/*' clean && rm -rf node_modules",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "pnpm build && changeset publish"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.7",
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3"
+  }
+}
