@@ -1,0 +1,37 @@
+{
+  "name": "@agent-dev/webpack",
+  "version": "0.1.0",
+  "description": "Webpack plugin for Agent Dev.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3",
+    "webpack": "^5.99.0",
+    "webpack-dev-server": "^5.2.0"
+  },
+  "peerDependencies": {
+    "webpack": "^5.0.0",
+    "webpack-dev-server": "^4.0.0 || ^5.0.0"
+  },
+  "dependencies": {
+    "@agent-dev/core": "workspace:*"
+  }
+}
