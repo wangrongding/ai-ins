@@ -3,6 +3,7 @@ const { AgentDevWebpackPlugin } = require('@agent-dev/webpack')
 
 module.exports = {
   devServer: {
+    open: true,
     port: 5180,
   },
   entry: './src/main.tsx',
