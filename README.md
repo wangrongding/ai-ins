@@ -134,9 +134,12 @@ CODEX_INSPECT_MODEL=gpt-5.5
 ```bash
 pnpm install
 pnpm dev:watch
+pnpm dev:webpack
 ```
 
-`pnpm dev:watch` 会同时 watch core、Vite 插件和 `examples/vite-react` playground。改 `packages/core/src/client-runtime.js` 或 `packages/vite/src/index.ts` 后刷新浏览器即可。`pnpm dev` 仍然会先构建 core / Vite 插件，再启动 playground。
+`pnpm dev:watch` 会同时 watch core、Vite 插件和 `examples/vite-react` playground。改 `packages/core/src/client/` 或 `packages/vite/src/index.ts` 后刷新浏览器即可。`pnpm dev` 仍然会先构建 core / Vite 插件，再启动 playground。
+
+`pnpm dev:webpack` 会先构建 core / Webpack 插件，再同时 watch core、Webpack 插件和 `examples/webpack-react` playground。改 `packages/core/src/client/` 后刷新浏览器即可看到新的 Agent Dev 面板 runtime；如果改的是 Webpack 插件初始化逻辑，重启 dev server 后生效。
 
 常用检查：
 
@@ -154,3 +157,9 @@ packages/vite      # Vite 插件
 packages/webpack   # Webpack devServer 插件
 examples/vite-react
 ```
+
+## 常见问题
+
+### 如何连接 codex的？
+
+Codex Exec 是一种轻量级、非交互式的 CLI 模式，专门用于自动化任务、CI/CD 管道和单次脚本执行。它通过命令行直接接收提示，处理任务，生成流式结构化日志并退出。
