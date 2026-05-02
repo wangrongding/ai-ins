@@ -17,7 +17,7 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --shims && cp src/client-entry.js src/source-loader.cjs dist/",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
@@ -32,6 +32,7 @@
     "webpack-dev-server": "^4.0.0 || ^5.0.0"
   },
   "dependencies": {
-    "@agent-dev/core": "workspace:*"
+    "@agent-dev/core": "workspace:*",
+    "@babel/core": "^7.29.0"
   }
 }
