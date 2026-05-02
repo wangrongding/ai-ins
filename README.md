@@ -127,7 +127,7 @@ CODEX_INSPECT_PROXY=http://127.0.0.1:7890
 CODEX_INSPECT_MODEL=gpt-5.5
 ```
 
-代理解析优先级：插件配置 / provider 配置优先，其次读取 `CODEX_INSPECT_PROXY`，再读取常见的 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`。
+代理解析优先级：插件配置 / provider 配置优先，其次读取 `CODEX_INSPECT_PROXY`，再读取常见的 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`，最后尝试读取 macOS / Windows 系统代理。
 
 ## 本仓库开发
 
