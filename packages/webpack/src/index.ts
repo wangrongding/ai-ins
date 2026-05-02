@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { createDevInspectMiddlewares, getDevInspectClientCode, normalizeProxy } from '@agent-dev/core'
 import type { DevInspectPluginOptions } from '@agent-dev/core'
@@ -21,8 +22,14 @@ type WebpackDevServerLike = {
 }
 
 const packageDirectory = __dirname
-const clientEntryPath = join(packageDirectory, 'client-entry.js')
-const sourceLoaderPath = join(packageDirectory, 'source-loader.cjs')
+
+function getBundledAssetPath(fileName: string) {
+  const sourcePath = join(packageDirectory, '..', 'src', fileName)
+  return existsSync(sourcePath) ? sourcePath : join(packageDirectory, fileName)
+}
+
+const clientEntryPath = getBundledAssetPath('client-entry.js')
+const sourceLoaderPath = getBundledAssetPath('source-loader.cjs')
 
 function hasEntryValue(entry: unknown, value: string): boolean {
   if (entry === value) return true
@@ -50,6 +57,77 @@ function prependEntry(entry: unknown, value: string): unknown {
   return entry
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
+function testMatchesExtension(test: unknown, extension: string) {
+  if (!(test instanceof RegExp)) {
+    return false
+  }
+
+  test.lastIndex = 0
+  return test.test(`agent-dev-entry${extension}`)
+}
+
+function isJsTsRule(rule: Record<string, unknown>) {
+  return ['.tsx', '.jsx', '.ts', '.js'].some((extension) => testMatchesExtension(rule.test, extension))
+}
+
+function hasSourceLoader(use: unknown): boolean {
+  if (use === sourceLoaderPath) {
+    return true
+  }
+
+  if (Array.isArray(use)) {
+    return use.some(hasSourceLoader)
+  }
+
+  return Boolean(isPlainObject(use) && use.loader === sourceLoaderPath)
+}
+
+function appendSourceLoader(use: unknown) {
+  return hasSourceLoader(use) ? use : [...(Array.isArray(use) ? use : [use]), sourceLoaderPath]
+}
+
+function injectSourceLoaderIntoRules(rules: unknown[]): boolean {
+  let didInject = false
+
+  for (const rule of rules) {
+    if (!isPlainObject(rule)) {
+      continue
+    }
+
+    if (Array.isArray(rule.oneOf) && injectSourceLoaderIntoRules(rule.oneOf)) {
+      didInject = true
+    }
+
+    if (Array.isArray(rule.rules) && injectSourceLoaderIntoRules(rule.rules)) {
+      didInject = true
+    }
+
+    if (!isJsTsRule(rule) || rule.enforce) {
+      continue
+    }
+
+    if ('use' in rule) {
+      rule.use = appendSourceLoader(rule.use)
+      didInject = true
+      continue
+    }
+
+    if (typeof rule.loader === 'string') {
+      const { loader, options } = rule
+      delete rule.loader
+      delete rule.options
+      rule.use = appendSourceLoader(options === undefined ? loader : { loader, options })
+      didInject = true
+    }
+  }
+
+  return didInject
+}
+
 export class AgentDevWebpackPlugin {
   readonly name = 'agent-dev:webpack'
   constructor(private readonly options: AgentDevWebpackPluginOptions = {}) {}
@@ -60,15 +138,19 @@ export class AgentDevWebpackPlugin {
     if (compiler.options.mode !== 'production') {
       compiler.options.entry = prependEntry(compiler.options.entry, clientEntryPath)
       if (!compiler.options.module) compiler.options.module = {}
-      compiler.options.module.rules = [
-        {
-          enforce: 'pre',
-          exclude: /node_modules/u,
-          test: /\.[jt]sx$/u,
-          use: sourceLoaderPath,
-        },
-        ...(compiler.options.module.rules || []),
-      ]
+      const rules = compiler.options.module.rules || []
+      const didInject = injectSourceLoaderIntoRules(rules)
+      compiler.options.module.rules = didInject
+        ? rules
+        : [
+            {
+              enforce: 'pre',
+              exclude: /node_modules/u,
+              test: /\.[jt]sx$/u,
+              use: sourceLoaderPath,
+            },
+            ...rules,
+          ]
     }
 
     const previousSetupMiddlewares = compiler.options.devServer.setupMiddlewares

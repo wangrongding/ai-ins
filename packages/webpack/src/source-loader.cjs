@@ -1,4 +1,6 @@
 const { transformSync } = require('@babel/core')
+const transformReactJsx = require('@babel/plugin-transform-react-jsx')
+const transformTypeScript = require('@babel/plugin-transform-typescript')
 
 const sourceAttribute = 'data-agent-source'
 const sourceRangeAttribute = 'data-agent-source-range'
@@ -57,6 +59,11 @@ module.exports = function agentDevSourceLoader(code, inputMap) {
   const callback = this.async()
   const fileName = this.resourcePath
 
+  if (!/\.[cm]?[jt]sx$/u.test(fileName)) {
+    callback(null, code, inputMap)
+    return
+  }
+
   try {
     const result = transformSync(code, {
       babelrc: false,
@@ -68,7 +75,11 @@ module.exports = function agentDevSourceLoader(code, inputMap) {
         plugins: ['jsx', 'typescript'],
         sourceType: 'module',
       },
-      plugins: [createAgentSourcePlugin(fileName)],
+      plugins: [
+        createAgentSourcePlugin(fileName),
+        [transformTypeScript, { allowDeclareFields: true, allExtensions: true, isTSX: true }],
+        [transformReactJsx, { runtime: 'automatic' }],
+      ],
       sourceMaps: true,
     })
 

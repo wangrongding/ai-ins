@@ -18,6 +18,7 @@
   ],
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --shims && cp src/client-entry.js src/source-loader.cjs dist/",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --shims --watch --onSuccess \"cp src/client-entry.js src/source-loader.cjs dist/\"",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
@@ -33,6 +34,8 @@
   },
   "dependencies": {
     "@agent-dev/core": "workspace:*",
-    "@babel/core": "^7.29.0"
+    "@babel/core": "^7.29.0",
+    "@babel/plugin-transform-react-jsx": "^7.28.6",
+    "@babel/plugin-transform-typescript": "^7.28.6"
   }
 }
