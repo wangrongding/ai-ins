@@ -1,0 +1,428 @@
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 12% 18%, rgba(0, 199, 255, 0.22), transparent 28%),
+    radial-gradient(circle at 88% 8%, rgba(255, 45, 85, 0.2), transparent 24%), linear-gradient(135deg, #07111f 0%, #101729 42%, #171026 100%);
+  color: #e2e8f0;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+body::before {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.65), transparent 78%);
+}
+
+.card {
+  box-sizing: border-box;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  width: min(560px, calc(100vw - 48px));
+  padding: 34px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(16, 25, 43, 0.86), rgba(31, 22, 49, 0.84)) padding-box,
+    linear-gradient(120deg, #00c7ff, #ffcc00, #ff2d55, #7c3aed, #00c7ff) border-box;
+  background-size:
+    100% 100%,
+    300% 300%;
+  box-shadow:
+    0 28px 80px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(24px) saturate(1.25);
+  animation: rainbow-border 6s linear infinite;
+}
+
+.card::before,
+.card::after,
+.card-glow {
+  position: absolute;
+  pointer-events: none;
+  content: '';
+}
+
+.card::before {
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(120deg, transparent 0 32%, rgba(255, 255, 255, 0.16) 42%, transparent 52%),
+    radial-gradient(circle at 82% 18%, rgba(0, 199, 255, 0.2), transparent 26%);
+}
+
+.card::after {
+  top: 18px;
+  right: 18px;
+  width: 88px;
+  height: 88px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 50%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.24) 1px, transparent 1px), linear-gradient(rgba(255, 255, 255, 0.24) 1px, transparent 1px);
+  background-size: 18px 18px;
+  opacity: 0.55;
+}
+
+.card-glow {
+  right: -90px;
+  bottom: -110px;
+  z-index: -1;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 204, 0, 0.26), rgba(255, 45, 85, 0.17) 38%, transparent 66%);
+  filter: blur(4px);
+}
+
+@keyframes rainbow-border {
+  to {
+    background-position:
+      0 0,
+      300% 0;
+  }
+}
+
+.eyebrow {
+  width: fit-content;
+  margin: 0 0 14px;
+  border: 1px solid rgba(0, 199, 255, 0.28);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgba(0, 199, 255, 0.1);
+  color: #7dd3fc;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+h1 {
+  max-width: 14ch;
+  margin: 0 0 14px;
+  color: #ffffff;
+  font-size: clamp(34px, 6vw, 40px);
+  font-weight: 850;
+  line-height: 1.12;
+  text-wrap: balance;
+  text-shadow: 0 16px 34px rgba(0, 0, 0, 0.28);
+}
+
+h1 span {
+  position: relative;
+  z-index: 0;
+  display: inline-block;
+  color: #fde68a;
+}
+
+h1 span::after {
+  position: absolute;
+  right: 0;
+  bottom: 0.04em;
+  left: 0;
+  z-index: -1;
+  height: 0.28em;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(0, 199, 255, 0.34), rgba(255, 204, 0, 0.4));
+  content: '';
+}
+
+.card-title {
+  margin: 0 0 12px;
+  color: #f8fafc;
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.card p {
+  margin: 0 0 24px;
+  line-height: 1.7;
+  color: #cbd5e1;
+}
+
+.card-action {
+  height: 44px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 18px;
+  background: linear-gradient(135deg, #00c7ff, #7dd3fc 48%, #ffcc00);
+  color: #06101d;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 14px 34px rgba(0, 199, 255, 0.22);
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.card-action:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 42px rgba(0, 199, 255, 0.3);
+}
+
+.card-action:focus-visible {
+  outline: 3px solid rgba(255, 204, 0, 0.52);
+  outline-offset: 3px;
+}
+
+.docs {
+  box-sizing: border-box;
+  width: min(1180px, calc(100vw - 40px));
+  min-height: 100vh;
+  padding: 28px 0 56px;
+}
+
+.docs-nav {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 30px;
+  background: rgba(7, 17, 31, 0.84);
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 700;
+  backdrop-filter: blur(18px);
+}
+
+.docs-back {
+  height: 36px;
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  border-radius: 8px;
+  padding: 0 14px;
+  background: rgba(0, 199, 255, 0.1);
+  color: #e0f2fe;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.docs-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  margin-top: 20px;
+}
+
+.docs-directory {
+  position: sticky;
+  top: 84px;
+  box-sizing: border-box;
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.72);
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(18px);
+}
+
+.docs-directory p {
+  margin: 0 0 12px;
+  color: #e0f2fe;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.docs-directory ol {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.docs-directory li {
+  min-width: 0;
+}
+
+.docs-directory a {
+  display: block;
+  overflow-wrap: anywhere;
+  border-radius: 6px;
+  padding: 7px 8px;
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.docs-directory a:hover {
+  background: rgba(14, 165, 233, 0.14);
+  color: #f8fafc;
+}
+
+.docs-directory-level-2 a {
+  padding-left: 18px;
+  color: #94a3b8;
+}
+
+.docs-directory-level-3 a {
+  padding-left: 30px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.docs-content {
+  box-sizing: border-box;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  padding: 34px;
+  background: rgba(15, 23, 42, 0.82);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(24px);
+}
+
+.docs-content h1,
+.docs-content h2,
+.docs-content h3 {
+  scroll-margin-top: 84px;
+  color: #ffffff;
+  line-height: 1.2;
+}
+
+.docs-content h1 {
+  max-width: none;
+  margin: 0 0 18px;
+  font-size: 38px;
+}
+
+.docs-content h2 {
+  margin: 34px 0 14px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+  font-size: 24px;
+}
+
+.docs-content h3 {
+  margin: 26px 0 10px;
+  font-size: 19px;
+}
+
+.docs-content p,
+.docs-content li {
+  color: #cbd5e1;
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.docs-content p {
+  margin: 0 0 16px;
+}
+
+.docs-content ul {
+  margin: 0 0 18px;
+  padding-left: 22px;
+}
+
+.docs-content code {
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 6px;
+  padding: 2px 5px;
+  background: rgba(2, 6, 23, 0.55);
+  color: #fde68a;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-size: 0.92em;
+}
+
+.docs-content pre {
+  overflow-x: auto;
+  margin: 0 0 20px;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 8px;
+  padding: 16px;
+  background: rgba(2, 6, 23, 0.72);
+}
+
+.docs-content pre code {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #dbeafe;
+}
+
+.docs-table-wrap {
+  overflow-x: auto;
+  margin: 0 0 20px;
+}
+
+.docs-content table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #cbd5e1;
+  font-size: 14px;
+}
+
+.docs-content th,
+.docs-content td {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.docs-content th {
+  background: rgba(14, 165, 233, 0.12);
+  color: #e0f2fe;
+}
+
+@media (max-width: 840px) {
+  .docs-layout {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .docs-directory {
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .card {
+    width: min(100vw - 28px, 560px);
+    padding: 26px;
+  }
+
+  h1 {
+    font-size: 32px;
+  }
+
+  .docs {
+    width: min(100vw - 24px, 1180px);
+    padding-bottom: 34px;
+  }
+
+  .docs-layout {
+    gap: 12px;
+  }
+
+  .docs-nav {
+    padding: 12px 18px;
+  }
+
+  .docs-directory {
+    padding: 14px;
+  }
+
+  .docs-content {
+    padding: 22px;
+  }
+
+  .docs-content h1 {
+    font-size: 30px;
+  }
+}
