@@ -17,8 +17,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --shims && cp src/client-runtime.js dist/client-runtime.js",
-    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --shims --watch --onSuccess \"cp src/client-runtime.js dist/client-runtime.js\"",
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --shims && cp -R src/client dist/client",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --shims --watch --onSuccess \"rm -rf dist/client && cp -R src/client dist/client\"",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },

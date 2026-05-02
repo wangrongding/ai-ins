@@ -8,7 +8,9 @@
   "scripts": {
     "dev": "pnpm --filter @agent-dev/core build && pnpm --filter @agent-dev/vite build && pnpm --filter @agent-dev/playground-vite dev",
     "dev:watch": "pnpm --parallel --filter @agent-dev/core --filter @agent-dev/vite --filter @agent-dev/playground-vite dev",
-    "dev:webpack": "pnpm --filter @agent-dev/core build && pnpm --filter @agent-dev/webpack build && pnpm --filter @agent-dev/playground-webpack dev",
+    "dev:vite": "pnpm --parallel --filter @agent-dev/core --filter @agent-dev/vite --filter @agent-dev/playground-vite dev",
+    "dev:webpack": "pnpm --filter @agent-dev/core build && pnpm --filter @agent-dev/webpack build && pnpm --parallel --filter @agent-dev/core --filter @agent-dev/webpack --filter @agent-dev/playground-webpack dev",
+    "dev:webpack:once": "pnpm --filter @agent-dev/core build && pnpm --filter @agent-dev/webpack build && pnpm --filter @agent-dev/playground-webpack dev",
     "build": "pnpm -r --filter './packages/*' build",
     "typecheck": "pnpm -r --filter './packages/*' typecheck",
     "clean": "pnpm -r --filter './packages/*' clean && rm -rf node_modules",

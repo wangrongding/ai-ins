@@ -1,4 +1,27 @@
-import { readFileSync } from 'fs'
+import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 
-export const devInspectClientSource = readFileSync(join(__dirname, 'client-runtime.js'), 'utf-8')
+const clientRuntimeFiles = [
+  'state.js',
+  'dom.js',
+  'inspector-dom.js',
+  'api.js',
+  'run-model.js',
+  'components.js',
+  'run-events.js',
+  'panel.js',
+  'events.js',
+]
+
+function getClientRuntimeDirectory() {
+  const sourcePath = join(__dirname, '..', 'src', 'client')
+  return existsSync(sourcePath) ? sourcePath : join(__dirname, 'client')
+}
+
+export function getDevInspectClientSource() {
+  const clientRuntimeDirectory = getClientRuntimeDirectory()
+  const style = readFileSync(join(clientRuntimeDirectory, 'style.css'), 'utf-8')
+  const scripts = clientRuntimeFiles.map((fileName) => readFileSync(join(clientRuntimeDirectory, fileName), 'utf-8'))
+
+  return scripts.join('\n\n').replace('__WBX_CLIENT_STYLE__', JSON.stringify(style))
+}
