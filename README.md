@@ -25,7 +25,7 @@ macOS 按住 `Option + Cmd`，Windows / Linux 按住 `Ctrl + Alt` 点击页面�
 | `@ai-ins/webpack` | 可用   | 注册 devServer middleware，自动注入客户端脚本，并在开发态给 JSX DOM 元素注入 source 标记。 |
 | `@ai-ins/core`    | 内部包 | 提供 middleware、Agent provider、客户端脚本生成等共享能力。                                |
 
-<img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/f9236145-9288-423c-9708-a70eddb9aa1e" />
+<img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/c157f619-34ad-45e2-b2e8-b5d04e4d92ee" />
 
 ## 快速接入
 
