@@ -143,6 +143,8 @@ pnpm dev:webpack
 
 `pnpm dev:watch` 会同时 watch core、Vite 插件和 `examples/vite-react` playground。改 `packages/core/src/client/` 或 `packages/vite/src/index.ts` 后刷新浏览器即可。`pnpm dev` 仍然会先构建 core / Vite 插件，再启动 playground。
 
+`pnpm dev:vite` 会同时启动 `examples/vite-react` 和 `examples/vite-vue3` 两个 Vite playground。
+
 `pnpm dev:webpack` 会先构建 core / Webpack 插件，再同时 watch core、Webpack 插件和 `examples/webpack-react` playground。改 `packages/core/src/client/` 后刷新浏览器即可看到新的 Agent Dev 面板 runtime；如果改的是 Webpack 插件初始化逻辑，重启 dev server 后生效。
 
 常用检查：
@@ -160,6 +162,7 @@ packages/core      # middleware、Agent provider、客户端 runtime
 packages/vite      # Vite 插件
 packages/webpack   # Webpack devServer 插件
 examples/vite-react
+examples/vite-vue3
 ```
 
 ## 常见问题
