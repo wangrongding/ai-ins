@@ -4,6 +4,8 @@ Agent Dev 是一个本地开发辅助工具。让你通过按住 `Option` / `Alt
 
 macOS 按住 `Option + Cmd`，Windows / Linux 按住 `Ctrl + Alt` 点击页面元素会直接打开IDE，并跳转到源码位置。
 
+<img width="1672" height="783" alt="859d26a9-c362-4ae8-a2ed-62a017dc214c" src="https://github.com/user-attachments/assets/b524667f-ff12-4874-a669-59a2ab97e572" />
+
 ## 当前能力
 
 - 通过运行 `npx agent-dev init` 自动识别项目内的构建工具（Vite / Webpack...），安装对应的 `@agent-dev/*` 包，并尝试修改配置文件。
@@ -19,6 +21,8 @@ macOS 按住 `Option + Cmd`，Windows / Linux 按住 `Ctrl + Alt` 点击页面�
 | `@agent-dev/vite`    | 可用   | 主要支持路径，包含客户端注入和 React source 适配。                                         |
 | `@agent-dev/webpack` | 可用   | 注册 devServer middleware，自动注入客户端脚本，并在开发态给 JSX DOM 元素注入 source 标记。 |
 | `@agent-dev/core`    | 内部包 | 提供 middleware、Agent provider、客户端脚本生成等共享能力。                                |
+
+<img width="1672" height="941" alt="0cdbd76e-12bf-4e21-a2f0-4f8335ba41bc" src="https://github.com/user-attachments/assets/48caed6e-019d-4aed-9965-01bba7de6232" />
 
 ## 快速接入
 
