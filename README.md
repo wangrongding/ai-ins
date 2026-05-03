@@ -1,6 +1,8 @@
 # ai-ins
 
-AI Ins 是一个本地开发辅助工具。让你通过按住 `Option` / `Alt` 点选页面上的 DOM，打开 AI Ins 面板，把目标元素和修改要求一起交给本地 CLI Agent 执行，并在页面里持续查看任务输出。
+AI Ins 是一个本地开发辅助工具，让你无需离开项目窗口，在项目内编写项目。  
+
+通过按住 `Option` / `Alt` 点选页面上的 DOM，打开内置的 AI Ins 面板，把目标元素和修改要求一起交给本地 CLI Agent 执行，并在页面里持续查看任务输出。  
 
 macOS 按住 `Option + Cmd`，Windows / Linux 按住 `Ctrl + Alt` 点击页面元素会直接打开IDE，并跳转到源码位置。
 
