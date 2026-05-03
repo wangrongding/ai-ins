@@ -1,6 +1,6 @@
 {
   "name": "@agent-dev/webpack",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Webpack plugin for Agent Dev.",
   "type": "module",
   "main": "./dist/index.cjs",
