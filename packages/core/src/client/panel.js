@@ -37,7 +37,7 @@ function showAgentPanel(layer, layers) {
 
   const proxyField = createElement('label', 'wbx-dev-inspect-field')
   const proxyLabel = createElement('span', 'wbx-dev-inspect-label')
-  proxyLabel.append(createElement('span', '', '代理'), createElement('span', 'wbx-dev-inspect-label-hint', '可留空'))
+  proxyLabel.append(createElement('span', '', 'Network Proxy'), createElement('span', 'wbx-dev-inspect-label-hint', '可留空'))
   const proxyInput = createElement('input', 'wbx-dev-inspect-input')
   proxyInput.type = 'url'
   proxyInput.placeholder = 'http://127.0.0.1:7890'
