@@ -1,53 +1,53 @@
-function showAgentPanel(layer, layers) {
+function showAiInsPanel(layer, layers) {
   if (layer) {
     draftTarget = { layer, layers }
   }
 
-  if (inspectPanel) {
+  if (aiInsPanel) {
     refreshComposer()
     return
   }
 
-  const overlay = createElement('div', 'wbx-dev-inspect-dialog')
-  const panel = createElement('div', 'wbx-dev-inspect-panel')
-  const header = createElement('div', 'wbx-dev-inspect-header')
-  const heading = createElement('div', 'wbx-dev-inspect-heading')
+  const overlay = createElement('div', 'wbx-ai-ins-dialog')
+  const panel = createElement('div', 'wbx-ai-ins-panel')
+  const header = createElement('div', 'wbx-ai-ins-header')
+  const heading = createElement('div', 'wbx-ai-ins-heading')
   heading.append(
-    createElement('p', 'wbx-dev-inspect-title', 'Inspect Agents'),
-    createElement('div', 'wbx-dev-inspect-subtitle', 'Option 选 DOM，提交后可并发跟踪多个任务'),
+    createElement('p', 'wbx-ai-ins-title', 'AI Ins'),
+    createElement('div', 'wbx-ai-ins-subtitle', 'Option 选 DOM，提交后可并发跟踪多个任务'),
   )
 
-  const closeButton = createElement('button', 'wbx-dev-inspect-button', '收起')
+  const closeButton = createElement('button', 'wbx-ai-ins-button', '收起')
   closeButton.type = 'button'
-  closeButton.addEventListener('click', closeAgentPanel)
+  closeButton.addEventListener('click', closeAiInsPanel)
   header.append(heading, closeButton)
 
-  const body = createElement('div', 'wbx-dev-inspect-body')
-  const sidebar = createElement('aside', 'wbx-dev-inspect-sidebar')
-  const sidebarTop = createElement('div', 'wbx-dev-inspect-sidebar-top')
-  const runCount = createElement('span', 'wbx-dev-inspect-count', '0')
-  sidebarTop.append(createElement('p', 'wbx-dev-inspect-section-label', '任务列表'), runCount)
-  const list = createElement('div', 'wbx-dev-inspect-list')
+  const body = createElement('div', 'wbx-ai-ins-body')
+  const sidebar = createElement('aside', 'wbx-ai-ins-sidebar')
+  const sidebarTop = createElement('div', 'wbx-ai-ins-sidebar-top')
+  const runCount = createElement('span', 'wbx-ai-ins-count', '0')
+  sidebarTop.append(createElement('p', 'wbx-ai-ins-section-label', '任务列表'), runCount)
+  const list = createElement('div', 'wbx-ai-ins-list')
   sidebar.append(sidebarTop, list)
 
-  const main = createElement('main', 'wbx-dev-inspect-main')
-  const form = createElement('form', 'wbx-dev-inspect-composer')
-  const target = createElement('div', 'wbx-dev-inspect-target')
-  const grid = createElement('div', 'wbx-dev-inspect-form-grid')
+  const main = createElement('main', 'wbx-ai-ins-main')
+  const form = createElement('form', 'wbx-ai-ins-composer')
+  const target = createElement('div', 'wbx-ai-ins-target')
+  const grid = createElement('div', 'wbx-ai-ins-form-grid')
 
-  const proxyField = createElement('label', 'wbx-dev-inspect-field')
-  const proxyLabel = createElement('span', 'wbx-dev-inspect-label')
-  proxyLabel.append(createElement('span', '', 'Network Proxy'), createElement('span', 'wbx-dev-inspect-label-hint', '可留空'))
-  const proxyInput = createElement('input', 'wbx-dev-inspect-input')
+  const proxyField = createElement('label', 'wbx-ai-ins-field')
+  const proxyLabel = createElement('span', 'wbx-ai-ins-label')
+  proxyLabel.append(createElement('span', '', 'Network Proxy'), createElement('span', 'wbx-ai-ins-label-hint', '可留空'))
+  const proxyInput = createElement('input', 'wbx-ai-ins-input')
   proxyInput.type = 'url'
   proxyInput.placeholder = 'http://127.0.0.1:7890'
   proxyInput.value = readStoredProxy()
   proxyField.append(proxyLabel, proxyInput)
 
-  const providerField = createElement('label', 'wbx-dev-inspect-field')
-  const providerLabel = createElement('span', 'wbx-dev-inspect-label')
-  providerLabel.append(createElement('span', '', 'Agent'), createElement('span', 'wbx-dev-inspect-label-hint', '可切换'))
-  const providerSelect = createElement('select', 'wbx-dev-inspect-select')
+  const providerField = createElement('label', 'wbx-ai-ins-field')
+  const providerLabel = createElement('span', 'wbx-ai-ins-label')
+  providerLabel.append(createElement('span', '', 'Agent'), createElement('span', 'wbx-ai-ins-label-hint', '可切换'))
+  const providerSelect = createElement('select', 'wbx-ai-ins-select')
   const storedProviderId = readStoredProviderId()
   for (const provider of providers) {
     const option = createElement('option', '', `${provider.label}${provider.enabled ? '' : '（未配置）'}`)
@@ -63,26 +63,26 @@ function showAgentPanel(layer, layers) {
   providerField.append(providerLabel, providerSelect)
   grid.append(proxyField, providerField)
 
-  const textarea = createElement('textarea', 'wbx-dev-inspect-textarea')
+  const textarea = createElement('textarea', 'wbx-ai-ins-textarea')
   textarea.placeholder = '描述你想怎么改这个 DOM / 组件，例如：把这个区域改紧凑一点，保留当前交互逻辑。'
 
-  const footer = createElement('div', 'wbx-dev-inspect-footer')
-  const status = createElement('div', 'wbx-dev-inspect-status')
-  const actions = createElement('div', 'wbx-dev-inspect-actions')
-  const submitButton = createElement('button', 'wbx-dev-inspect-button wbx-dev-inspect-button-primary')
+  const footer = createElement('div', 'wbx-ai-ins-footer')
+  const status = createElement('div', 'wbx-ai-ins-status')
+  const actions = createElement('div', 'wbx-ai-ins-actions')
+  const submitButton = createElement('button', 'wbx-ai-ins-button wbx-ai-ins-button-primary')
   submitButton.type = 'submit'
   actions.append(submitButton)
   footer.append(status, actions)
   form.append(target, grid, textarea, footer)
 
-  const detail = createElement('section', 'wbx-dev-inspect-detail')
+  const detail = createElement('section', 'wbx-ai-ins-detail')
   main.append(form, detail)
   body.append(sidebar, main)
   panel.append(header, body)
   overlay.append(panel)
   document.body.append(overlay)
 
-  inspectPanel = overlay
+  aiInsPanel = overlay
   panelRefs = {
     detail,
     list,
@@ -97,12 +97,12 @@ function showAgentPanel(layer, layers) {
 
   overlay.addEventListener('click', (event) => {
     if (event.target === overlay) {
-      closeAgentPanel()
+      closeAiInsPanel()
     }
   })
   overlay.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
-      closeAgentPanel()
+      closeAiInsPanel()
     }
   })
   textarea.addEventListener('keydown', (event) => {
@@ -140,7 +140,7 @@ function showAgentPanel(layer, layers) {
     saveStoredProviderId(provider.id)
 
     try {
-      const result = await runAgentInspectEdit(draftTarget.layer, draftTarget.layers, provider.id, prompt, proxy)
+      const result = await runAiInsAgent(draftTarget.layer, draftTarget.layers, provider.id, prompt, proxy)
       createRun(result, draftTarget.layer, provider, prompt)
       textarea.value = ''
       status.textContent = `${provider.label} 已启动，可以继续点别的 DOM 发新任务。`

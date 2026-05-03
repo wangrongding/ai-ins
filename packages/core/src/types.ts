@@ -1,16 +1,16 @@
 import type { ChildProcess } from 'child_process'
 import type { IncomingMessage, ServerResponse } from 'http'
 
-export type DevInspectMiddleware = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void
+export type AiInsMiddleware = (req: IncomingMessage, res: ServerResponse, next?: () => void) => void
 
-export type DevInspectRoute = {
+export type AiInsRoute = {
   path: string
-  middleware: DevInspectMiddleware
+  middleware: AiInsMiddleware
 }
 
-export type DevInspectRunStatus = 'done' | 'failed' | 'running' | 'starting'
+export type AiInsRunStatus = 'done' | 'failed' | 'running' | 'starting'
 
-export type CodexInspectEvent = {
+export type AiInsEvent = {
   code?: number | null
   logPath?: string
   message?: string
@@ -22,12 +22,12 @@ export type CodexInspectEvent = {
   type: 'done' | 'error' | 'heartbeat' | 'output' | 'status'
 }
 
-export type CodexInspectRun = {
+export type AiInsRun = {
   child?: ChildProcess
   code?: number | null
   completed: boolean
   createdAt: number
-  events: CodexInspectEvent[]
+  events: AiInsEvent[]
   fileName: string
   lineNumber: number
   logPath: string
@@ -37,12 +37,12 @@ export type CodexInspectRun = {
   signal?: NodeJS.Signals | null
   sourceName: string
   sourcePath: string
-  status: DevInspectRunStatus
+  status: AiInsRunStatus
   statusMessage: string
   subscribers: Set<ServerResponse>
 }
 
-export type DevInspectAgentProviderInput = {
+export type AiInsAgentProviderInput = {
   args?: string[]
   command?: string
   disabledReason?: string
@@ -54,7 +54,7 @@ export type DevInspectAgentProviderInput = {
   proxy?: string
 }
 
-export type ResolvedDevInspectAgentProvider = {
+export type ResolvedAiInsAgentProvider = {
   args: string[]
   command: string
   disabledReason?: string
@@ -66,17 +66,17 @@ export type ResolvedDevInspectAgentProvider = {
   proxy: string
 }
 
-export type DevInspectClientAgentProvider = {
+export type AiInsClientAgentProvider = {
   disabledReason?: string
   enabled: boolean
   id: string
   label: string
 }
 
-export type DevInspectPluginOptions = {
+export type AiInsPluginOptions = {
   agents?: {
     defaultProvider?: string
-    providers?: DevInspectAgentProviderInput[]
+    providers?: AiInsAgentProviderInput[]
   }
   codex?: {
     command?: string

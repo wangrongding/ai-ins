@@ -1,10 +1,10 @@
-import type { DevInspectAgentProviderInput, DevInspectClientAgentProvider, DevInspectPluginOptions, ResolvedDevInspectAgentProvider } from './types'
+import type { AiInsAgentProviderInput, AiInsClientAgentProvider, AiInsPluginOptions, ResolvedAiInsAgentProvider } from './types'
 import { resolveCommand } from './editor'
-import { getConfiguredAgentProxy } from './proxy'
+import { getConfiguredAgentProxy, normalizeProxy } from './proxy'
 
-function getCodexArgs(root: string, options: DevInspectPluginOptions) {
+function getCodexArgs(root: string, options: AiInsPluginOptions) {
   const args = ['--ask-for-approval', 'never', 'exec', '--json', '--cd', root, '--sandbox', 'workspace-write', '--ephemeral', '--color', 'never']
-  const model = options.codex?.model || process.env.CODEX_INSPECT_MODEL
+  const model = options.codex?.model || process.env.AI_INS_CODEX_MODEL
 
   if (model) {
     args.push('--model', model)
@@ -14,7 +14,7 @@ function getCodexArgs(root: string, options: DevInspectPluginOptions) {
   return args
 }
 
-function getBuiltinAgentProviders(root: string, options: DevInspectPluginOptions, pluginProxy: string): ResolvedDevInspectAgentProvider[] {
+function getBuiltinAgentProviders(root: string, options: AiInsPluginOptions, pluginProxy: string): ResolvedAiInsAgentProvider[] {
   const codexProxy = getConfiguredAgentProxy(options.codex?.proxy, pluginProxy)
 
   return [
@@ -29,19 +29,28 @@ function getBuiltinAgentProviders(root: string, options: DevInspectPluginOptions
       proxy: codexProxy,
     },
     {
-      args: ['-p', '--permission-mode', 'acceptEdits', '--output-format', 'stream-json', '--include-partial-messages', '--no-session-persistence'],
+      args: [
+        '-p',
+        '--permission-mode',
+        'acceptEdits',
+        '--output-format',
+        'stream-json',
+        '--verbose',
+        '--include-partial-messages',
+        '--no-session-persistence',
+      ],
       command: process.env.CLAUDE_CLI || 'claude',
       enabled: true,
       id: 'claude',
       input: 'argument',
       label: 'Claude',
       output: 'jsonl',
-      proxy: getConfiguredAgentProxy('', pluginProxy),
+      proxy: normalizeProxy(pluginProxy),
     },
     {
       args: [],
       command: '',
-      disabledReason: 'Copilot 还没有标准的本地改码 CLI，请在 devInspectPlugin({ agents: { providers: [...] } }) 里配置适配器。',
+      disabledReason: 'Copilot 还没有标准的本地改码 CLI，请在 aiIns({ agents: { providers: [...] } }) 里配置适配器。',
       enabled: false,
       id: 'copilot',
       input: 'stdin',
@@ -53,10 +62,10 @@ function getBuiltinAgentProviders(root: string, options: DevInspectPluginOptions
 }
 
 function mergeAgentProvider(
-  base: ResolvedDevInspectAgentProvider | undefined,
-  input: DevInspectAgentProviderInput,
+  base: ResolvedAiInsAgentProvider | undefined,
+  input: AiInsAgentProviderInput,
   pluginProxy: string,
-): ResolvedDevInspectAgentProvider {
+): ResolvedAiInsAgentProvider {
   return {
     args: input.args ?? base?.args ?? [],
     command: input.command ?? base?.command ?? '',
@@ -70,7 +79,7 @@ function mergeAgentProvider(
   }
 }
 
-export function resolveAgentProviders(root: string, options: DevInspectPluginOptions, pluginProxy: string) {
+export function resolveAgentProviders(root: string, options: AiInsPluginOptions, pluginProxy: string) {
   const providers = new Map(getBuiltinAgentProviders(root, options, pluginProxy).map((provider) => [provider.id, provider]))
 
   for (const providerInput of options.agents?.providers ?? []) {
@@ -102,7 +111,7 @@ export function resolveAgentProviders(root: string, options: DevInspectPluginOpt
   })
 }
 
-export function getClientAgentProviders(root: string, options: DevInspectPluginOptions, pluginProxy: string): DevInspectClientAgentProvider[] {
+export function getClientAgentProviders(root: string, options: AiInsPluginOptions, pluginProxy: string): AiInsClientAgentProvider[] {
   return resolveAgentProviders(root, options, pluginProxy).map((provider) => ({
     disabledReason: provider.disabledReason,
     enabled: provider.enabled,
@@ -111,7 +120,7 @@ export function getClientAgentProviders(root: string, options: DevInspectPluginO
   }))
 }
 
-export function getDefaultAgentProviderId(providers: DevInspectClientAgentProvider[], preferredProviderId = 'codex') {
+export function getDefaultAgentProviderId(providers: AiInsClientAgentProvider[], preferredProviderId = 'codex') {
   return (
     providers.find((provider) => provider.id === preferredProviderId && provider.enabled)?.id ||
     providers.find((provider) => provider.enabled)?.id ||

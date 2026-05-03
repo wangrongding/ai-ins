@@ -2,7 +2,7 @@ import { formatAgentJsonLine } from './agent-output'
 import { getEditorArgs, resolveCommand, resolveLaunchEditor } from './editor'
 import { getDefaultAgentProviderId, resolveAgentProviders } from './providers'
 import { getAgentEnv, normalizeProxy } from './proxy'
-import { appendCodexInspectEvent, codexInspectRuns, createCodexInspectRun, getCodexInspectRunSummary, sendCodexInspectEvent } from './run-store'
+import { appendAiInsEvent, aiInsRuns, createAiInsRun, getAiInsRunSummary, sendAiInsEvent } from './run-store'
 import {
   buildAgentPrompt,
   getLayerNameForTarget,
@@ -16,9 +16,9 @@ import {
 import { spawn } from 'child_process'
 import { createWriteStream, existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
-import type { DevInspectMiddleware, DevInspectPluginOptions } from './types'
+import type { AiInsMiddleware, AiInsPluginOptions } from './types'
 
-export function codexInspectEventsMiddleware(): DevInspectMiddleware {
+export function aiInsEventsMiddleware(): AiInsMiddleware {
   return (req, res) => {
     if (req.method !== 'GET') {
       res.statusCode = 405
@@ -28,11 +28,11 @@ export function codexInspectEventsMiddleware(): DevInspectMiddleware {
 
     const requestUrl = req.url ? new URL(req.url, 'http://localhost') : null
     const runId = requestUrl?.searchParams.get('id') || ''
-    const run = codexInspectRuns.get(runId)
+    const run = aiInsRuns.get(runId)
 
     if (!run) {
       res.statusCode = 404
-      res.end('dev inspect agent run not found')
+      res.end('AI Ins run not found')
       return
     }
 
@@ -45,7 +45,7 @@ export function codexInspectEventsMiddleware(): DevInspectMiddleware {
 
     run.subscribers.add(res)
     for (const event of run.events) {
-      sendCodexInspectEvent(res, event)
+      sendAiInsEvent(res, event)
     }
 
     if (run.completed) {
@@ -59,14 +59,14 @@ export function codexInspectEventsMiddleware(): DevInspectMiddleware {
   }
 }
 
-export function codexInspectRunsMiddleware(root: string): DevInspectMiddleware {
+export function aiInsRunsMiddleware(root: string): AiInsMiddleware {
   return (req, res) => {
     const requestUrl = req.url ? new URL(req.url, 'http://localhost') : null
 
     if (req.method === 'GET') {
-      const runs = [...codexInspectRuns.entries()]
+      const runs = [...aiInsRuns.entries()]
         .sort(([, firstRun], [, secondRun]) => secondRun.createdAt - firstRun.createdAt)
-        .map(([runId, run]) => getCodexInspectRunSummary(runId, run, root))
+        .map(([runId, run]) => getAiInsRunSummary(runId, run, root))
 
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify({ runs }))
@@ -75,11 +75,11 @@ export function codexInspectRunsMiddleware(root: string): DevInspectMiddleware {
 
     if (req.method === 'DELETE') {
       const runId = requestUrl?.searchParams.get('id') || ''
-      const run = codexInspectRuns.get(runId)
+      const run = aiInsRuns.get(runId)
 
       if (!run) {
         res.statusCode = 404
-        res.end('dev inspect agent run not found')
+        res.end('AI Ins run not found')
         return
       }
 
@@ -91,7 +91,7 @@ export function codexInspectRunsMiddleware(root: string): DevInspectMiddleware {
         subscriber.end()
       }
 
-      codexInspectRuns.delete(runId)
+      aiInsRuns.delete(runId)
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify({ success: true }))
       return
@@ -102,7 +102,7 @@ export function codexInspectRunsMiddleware(root: string): DevInspectMiddleware {
   }
 }
 
-export function codexInspectEditMiddleware(root: string, options: DevInspectPluginOptions, pluginProxy: string): DevInspectMiddleware {
+export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, pluginProxy: string): AiInsMiddleware {
   return async (req, res) => {
     if (req.method !== 'POST') {
       res.statusCode = 405
@@ -134,7 +134,7 @@ export function codexInspectEditMiddleware(root: string, options: DevInspectPlug
 
       if (!provider) {
         res.statusCode = 400
-        res.end(`unknown inspect agent provider: ${requestedProviderId}`)
+        res.end(`unknown AI Ins agent provider: ${requestedProviderId}`)
         return
       }
 
@@ -182,7 +182,7 @@ export function codexInspectEditMiddleware(root: string, options: DevInspectPlug
         root,
       })
 
-      const logDirectory = join(root, '.codex', 'dev-inspect')
+      const logDirectory = join(root, '.codex', 'ai-ins')
       mkdirSync(logDirectory, { recursive: true })
       const runId = `${new Date().toISOString().replace(/[:.]/gu, '-')}-${provider.id}`
       const logPath = join(logDirectory, `${runId}.log`)
@@ -194,9 +194,9 @@ export function codexInspectEditMiddleware(root: string, options: DevInspectPlug
 
       logStream.write(`$ ${agentCommand} ${provider.input === 'argument' ? `${provider.args.join(' ')} <prompt>` : args.join(' ')}\n\n${prompt}\n\n`)
       if (proxy) {
-        logStream.write(`[inspect] using proxy ${proxy}\n\n`)
+        logStream.write(`[ai-ins] using proxy ${proxy}\n\n`)
       }
-      createCodexInspectRun(runId, logPath, provider, {
+      createAiInsRun(runId, logPath, provider, {
         fileName,
         lineNumber,
         prompt: rawPrompt,
@@ -209,7 +209,7 @@ export function codexInspectEditMiddleware(root: string, options: DevInspectPlug
         env: getAgentEnv(proxy),
         stdio: ['pipe', 'pipe', 'pipe'],
       })
-      const run = codexInspectRuns.get(runId)
+      const run = aiInsRuns.get(runId)
       if (run) {
         run.child = child
       }
@@ -221,7 +221,7 @@ export function codexInspectEditMiddleware(root: string, options: DevInspectPlug
           return
         }
 
-        appendCodexInspectEvent(runId, {
+        appendAiInsEvent(runId, {
           logPath,
           message: `${provider.label} 运行中 · ${Math.max(1, Math.round((Date.now() - startedAt) / 1000))}s`,
           providerId: provider.id,
@@ -231,7 +231,7 @@ export function codexInspectEditMiddleware(root: string, options: DevInspectPlug
       }, 5000)
       ;(heartbeatTimer as unknown as { unref?: () => void }).unref?.()
 
-      appendCodexInspectEvent(runId, {
+      appendAiInsEvent(runId, {
         logPath,
         message: proxy ? `${provider.label} CLI started with proxy ${proxy}` : `${provider.label} CLI started`,
         pid: child.pid,
@@ -241,7 +241,7 @@ export function codexInspectEditMiddleware(root: string, options: DevInspectPlug
       })
 
       const appendOutput = (message: string, stream: 'stderr' | 'stdout') => {
-        appendCodexInspectEvent(runId, {
+        appendAiInsEvent(runId, {
           message,
           providerId: provider.id,
           providerLabel: provider.label,
@@ -300,13 +300,13 @@ export function codexInspectEditMiddleware(root: string, options: DevInspectPlug
       child.on('error', (error) => {
         completed = true
         clearInterval(heartbeatTimer)
-        const run = codexInspectRuns.get(runId)
+        const run = aiInsRuns.get(runId)
         if (run) {
           run.completed = true
         }
 
-        logStream.write(`\n[inspect] ${provider.label} failed to start: ${error.message}\n`)
-        appendCodexInspectEvent(runId, {
+        logStream.write(`\n[ai-ins] ${provider.label} failed to start: ${error.message}\n`)
+        appendAiInsEvent(runId, {
           message: error.message,
           providerId: provider.id,
           providerLabel: provider.label,
@@ -318,13 +318,13 @@ export function codexInspectEditMiddleware(root: string, options: DevInspectPlug
         completed = true
         clearInterval(heartbeatTimer)
         flushStdoutBuffer()
-        const run = codexInspectRuns.get(runId)
+        const run = aiInsRuns.get(runId)
         if (run) {
           run.completed = true
         }
 
-        logStream.write(`\n[inspect] ${provider.label} exited with code=${code ?? 'null'} signal=${signal ?? 'null'}\n`)
-        appendCodexInspectEvent(runId, {
+        logStream.write(`\n[ai-ins] ${provider.label} exited with code=${code ?? 'null'} signal=${signal ?? 'null'}\n`)
+        appendAiInsEvent(runId, {
           code,
           providerId: provider.id,
           providerLabel: provider.label,
@@ -354,14 +354,14 @@ export function codexInspectEditMiddleware(root: string, options: DevInspectPlug
       )
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      console.error('[inspect] agent edit failed:', message)
+      console.error('[ai-ins] AI Ins agent failed:', message)
       res.statusCode = 500
       res.end(message)
     }
   }
 }
 
-export function openInEditorMiddleware(root: string): DevInspectMiddleware {
+export function openInEditorMiddleware(root: string): AiInsMiddleware {
   return (req, res) => {
     const requestUrl = req.url ? new URL(req.url, 'http://localhost') : null
     const rawTarget = requestUrl?.searchParams.get('file')
@@ -397,7 +397,7 @@ export function openInEditorMiddleware(root: string): DevInspectMiddleware {
       res.end(JSON.stringify({ editor, fileName, lineNumber, columnNumber }))
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      console.error('[inspect] open-in-editor failed:', message)
+      console.error('[ai-ins] open in editor failed:', message)
       res.statusCode = 500
       res.end(message)
     }

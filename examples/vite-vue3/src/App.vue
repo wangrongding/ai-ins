@@ -1,8 +1,8 @@
 <template>
   <main class="hero">
-    <span class="badge">Agent Dev</span>
+    <span class="badge">AI Ins</span>
     <h1 class="title">按住 Option / Alt 点一下页面，AI 帮你改代码</h1>
-    <p class="desc">看到页面上哪里想改？直接点它。Agent Dev 会自动找到对应的源码，告诉 AI 该改哪里。</p>
+    <p class="desc">看到页面上哪里想改？直接点它。AI Ins 会自动找到对应的源码，告诉 AI 该改哪里。</p>
     <p class="desc">不用翻文件、不用找代码——说一句你想怎么改，AI 直接帮你搞定。</p>
     <button class="btn" type="button">试一试</button>
   </main>
@@ -17,8 +17,8 @@
   min-height: 100vh;
   padding: 3rem 2rem;
   background:
-    radial-gradient(ellipse 80% 60% at 50% 0%, #3b2d7040 0%, transparent 70%),
-    linear-gradient(160deg, #0a0a1a 0%, #1a1035 40%, #0d1b2a 100%);
+    radial-gradient(ellipse 80% 60% at 50% 0%, #0ea5e920 0%, transparent 70%),
+    linear-gradient(160deg, #0f172a 0%, #1e293b 40%, #0f172a 100%);
   color: #e0e0e0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   text-align: center;

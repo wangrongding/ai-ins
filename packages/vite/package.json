@@ -1,7 +1,7 @@
 {
-  "name": "@agent-dev/vite",
+  "name": "@ai-ins/vite",
   "version": "0.2.0",
-  "description": "Vite plugin for Agent Dev.",
+  "description": "Vite plugin for AI Ins.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -16,6 +16,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
     "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --watch",
@@ -32,7 +35,9 @@
     "vite": "^5.0.0 || ^6.0.0 || ^7.0.0"
   },
   "dependencies": {
-    "@agent-dev/core": "workspace:*",
-    "@babel/core": "^7.29.0"
+    "@ai-ins/core": "workspace:*",
+    "@babel/core": "^7.29.0",
+    "@vue/compiler-dom": "^3.5.13",
+    "@vue/compiler-sfc": "^3.5.13"
   }
 }

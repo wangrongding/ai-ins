@@ -1,7 +1,7 @@
 {
-  "name": "@agent-dev/core",
+  "name": "@ai-ins/core",
   "version": "0.2.0",
-  "description": "Core runtime for Agent Dev bundler plugins.",
+  "description": "Core runtime for AI Ins bundler plugins.",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -16,6 +16,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --shims && cp -R src/client dist/client",
     "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --shims --watch --onSuccess \"rm -rf dist/client && cp -R src/client dist/client\"",

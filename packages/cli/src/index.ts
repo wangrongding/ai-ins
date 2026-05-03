@@ -18,28 +18,28 @@ type PackageJson = {
   packageManager?: string
 }
 
-const agentDevPackages: Record<Bundler, string> = {
-  vite: '@agent-dev/vite',
-  webpack: '@agent-dev/webpack',
+const aiInsPackages: Record<Bundler, string> = {
+  vite: '@ai-ins/vite',
+  webpack: '@ai-ins/webpack',
 }
 
 const viteConfigFiles = ['vite.config.ts', 'vite.config.mts', 'vite.config.js', 'vite.config.mjs', 'vite.config.cts', 'vite.config.cjs']
 const webpackConfigFiles = ['webpack.config.ts', 'webpack.config.mts', 'webpack.config.js', 'webpack.config.mjs', 'webpack.config.cts', 'webpack.config.cjs']
 
 function printHelp() {
-  console.log(`agent-dev
+  console.log(`ai-ins
 
 Usage:
-  agent-dev init [--bundler vite|webpack] [--no-install]
+  ai-ins init [--bundler vite|webpack] [--no-install]
 
 Examples:
-  npx agent-dev init
-  npx agent-dev init --bundler vite
+  npx ai-ins init
+  npx ai-ins init --bundler vite
 `)
 }
 
 function fail(message: string): never {
-  console.error(`agent-dev: ${message}`)
+  console.error(`ai-ins: ${message}`)
   process.exit(1)
 }
 
@@ -330,18 +330,18 @@ function patchViteConfig(root: string) {
   if (!existsSync(configFile)) {
     writeFileSync(
       configFile,
-      `import agentDev from '@agent-dev/vite'\nimport { defineConfig } from 'vite'\n\nexport default defineConfig({\n  plugins: [agentDev()],\n})\n`,
+      `import aiIns from '@ai-ins/vite'\nimport { defineConfig } from 'vite'\n\nexport default defineConfig({\n  plugins: [aiIns()],\n})\n`,
     )
     return configFile
   }
 
   const code = readFileSync(configFile, 'utf-8')
-  if (code.includes('@agent-dev/vite')) {
+  if (code.includes('@ai-ins/vite')) {
     return configFile
   }
 
-  const importName = uniqueIdentifier(code, 'agentDev')
-  const withImport = insertImport(code, `import ${importName} from '@agent-dev/vite'`)
+  const importName = uniqueIdentifier(code, 'aiIns')
+  const withImport = insertImport(code, `import ${importName} from '@ai-ins/vite'`)
   const patched = patchPluginConfig(withImport, `${importName}()`, 'start')
   if (!patched) {
     fail(`could not update ${configFile}. Add ${importName}() to the Vite plugins array manually.`)
@@ -356,25 +356,25 @@ function patchWebpackConfig(root: string) {
   if (!existsSync(configFile)) {
     writeFileSync(
       configFile,
-      `const { AgentDevWebpackPlugin } = require('@agent-dev/webpack')\n\nmodule.exports = {\n  devServer: {},\n  plugins: [new AgentDevWebpackPlugin()],\n}\n`,
+      `const { AiInsWebpackPlugin } = require('@ai-ins/webpack')\n\nmodule.exports = {\n  devServer: {},\n  plugins: [new AiInsWebpackPlugin()],\n}\n`,
     )
     return configFile
   }
 
   const code = readFileSync(configFile, 'utf-8')
-  if (code.includes('@agent-dev/webpack')) {
+  if (code.includes('@ai-ins/webpack')) {
     return configFile
   }
 
-  const className = uniqueIdentifier(code, 'AgentDevWebpackPlugin')
+  const className = uniqueIdentifier(code, 'AiInsWebpackPlugin')
   const isCommonJs = configFile.endsWith('.cjs') || code.includes('module.exports') || code.includes('require(')
   const statement = isCommonJs
-    ? className === 'AgentDevWebpackPlugin'
-      ? `const { AgentDevWebpackPlugin } = require('@agent-dev/webpack')`
-      : `const { AgentDevWebpackPlugin: ${className} } = require('@agent-dev/webpack')`
-    : className === 'AgentDevWebpackPlugin'
-      ? `import { AgentDevWebpackPlugin } from '@agent-dev/webpack'`
-      : `import { AgentDevWebpackPlugin as ${className} } from '@agent-dev/webpack'`
+    ? className === 'AiInsWebpackPlugin'
+      ? `const { AiInsWebpackPlugin } = require('@ai-ins/webpack')`
+      : `const { AiInsWebpackPlugin: ${className} } = require('@ai-ins/webpack')`
+    : className === 'AiInsWebpackPlugin'
+      ? `import { AiInsWebpackPlugin } from '@ai-ins/webpack'`
+      : `import { AiInsWebpackPlugin as ${className} } from '@ai-ins/webpack'`
   const withImport = isCommonJs ? insertRequire(code, statement) : insertImport(code, statement)
   const patched = patchPluginConfig(withImport, `new ${className}()`)
   if (!patched) {
@@ -394,16 +394,16 @@ function runInit(args: string[]) {
 
   const packageJson = readJsonFile<PackageJson>(packageJsonPath)
   const bundler = detectBundler(options.cwd, packageJson, options.bundler)
-  const packageName = agentDevPackages[bundler]
+  const packageName = aiInsPackages[bundler]
 
-  console.log(`Agent Dev init (${bundler})`)
+  console.log(`AI Ins init (${bundler})`)
   if (options.install) {
     installPackage(options.cwd, packageJson, packageName)
   }
 
   const configFile = bundler === 'vite' ? patchViteConfig(options.cwd) : patchWebpackConfig(options.cwd)
   console.log(`- Updated ${configFile}`)
-  console.log('Done. Restart your dev server to load Agent Dev.')
+  console.log('Done. Restart your dev server to load AI Ins.')
 }
 
 function main(args: string[]) {

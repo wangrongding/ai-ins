@@ -170,7 +170,7 @@ export function buildAgentPrompt(options: {
       ? `${displayPath}:${lineNumber}:${columnNumber}-${endLineNumber}:${endColumnNumber}`
       : `${displayPath}:${lineNumber}:${columnNumber}`
 
-  return `You are an AI coding agent invoked from Agent Dev's dev inspect tool after the user Option-clicked a DOM node in the running Vite app.
+  return `You are an AI coding agent invoked from AI Ins after the user Option-clicked a DOM node in the running app.
 
 User request:
 ${rawPrompt}

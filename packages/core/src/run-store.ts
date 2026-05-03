@@ -1,17 +1,17 @@
 import { getDisplayPath } from './source'
-import type { CodexInspectEvent, CodexInspectRun, ResolvedDevInspectAgentProvider } from './types'
+import type { AiInsEvent, AiInsRun, ResolvedAiInsAgentProvider } from './types'
 import type { ServerResponse } from 'http'
 
-const maxBufferedCodexInspectEvents = 800
+const maxBufferedAiInsEvents = 800
 
-export const codexInspectRuns = new Map<string, CodexInspectRun>()
+export const aiInsRuns = new Map<string, AiInsRun>()
 
-export function sendCodexInspectEvent(res: ServerResponse, event: CodexInspectEvent) {
+export function sendAiInsEvent(res: ServerResponse, event: AiInsEvent) {
   res.write(`data: ${JSON.stringify(event)}\n\n`)
 }
 
-export function appendCodexInspectEvent(runId: string, event: CodexInspectEvent) {
-  const run = codexInspectRuns.get(runId)
+export function appendAiInsEvent(runId: string, event: AiInsEvent) {
+  const run = aiInsRuns.get(runId)
   if (!run) {
     return
   }
@@ -40,19 +40,19 @@ export function appendCodexInspectEvent(runId: string, event: CodexInspectEvent)
   }
 
   run.events.push(event)
-  if (run.events.length > maxBufferedCodexInspectEvents) {
-    run.events.splice(0, run.events.length - maxBufferedCodexInspectEvents)
+  if (run.events.length > maxBufferedAiInsEvents) {
+    run.events.splice(0, run.events.length - maxBufferedAiInsEvents)
   }
 
   for (const subscriber of run.subscribers) {
-    sendCodexInspectEvent(subscriber, event)
+    sendAiInsEvent(subscriber, event)
   }
 }
 
-export function createCodexInspectRun(
+export function createAiInsRun(
   runId: string,
   logPath: string,
-  provider: Pick<ResolvedDevInspectAgentProvider, 'id' | 'label'>,
+  provider: Pick<ResolvedAiInsAgentProvider, 'id' | 'label'>,
   metadata: {
     fileName: string
     lineNumber: number
@@ -61,7 +61,7 @@ export function createCodexInspectRun(
     sourcePath: string
   },
 ) {
-  codexInspectRuns.set(runId, {
+  aiInsRuns.set(runId, {
     completed: false,
     createdAt: Date.now(),
     events: [],
@@ -79,19 +79,19 @@ export function createCodexInspectRun(
   })
 }
 
-function getRunOutput(run: CodexInspectRun, root: string) {
+function getRunOutput(run: AiInsRun, root: string) {
   const output = run.events
     .filter((event) => event.type === 'output' || event.type === 'error')
     .map((event) => {
       const prefix = event.stream === 'stderr' ? '[stderr] ' : ''
-      return event.type === 'error' ? `\n[inspect] ${event.message || 'Agent failed'}\n` : `${prefix}${event.message || ''}`
+      return event.type === 'error' ? `\n[ai-ins] ${event.message || 'Agent failed'}\n` : `${prefix}${event.message || ''}`
     })
     .join('')
 
   return `${run.providerLabel} 已启动\n日志：${getDisplayPath(run.logPath, root)}\n\n${output}`
 }
 
-export function getCodexInspectRunSummary(runId: string, run: CodexInspectRun, root: string) {
+export function getAiInsRunSummary(runId: string, run: AiInsRun, root: string) {
   return {
     code: run.code,
     completed: run.completed,

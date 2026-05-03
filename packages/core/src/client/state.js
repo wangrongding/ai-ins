@@ -3,18 +3,18 @@ const base = __WBX_BASE__
 const defaultProxy = __WBX_AGENT_PROXY__
 const agentProviders = __WBX_AGENT_PROVIDERS__
 const defaultAgentProviderId = __WBX_DEFAULT_AGENT_PROVIDER__
-const targetAttribute = 'data-dev-inspect-target'
-const sourceAttribute = 'data-agent-source'
-const sourceRangeAttribute = 'data-agent-source-range'
-const dockPositionStorageKey = 'agent-dev-dev-inspect-dock-position'
-const proxyStorageKey = 'agent-dev-dev-inspect-proxy'
-const providerStorageKey = 'agent-dev-dev-inspect-provider'
+const targetAttribute = 'data-ai-ins-target'
+const sourceAttribute = 'data-ai-ins-source'
+const sourceRangeAttribute = 'data-ai-ins-source-range'
+const dockPositionStorageKey = 'ai-ins-dock-position'
+const proxyStorageKey = 'ai-ins-proxy'
+const providerStorageKey = 'ai-ins-provider'
 
 let currentTarget
 let dockButton
 let dockPointerState
 let draftTarget
-let inspectPanel
+let aiInsPanel
 let panelRefs
 let selectedRunId
 let suppressDockClick = false

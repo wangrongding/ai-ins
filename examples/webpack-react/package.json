@@ -1,5 +1,5 @@
 {
-  "name": "@agent-dev/playground-webpack",
+  "name": "@ai-ins/playground-webpack",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@agent-dev/webpack": "workspace:*",
+    "@ai-ins/webpack": "workspace:*",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "html-webpack-plugin": "^5.6.0",

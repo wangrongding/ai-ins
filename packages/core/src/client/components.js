@@ -1,9 +1,9 @@
 function ensureDockButton() {
-  if (dockButton || !runs.length || inspectPanel) {
+  if (dockButton || !runs.length || aiInsPanel) {
     return
   }
 
-  dockButton = createElement('button', 'wbx-dev-inspect-dock')
+  dockButton = createElement('button', 'wbx-ai-ins-dock')
   dockButton.type = 'button'
   dockButton.addEventListener('click', (event) => {
     if (suppressDockClick) {
@@ -13,7 +13,7 @@ function ensureDockButton() {
       return
     }
 
-    showAgentPanel()
+    showAiInsPanel()
   })
   dockButton.style.visibility = 'hidden'
   installDockDrag()
@@ -24,7 +24,7 @@ function ensureDockButton() {
 }
 
 function updateDockButton() {
-  if (inspectPanel) {
+  if (aiInsPanel) {
     dockButton?.remove()
     dockButton = undefined
     return
@@ -42,8 +42,8 @@ function updateDockButton() {
   }
 
   const runningCount = runs.filter((run) => run.status === 'running' || run.status === 'starting').length
-  dockButton.classList.toggle('wbx-dev-inspect-dock-running', runningCount > 0)
-  dockButton.textContent = runningCount ? `${runningCount} 个任务运行中` : `${runs.length} 个 Inspect 任务`
+  dockButton.classList.toggle('wbx-ai-ins-dock-running', runningCount > 0)
+  dockButton.textContent = runningCount ? `${runningCount} 个任务运行中` : `${runs.length} 个 AI Ins 任务`
   window.requestAnimationFrame(() => applyDockPosition())
 }
 
@@ -57,27 +57,27 @@ function refreshRunList() {
   panelRefs.list.replaceChildren()
 
   if (!runs.length) {
-    const empty = createElement('div', 'wbx-dev-inspect-detail-empty', '还没有任务')
+    const empty = createElement('div', 'wbx-ai-ins-detail-empty', '还没有任务')
     panelRefs.list.append(empty)
     refreshRunDetail()
     return
   }
 
   for (const run of runs) {
-    const item = createElement('button', `wbx-dev-inspect-run${selectedRunId === run.id ? ' wbx-dev-inspect-run-active' : ''}`)
+    const item = createElement('button', `wbx-ai-ins-run${selectedRunId === run.id ? ' wbx-ai-ins-run-active' : ''}`)
     item.type = 'button'
 
-    const top = createElement('div', 'wbx-dev-inspect-run-top')
+    const top = createElement('div', 'wbx-ai-ins-run-top')
     top.append(
-      createElement('span', `wbx-dev-inspect-dot wbx-dev-inspect-dot-${run.status}`),
-      createElement('span', 'wbx-dev-inspect-run-title', getRunTitle(run)),
-      createElement('span', 'wbx-dev-inspect-run-provider', run.providerLabel),
+      createElement('span', `wbx-ai-ins-dot wbx-ai-ins-dot-${run.status}`),
+      createElement('span', 'wbx-ai-ins-run-title', getRunTitle(run)),
+      createElement('span', 'wbx-ai-ins-run-provider', run.providerLabel),
     )
 
     item.append(
       top,
-      createElement('div', 'wbx-dev-inspect-run-prompt', run.prompt),
-      createElement('div', 'wbx-dev-inspect-run-meta', `${getRunStatusLabel(run.status)} · ${formatRunTime(run.createdAt)}`),
+      createElement('div', 'wbx-ai-ins-run-prompt', run.prompt),
+      createElement('div', 'wbx-ai-ins-run-meta', `${getRunStatusLabel(run.status)} · ${formatRunTime(run.createdAt)}`),
     )
     item.addEventListener('click', () => {
       selectedRunId = run.id
@@ -99,39 +99,39 @@ function refreshRunDetail() {
   panelRefs.detail.replaceChildren()
 
   if (!run) {
-    panelRefs.detail.append(createElement('div', 'wbx-dev-inspect-detail-empty', '选择一个任务查看实时输出'))
+    panelRefs.detail.append(createElement('div', 'wbx-ai-ins-detail-empty', '选择一个任务查看实时输出'))
     return
   }
 
   selectedRunId = run.id
-  const header = createElement('div', 'wbx-dev-inspect-detail-head')
+  const header = createElement('div', 'wbx-ai-ins-detail-head')
   const titleWrap = createElement('div')
   titleWrap.append(
-    createElement('p', 'wbx-dev-inspect-detail-title', getRunTitle(run)),
+    createElement('p', 'wbx-ai-ins-detail-title', getRunTitle(run)),
     createElement(
       'div',
-      'wbx-dev-inspect-detail-subtitle',
+      'wbx-ai-ins-detail-subtitle',
       `${run.providerLabel} · ${getDisplayPath(run.sourcePath)} · ${getDisplayPath(run.logPath)}`,
     ),
   )
-  const detailActions = createElement('div', 'wbx-dev-inspect-detail-actions')
-  const deleteButton = createElement('button', 'wbx-dev-inspect-button wbx-dev-inspect-button-danger', run.completed ? '删除' : '停止并删除')
+  const detailActions = createElement('div', 'wbx-ai-ins-detail-actions')
+  const deleteButton = createElement('button', 'wbx-ai-ins-button wbx-ai-ins-button-danger', run.completed ? '删除' : '停止并删除')
   deleteButton.type = 'button'
   deleteButton.addEventListener('click', () => void deleteRun(run))
-  detailActions.append(createElement('span', 'wbx-dev-inspect-pill', getRunStatusLabel(run.status)), deleteButton)
+  detailActions.append(createElement('span', 'wbx-ai-ins-pill', getRunStatusLabel(run.status)), deleteButton)
   header.append(titleWrap, detailActions)
 
-  const prompt = createElement('p', 'wbx-dev-inspect-prompt', run.prompt)
+  const prompt = createElement('p', 'wbx-ai-ins-prompt', run.prompt)
   const outputWrapState = isRunWorking(run) ? 'active' : run.status
-  const outputWrap = createElement('div', `wbx-dev-inspect-output-wrap wbx-dev-inspect-output-wrap-${outputWrapState}`)
-  const output = createElement('pre', `wbx-dev-inspect-output${run.status === 'failed' ? ' wbx-dev-inspect-output-error' : ''}`)
+  const outputWrap = createElement('div', `wbx-ai-ins-output-wrap wbx-ai-ins-output-wrap-${outputWrapState}`)
+  const output = createElement('pre', `wbx-ai-ins-output${run.status === 'failed' ? ' wbx-ai-ins-output-error' : ''}`)
   const outputText = run.output || run.statusMessage || '等待输出...'
   output.textContent = outputText.endsWith('\n') ? `${outputText}\n` : `${outputText}\n`
 
-  const outputState = createElement('div', `wbx-dev-inspect-output-state wbx-dev-inspect-output-state-${isRunWorking(run) ? 'active' : run.status}`)
+  const outputState = createElement('div', `wbx-ai-ins-output-state wbx-ai-ins-output-state-${isRunWorking(run) ? 'active' : run.status}`)
   outputState.append(
-    createElement('span', 'wbx-dev-inspect-output-state-dot'),
-    createElement('span', 'wbx-dev-inspect-output-state-text', getRunWorkStatus(run)),
+    createElement('span', 'wbx-ai-ins-output-state-dot'),
+    createElement('span', 'wbx-ai-ins-output-state-text', getRunWorkStatus(run)),
   )
   if (isRunWorking(run)) {
     outputState.append(createLoadingSpinner())

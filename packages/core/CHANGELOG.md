@@ -1,4 +1,4 @@
-# @agent-dev/core
+# @ai-ins/core
 
 ## 0.2.0
 

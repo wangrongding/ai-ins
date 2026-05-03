@@ -2,8 +2,8 @@ const { transformSync } = require('@babel/core')
 const transformReactJsx = require('@babel/plugin-transform-react-jsx')
 const transformTypeScript = require('@babel/plugin-transform-typescript')
 
-const sourceAttribute = 'data-agent-source'
-const sourceRangeAttribute = 'data-agent-source-range'
+const sourceAttribute = 'data-ai-ins-source'
+const sourceRangeAttribute = 'data-ai-ins-source-range'
 
 function isNativeJsxElementName(name) {
   return Boolean(name && name.type === 'JSXIdentifier' && typeof name.name === 'string' && /^[a-z]/u.test(name.name))
@@ -23,7 +23,7 @@ function hasSourceAttribute(attributes) {
 
 function createAgentSourcePlugin(fileName) {
   return {
-    name: 'agent-dev-source-attribute',
+    name: 'ai-ins-source-attribute',
     visitor: {
       JSXOpeningElement(path) {
         const { node } = path
@@ -55,7 +55,7 @@ function createAgentSourcePlugin(fileName) {
   }
 }
 
-module.exports = function agentDevSourceLoader(code, inputMap) {
+module.exports = function aiInsSourceLoader(code, inputMap) {
   const callback = this.async()
   const fileName = this.resourcePath
 

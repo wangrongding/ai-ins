@@ -23,7 +23,7 @@ export function normalizeProxy(rawProxy: unknown) {
 export function getConfiguredCodexProxy(pluginProxy = '') {
   return (
     normalizeProxy(pluginProxy) ||
-    normalizeProxy(process.env.CODEX_INSPECT_PROXY) ||
+    normalizeProxy(process.env.AI_INS_PROXY) ||
     normalizeProxy(process.env.HTTPS_PROXY) ||
     normalizeProxy(process.env.HTTP_PROXY) ||
     normalizeProxy(process.env.ALL_PROXY) ||
@@ -38,7 +38,7 @@ export function getConfiguredAgentProxy(providerProxy = '', fallbackProxy = '') 
   return (
     normalizeProxy(providerProxy) ||
     normalizeProxy(fallbackProxy) ||
-    normalizeProxy(process.env.CODEX_INSPECT_PROXY) ||
+    normalizeProxy(process.env.AI_INS_PROXY) ||
     normalizeProxy(process.env.HTTPS_PROXY) ||
     normalizeProxy(process.env.HTTP_PROXY) ||
     normalizeProxy(process.env.ALL_PROXY) ||

@@ -5,7 +5,7 @@ function clearOverlay() {
 
   const target = document.querySelector(`[${targetAttribute}]`)
   if (target instanceof HTMLElement) {
-    delete target.dataset.devInspectTarget
+    delete target.dataset.aiInsTarget
   }
 
   currentTarget = undefined
@@ -15,13 +15,13 @@ function cleanUp() {
   clearOverlay()
 }
 
-function closeAgentPanel() {
-  if (!inspectPanel) {
+function closeAiInsPanel() {
+  if (!aiInsPanel) {
     return
   }
 
-  inspectPanel.remove()
-  inspectPanel = undefined
+  aiInsPanel.remove()
+  aiInsPanel = undefined
   panelRefs = undefined
   updateDockButton()
 }
@@ -111,9 +111,9 @@ function saveStoredProviderId(providerId) {
 
 function readStoredProxy() {
   try {
-    return window.localStorage.getItem(proxyStorageKey) || defaultProxy || ''
+    return window.localStorage.getItem(proxyStorageKey) || ''
   } catch {
-    return defaultProxy || ''
+    return ''
   }
 }
 
@@ -212,7 +212,7 @@ function installDockDrag() {
     if (movedDistance > 4) {
       dockPointerState.didDrag = true
       suppressDockClick = true
-      dockButton.classList.add('wbx-dev-inspect-dock-dragging')
+      dockButton.classList.add('wbx-ai-ins-dock-dragging')
     }
 
     event.preventDefault()
@@ -229,7 +229,7 @@ function installDockDrag() {
 
     const didDrag = dockPointerState.didDrag
     dockButton.releasePointerCapture?.(event.pointerId)
-    dockButton.classList.remove('wbx-dev-inspect-dock-dragging')
+    dockButton.classList.remove('wbx-ai-ins-dock-dragging')
     dockPointerState = undefined
 
     if (didDrag) {
@@ -247,7 +247,7 @@ function installDockDrag() {
     }
 
     dockButton.releasePointerCapture?.(event.pointerId)
-    dockButton.classList.remove('wbx-dev-inspect-dock-dragging')
+    dockButton.classList.remove('wbx-ai-ins-dock-dragging')
     dockPointerState = undefined
     suppressDockClick = false
   })

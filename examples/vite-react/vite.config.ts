@@ -1,13 +1,14 @@
-import agentDev from '@agent-dev/vite'
+import aiIns from '@ai-ins/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [
-    agentDev(), // 注册 Agent Dev 插件
+    aiIns(), // 注册 AI Ins 插件
     react(),
   ],
   server: {
     open: true,
+    port: 5173,
   },
 })

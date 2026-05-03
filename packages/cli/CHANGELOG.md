@@ -1,4 +1,4 @@
-# agent-dev
+# ai-ins
 
 ## 0.2.0
 

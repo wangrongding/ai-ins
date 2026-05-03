@@ -4,7 +4,7 @@ import { join } from 'path'
 const clientRuntimeFiles = [
   'state.js',
   'dom.js',
-  'inspector-dom.js',
+  'ai-ins-dom.js',
   'api.js',
   'run-model.js',
   'components.js',
@@ -18,7 +18,7 @@ function getClientRuntimeDirectory() {
   return existsSync(sourcePath) ? sourcePath : join(__dirname, 'client')
 }
 
-export function getDevInspectClientSource() {
+export function getAiInsClientSource() {
   const clientRuntimeDirectory = getClientRuntimeDirectory()
   const style = readFileSync(join(clientRuntimeDirectory, 'style.css'), 'utf-8')
   const scripts = clientRuntimeFiles.map((fileName) => readFileSync(join(clientRuntimeDirectory, fileName), 'utf-8'))

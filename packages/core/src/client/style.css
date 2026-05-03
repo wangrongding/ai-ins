@@ -3,13 +3,13 @@
   cursor: pointer !important;
 }
 
-.wbx-dev-inspect-dialog,
-.wbx-dev-inspect-dialog *,
-.wbx-dev-inspect-dock {
+.wbx-ai-ins-dialog,
+.wbx-ai-ins-dialog *,
+.wbx-ai-ins-dock {
   box-sizing: border-box;
 }
 
-.wbx-dev-inspect-dialog {
+.wbx-ai-ins-dialog {
   position: fixed;
   inset: 0;
   z-index: 2147483647;
@@ -28,7 +28,7 @@
     sans-serif;
 }
 
-.wbx-dev-inspect-panel {
+.wbx-ai-ins-panel {
   width: min(1060px, 100%);
   max-height: min(760px, calc(100vh - 44px));
   overflow: hidden;
@@ -40,7 +40,7 @@
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
 }
 
-.wbx-dev-inspect-header {
+.wbx-ai-ins-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -50,11 +50,11 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.wbx-dev-inspect-heading {
+.wbx-ai-ins-heading {
   min-width: 0;
 }
 
-.wbx-dev-inspect-title {
+.wbx-ai-ins-title {
   margin: 0;
   font-size: 15px;
   font-weight: 700;
@@ -62,7 +62,7 @@
   color: #f8fafc;
 }
 
-.wbx-dev-inspect-subtitle {
+.wbx-ai-ins-subtitle {
   margin-top: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -72,14 +72,14 @@
   color: #93a4b8;
 }
 
-.wbx-dev-inspect-body {
+.wbx-ai-ins-body {
   display: grid;
   grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
   min-height: min(520px, calc(100vh - 103px));
   max-height: calc(min(760px, 100vh - 44px) - 59px);
 }
 
-.wbx-dev-inspect-sidebar {
+.wbx-ai-ins-sidebar {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -87,7 +87,7 @@
   background: rgba(255, 255, 255, 0.025);
 }
 
-.wbx-dev-inspect-sidebar-top {
+.wbx-ai-ins-sidebar-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -95,14 +95,14 @@
   padding: 12px 12px 8px;
 }
 
-.wbx-dev-inspect-section-label {
+.wbx-ai-ins-section-label {
   margin: 0;
   font-size: 11px;
   font-weight: 700;
   color: #cbd5e1;
 }
 
-.wbx-dev-inspect-count {
+.wbx-ai-ins-count {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 999px;
   padding: 2px 7px;
@@ -110,7 +110,7 @@
   font-size: 10px;
 }
 
-.wbx-dev-inspect-list {
+.wbx-ai-ins-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -119,7 +119,7 @@
   padding: 0 8px 12px;
 }
 
-.wbx-dev-inspect-run {
+.wbx-ai-ins-run {
   width: 100%;
   min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.075);
@@ -132,24 +132,24 @@
   font: inherit;
 }
 
-.wbx-dev-inspect-run:hover {
+.wbx-ai-ins-run:hover {
   border-color: rgba(148, 163, 184, 0.38);
   background: rgba(255, 255, 255, 0.07);
 }
 
-.wbx-dev-inspect-run-active {
+.wbx-ai-ins-run-active {
   border-color: rgba(56, 189, 248, 0.58);
   background: rgba(14, 165, 233, 0.11);
 }
 
-.wbx-dev-inspect-run-top {
+.wbx-ai-ins-run-top {
   display: flex;
   align-items: center;
   gap: 8px;
   min-width: 0;
 }
 
-.wbx-dev-inspect-dot {
+.wbx-ai-ins-dot {
   width: 7px;
   height: 7px;
   flex: 0 0 auto;
@@ -157,80 +157,80 @@
   background: #94a3b8;
 }
 
-.wbx-dev-inspect-dot-running,
-.wbx-dev-inspect-dot-starting {
+.wbx-ai-ins-dot-running,
+.wbx-ai-ins-dot-starting {
   background: #38bdf8;
   box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.13);
 }
 
-.wbx-dev-inspect-dot-done {
+.wbx-ai-ins-dot-done {
   background: #34d399;
 }
 
-.wbx-dev-inspect-dot-failed,
-.wbx-dev-inspect-dot-disconnected {
+.wbx-ai-ins-dot-failed,
+.wbx-ai-ins-dot-disconnected {
   background: #fb7185;
 }
 
-.wbx-dev-inspect-run-title,
-.wbx-dev-inspect-run-prompt,
-.wbx-dev-inspect-run-meta {
+.wbx-ai-ins-run-title,
+.wbx-ai-ins-run-prompt,
+.wbx-ai-ins-run-meta {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.wbx-dev-inspect-run-title {
+.wbx-ai-ins-run-title {
   flex: 1;
   font-size: 12px;
   font-weight: 700;
   color: #f8fafc;
 }
 
-.wbx-dev-inspect-run-provider {
+.wbx-ai-ins-run-provider {
   flex: 0 0 auto;
   color: #9ca3af;
   font-size: 10px;
 }
 
-.wbx-dev-inspect-run-prompt {
+.wbx-ai-ins-run-prompt {
   margin-top: 6px;
   color: #cbd5e1;
   font-size: 11px;
 }
 
-.wbx-dev-inspect-run-meta {
+.wbx-ai-ins-run-meta {
   margin-top: 5px;
   color: #7f8ea3;
   font-size: 10px;
 }
 
-.wbx-dev-inspect-main {
+.wbx-ai-ins-main {
   min-width: 0;
   min-height: 0;
   overflow: auto;
   padding: 14px;
 }
 
-.wbx-dev-inspect-composer {
+.wbx-ai-ins-composer {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.035);
   padding: 12px;
 }
 
-.wbx-dev-inspect-form-grid {
+.wbx-ai-ins-form-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(150px, 190px);
   gap: 10px;
 }
 
-.wbx-dev-inspect-field {
+.wbx-ai-ins-field {
   min-width: 0;
 }
 
-.wbx-dev-inspect-label {
+.wbx-ai-ins-label {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -241,15 +241,15 @@
   color: #cbd5e1;
 }
 
-.wbx-dev-inspect-label-hint {
+.wbx-ai-ins-label-hint {
   flex-shrink: 0;
   color: #64748b;
   font-weight: 500;
 }
 
-.wbx-dev-inspect-select,
-.wbx-dev-inspect-input,
-.wbx-dev-inspect-textarea {
+.wbx-ai-ins-select,
+.wbx-ai-ins-input,
+.wbx-ai-ins-textarea {
   width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 12px;
@@ -259,21 +259,21 @@
   font: inherit;
 }
 
-.wbx-dev-inspect-select,
-.wbx-dev-inspect-input {
+.wbx-ai-ins-select,
+.wbx-ai-ins-input {
   height: 34px;
   padding: 0 10px;
   font-size: 12px;
 }
 
-.wbx-dev-inspect-select:focus,
-.wbx-dev-inspect-input:focus,
-.wbx-dev-inspect-textarea:focus {
+.wbx-ai-ins-select:focus,
+.wbx-ai-ins-input:focus,
+.wbx-ai-ins-textarea:focus {
   border-color: rgba(125, 211, 252, 0.48);
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
 }
 
-.wbx-dev-inspect-textarea {
+.wbx-ai-ins-textarea {
   display: block;
   min-height: 116px;
   margin-top: 10px;
@@ -283,7 +283,7 @@
   line-height: 1.55;
 }
 
-.wbx-dev-inspect-target {
+.wbx-ai-ins-target {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -296,7 +296,7 @@
   color: #b6c5d8;
 }
 
-.wbx-dev-inspect-footer {
+.wbx-ai-ins-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -304,7 +304,7 @@
   margin-top: 10px;
 }
 
-.wbx-dev-inspect-status {
+.wbx-ai-ins-status {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -313,13 +313,13 @@
   color: #94a3b8;
 }
 
-.wbx-dev-inspect-actions {
+.wbx-ai-ins-actions {
   display: flex;
   flex-shrink: 0;
   gap: 8px;
 }
 
-.wbx-dev-inspect-button {
+.wbx-ai-ins-button {
   height: 32px;
   border: 0;
   border-radius: 10px;
@@ -332,42 +332,42 @@
   font-weight: 700;
 }
 
-.wbx-dev-inspect-button:hover {
+.wbx-ai-ins-button:hover {
   background: rgba(255, 255, 255, 0.13);
 }
 
-.wbx-dev-inspect-button-primary {
+.wbx-ai-ins-button-primary {
   background: rgba(14, 165, 233, 0.9);
   color: #f8fafc;
 }
 
-.wbx-dev-inspect-button-primary:hover {
+.wbx-ai-ins-button-primary:hover {
   background: rgba(56, 189, 248, 0.96);
 }
 
-.wbx-dev-inspect-button-danger {
+.wbx-ai-ins-button-danger {
   background: rgba(244, 63, 94, 0.14);
   color: #fecdd3;
 }
 
-.wbx-dev-inspect-button-danger:hover {
+.wbx-ai-ins-button-danger:hover {
   background: rgba(244, 63, 94, 0.22);
 }
 
-.wbx-dev-inspect-button:disabled,
-.wbx-dev-inspect-textarea:disabled,
-.wbx-dev-inspect-input:disabled,
-.wbx-dev-inspect-select:disabled {
+.wbx-ai-ins-button:disabled,
+.wbx-ai-ins-textarea:disabled,
+.wbx-ai-ins-input:disabled,
+.wbx-ai-ins-select:disabled {
   cursor: default;
   opacity: 0.58;
 }
 
-.wbx-dev-inspect-detail {
+.wbx-ai-ins-detail {
   margin-top: 12px;
   min-height: 180px;
 }
 
-.wbx-dev-inspect-detail-empty {
+.wbx-ai-ins-detail-empty {
   display: flex;
   min-height: 180px;
   align-items: center;
@@ -378,7 +378,7 @@
   font-size: 12px;
 }
 
-.wbx-dev-inspect-detail-head {
+.wbx-ai-ins-detail-head {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 12px;
@@ -386,13 +386,13 @@
   margin-bottom: 10px;
 }
 
-.wbx-dev-inspect-detail-actions {
+.wbx-ai-ins-detail-actions {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.wbx-dev-inspect-detail-title {
+.wbx-ai-ins-detail-title {
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -402,7 +402,7 @@
   font-weight: 750;
 }
 
-.wbx-dev-inspect-detail-subtitle {
+.wbx-ai-ins-detail-subtitle {
   margin-top: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -412,7 +412,7 @@
   font-size: 11px;
 }
 
-.wbx-dev-inspect-pill {
+.wbx-ai-ins-pill {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 999px;
   padding: 4px 9px;
@@ -420,7 +420,7 @@
   font-size: 11px;
 }
 
-.wbx-dev-inspect-prompt {
+.wbx-ai-ins-prompt {
   margin: 0 0 10px;
   border-left: 2px solid rgba(56, 189, 248, 0.5);
   padding-left: 10px;
@@ -430,7 +430,7 @@
   white-space: pre-wrap;
 }
 
-.wbx-dev-inspect-output {
+.wbx-ai-ins-output {
   position: relative;
   z-index: 1;
   display: block;
@@ -452,7 +452,7 @@
   line-height: 1.55;
 }
 
-.wbx-dev-inspect-output-wrap {
+.wbx-ai-ins-output-wrap {
   position: relative;
   overflow: hidden;
   border-radius: 16px;
@@ -461,7 +461,7 @@
   box-shadow: 0 18px 54px rgba(0, 0, 0, 0.32);
 }
 
-.wbx-dev-inspect-output-wrap::before {
+.wbx-ai-ins-output-wrap::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -470,11 +470,11 @@
   background: inherit;
 }
 
-.wbx-dev-inspect-output-wrap-active {
+.wbx-ai-ins-output-wrap-active {
   background: transparent;
 }
 
-.wbx-dev-inspect-output-wrap-active::before {
+.wbx-ai-ins-output-wrap-active::before {
   top: 50%;
   right: auto;
   bottom: auto;
@@ -483,19 +483,19 @@
   aspect-ratio: 1;
   border-radius: 0;
   background: conic-gradient(from 0deg, #ff2d55, #ffcc00, #34c759, #00c7ff, #7c3aed, #ff2d55);
-  animation: wbx-dev-inspect-rainbow-border 1.6s linear infinite;
+  animation: wbx-ai-ins-rainbow-border 1.6s linear infinite;
 }
 
-.wbx-dev-inspect-output-wrap-done {
+.wbx-ai-ins-output-wrap-done {
   background: #22c55e;
 }
 
-.wbx-dev-inspect-output-wrap-failed,
-.wbx-dev-inspect-output-wrap-disconnected {
+.wbx-ai-ins-output-wrap-failed,
+.wbx-ai-ins-output-wrap-disconnected {
   background: #ef4444;
 }
 
-.wbx-dev-inspect-output-state {
+.wbx-ai-ins-output-state {
   position: absolute;
   right: 10px;
   bottom: 10px;
@@ -517,7 +517,7 @@
   line-height: 1;
 }
 
-.wbx-dev-inspect-output-state-dot {
+.wbx-ai-ins-output-state-dot {
   width: 7px;
   height: 7px;
   flex: 0 0 auto;
@@ -525,51 +525,51 @@
   background: #94a3b8;
 }
 
-.wbx-dev-inspect-output-state-active {
+.wbx-ai-ins-output-state-active {
   border-color: rgba(56, 189, 248, 0.24);
   color: #d8e7f6;
 }
 
-.wbx-dev-inspect-output-state-active .wbx-dev-inspect-output-state-dot {
+.wbx-ai-ins-output-state-active .wbx-ai-ins-output-state-dot {
   background: #38bdf8;
-  animation: wbx-dev-inspect-pulse 1.35s ease-in-out infinite;
+  animation: wbx-ai-ins-pulse 1.35s ease-in-out infinite;
 }
 
-.wbx-dev-inspect-output-state-done .wbx-dev-inspect-output-state-dot {
+.wbx-ai-ins-output-state-done .wbx-ai-ins-output-state-dot {
   background: #34d399;
 }
 
-.wbx-dev-inspect-output-state-failed .wbx-dev-inspect-output-state-dot,
-.wbx-dev-inspect-output-state-disconnected .wbx-dev-inspect-output-state-dot {
+.wbx-ai-ins-output-state-failed .wbx-ai-ins-output-state-dot,
+.wbx-ai-ins-output-state-disconnected .wbx-ai-ins-output-state-dot {
   background: #fb7185;
 }
 
-.wbx-dev-inspect-output-state-text {
+.wbx-ai-ins-output-state-text {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.wbx-dev-inspect-output-state-spinner {
+.wbx-ai-ins-output-state-spinner {
   display: none;
   width: 16px;
   height: 16px;
   flex: 0 0 auto;
   color: #7dd3fc;
   filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.55));
-  animation: wbx-dev-inspect-spin 0.72s cubic-bezier(0.5, 0.05, 0.5, 0.95) infinite;
+  animation: wbx-ai-ins-spin 0.72s cubic-bezier(0.5, 0.05, 0.5, 0.95) infinite;
 }
 
-.wbx-dev-inspect-output-state-active .wbx-dev-inspect-output-state-spinner {
+.wbx-ai-ins-output-state-active .wbx-ai-ins-output-state-spinner {
   display: block;
 }
 
-.wbx-dev-inspect-output-error {
+.wbx-ai-ins-output-error {
   color: #fecdd3;
 }
 
-@keyframes wbx-dev-inspect-pulse {
+@keyframes wbx-ai-ins-pulse {
   0%,
   100% {
     box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.28);
@@ -582,7 +582,7 @@
   }
 }
 
-@keyframes wbx-dev-inspect-rainbow-border {
+@keyframes wbx-ai-ins-rainbow-border {
   from {
     transform: translate(-50%, -50%) rotate(0turn);
   }
@@ -592,13 +592,13 @@
   }
 }
 
-@keyframes wbx-dev-inspect-spin {
+@keyframes wbx-ai-ins-spin {
   to {
     transform: rotate(1turn);
   }
 }
 
-.wbx-dev-inspect-dock {
+.wbx-ai-ins-dock {
   position: fixed;
   right: 18px;
   bottom: 18px;
@@ -622,11 +622,11 @@
   user-select: none;
 }
 
-.wbx-dev-inspect-dock-dragging {
+.wbx-ai-ins-dock-dragging {
   cursor: grabbing;
 }
 
-.wbx-dev-inspect-dock::before {
+.wbx-ai-ins-dock::before {
   content: "";
   width: 7px;
   height: 7px;
@@ -634,28 +634,28 @@
   background: #34d399;
 }
 
-.wbx-dev-inspect-dock-running::before {
+.wbx-ai-ins-dock-running::before {
   background: #38bdf8;
   box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.13);
 }
 
 @media (max-width: 780px) {
-  .wbx-dev-inspect-dialog {
+  .wbx-ai-ins-dialog {
     padding: 12px;
   }
 
-  .wbx-dev-inspect-body {
+  .wbx-ai-ins-body {
     grid-template-columns: 1fr;
     min-height: 0;
   }
 
-  .wbx-dev-inspect-sidebar {
+  .wbx-ai-ins-sidebar {
     max-height: 190px;
     border-right: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
-  .wbx-dev-inspect-form-grid {
+  .wbx-ai-ins-form-grid {
     grid-template-columns: 1fr;
   }
 }

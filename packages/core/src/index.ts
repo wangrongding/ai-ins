@@ -1,42 +1,40 @@
-import { getDevInspectClientSource } from './client-source'
+import { getAiInsClientSource } from './client-source'
 import {
-  codexInspectEditMiddleware,
-  codexInspectEventsMiddleware,
-  codexInspectRunsMiddleware,
+  aiInsEditMiddleware,
+  aiInsEventsMiddleware,
+  aiInsRunsMiddleware,
   openInEditorMiddleware,
 } from './middleware'
 import { getClientAgentProviders, getDefaultAgentProviderId } from './providers'
 import { getConfiguredCodexProxy, normalizeProxy } from './proxy'
-import type { DevInspectPluginOptions, DevInspectRoute } from './types'
+import type { AiInsPluginOptions, AiInsRoute } from './types'
 
 export { ensureLaunchEditor } from './editor'
 export {
-  codexInspectEditMiddleware,
-  codexInspectEventsMiddleware,
-  codexInspectRunsMiddleware,
+  aiInsEditMiddleware,
+  aiInsEventsMiddleware,
+  aiInsRunsMiddleware,
   openInEditorMiddleware,
 } from './middleware'
 export { getClientAgentProviders, getDefaultAgentProviderId } from './providers'
 export { getConfiguredCodexProxy, normalizeProxy } from './proxy'
-export type { DevInspectAgentProviderInput, DevInspectMiddleware, DevInspectPluginOptions, DevInspectRoute } from './types'
+export type { AiInsAgentProviderInput, AiInsMiddleware, AiInsPluginOptions, AiInsRoute } from './types'
 
-export function createDevInspectMiddlewares(root: string, options: DevInspectPluginOptions = {}): DevInspectRoute[] {
+export function createAiInsMiddlewares(root: string, options: AiInsPluginOptions = {}): AiInsRoute[] {
   const codexProxy = normalizeProxy(options.codex?.proxy ?? options.proxy)
 
   return [
     { path: '/__open-in-editor', middleware: openInEditorMiddleware(root) },
-    { path: '/__codex-inspect-edit/events', middleware: codexInspectEventsMiddleware() },
-    { path: '/__codex-inspect-edit', middleware: codexInspectEditMiddleware(root, options, codexProxy) },
-    { path: '/__dev-inspect-agent/events', middleware: codexInspectEventsMiddleware() },
-    { path: '/__dev-inspect-agent/runs', middleware: codexInspectRunsMiddleware(root) },
-    { path: '/__dev-inspect-agent', middleware: codexInspectEditMiddleware(root, options, codexProxy) },
+    { path: '/__ai-ins-agent/events', middleware: aiInsEventsMiddleware() },
+    { path: '/__ai-ins-agent/runs', middleware: aiInsRunsMiddleware(root) },
+    { path: '/__ai-ins-agent', middleware: aiInsEditMiddleware(root, options, codexProxy) },
   ]
 }
 
-export function getDevInspectClientCode(input: {
+export function getAiInsClientCode(input: {
   base?: string
   defaultProvider?: string
-  options?: DevInspectPluginOptions
+  options?: AiInsPluginOptions
   pluginProxy?: string
   root: string
 }) {
@@ -44,7 +42,7 @@ export function getDevInspectClientCode(input: {
   const pluginProxy = normalizeProxy(input.pluginProxy ?? options.codex?.proxy ?? options.proxy)
   const agentProviders = getClientAgentProviders(input.root, options, pluginProxy)
 
-  return getDevInspectClientSource()
+  return getAiInsClientSource()
     .replace('__WBX_ROOT__', JSON.stringify(input.root))
     .replace('__WBX_BASE__', JSON.stringify(input.base ?? '/'))
     .replace('__WBX_AGENT_PROXY__', JSON.stringify(getConfiguredCodexProxy(pluginProxy)))

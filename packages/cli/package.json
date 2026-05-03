@@ -1,10 +1,10 @@
 {
-  "name": "agent-dev",
+  "name": "ai-ins",
   "version": "0.2.0",
-  "description": "Initialize Agent Dev in Vite and Webpack projects.",
+  "description": "Initialize AI Ins in Vite and Webpack projects.",
   "type": "module",
   "bin": {
-    "agent-dev": "./dist/index.js"
+    "ai-ins": "./dist/index.js"
   },
   "exports": {
     ".": "./dist/index.js"

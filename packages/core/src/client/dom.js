@@ -1,6 +1,6 @@
 const style = document.createElement('style')
 style.setAttribute('type', 'text/css')
-style.setAttribute('data-vite-dev-id', 'agent-dev-dev-inspect')
+style.setAttribute('data-vite-dev-id', 'ai-ins')
 style.textContent = __WBX_CLIENT_STYLE__.replaceAll('__WBX_TARGET_ATTRIBUTE__', targetAttribute)
 document.head.appendChild(style)
 
@@ -26,7 +26,7 @@ function createSvgElement(tag, attributes = {}) {
 function createLoadingSpinner() {
   const spinner = createSvgElement('svg', {
     'aria-hidden': 'true',
-    class: 'wbx-dev-inspect-output-state-spinner',
+    class: 'wbx-ai-ins-output-state-spinner',
     fill: 'none',
     viewBox: '0 0 24 24',
   })

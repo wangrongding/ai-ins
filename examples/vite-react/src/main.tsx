@@ -114,12 +114,12 @@ function Card({ onOpenDocs }: { onOpenDocs: () => void }) {
   return (
     <section className='card'>
       <div className='card-glow' aria-hidden='true' />
-      <p className='eyebrow'>Agent Dev</p>
+      <p className='eyebrow'>AI Ins</p>
       <h1>
         Option / Alt 点选 <span>DOM</span>
       </h1>
       <p className='card-title'>把页面元素直接交给本地 AI 编码代理。</p>
-      <p>打开 Agent 面板，把目标组件和修改需求交给本地 Codex / Claude CLI。</p>
+      <p>打开 AI Ins 面板，把目标组件和修改需求交给本地 Codex / Claude CLI。</p>
       <button className='card-action' onClick={onOpenDocs}>
         快速开始
       </button>

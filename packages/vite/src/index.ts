@@ -1,21 +1,54 @@
 import type { Plugin, ViteDevServer } from 'vite'
 import { transformAsync, type PluginObj } from '@babel/core'
-import { createDevInspectMiddlewares, ensureLaunchEditor, getDevInspectClientCode, normalizeProxy } from '@agent-dev/core'
-import type { DevInspectPluginOptions } from '@agent-dev/core'
+import { ElementTypes, NodeTypes, parse as parseVueTemplate } from '@vue/compiler-dom'
+import { parse as parseVueSfc } from '@vue/compiler-sfc'
+import { createAiInsMiddlewares, ensureLaunchEditor, getAiInsClientCode, normalizeProxy } from '@ai-ins/core'
+import type { AiInsPluginOptions } from '@ai-ins/core'
 
-const clientModuleId = 'agent-dev/client'
+const clientModuleId = 'ai-ins/client'
 const resolvedClientModuleId = `\0${clientModuleId}`
-const sourceAttribute = 'data-agent-source'
-const sourceRangeAttribute = 'data-agent-source-range'
+const sourceAttribute = 'data-ai-ins-source'
+const sourceRangeAttribute = 'data-ai-ins-source-range'
+
+type VueSourceLocation = {
+  offset: number
+}
+
+type VueNode = {
+  type: number
+  branches?: Array<{
+    children?: VueNode[]
+  }>
+  children?: VueNode[]
+  loc?: {
+    end: VueSourceLocation
+    start: VueSourceLocation
+  }
+  props?: Array<{
+    name?: string
+    type: number
+  }>
+  tag?: string
+  tagType?: number
+}
 
 function getSourceFileId(id: string) {
   const [fileName] = id.split('?', 1)
   return fileName
 }
 
-function shouldInjectSourceAttributes(id: string) {
+function isWorkspaceSourceFile(fileName: string) {
+  return !fileName.includes('/node_modules/') && !fileName.includes('\\node_modules\\')
+}
+
+function shouldInjectJsxSourceAttributes(id: string) {
   const fileName = getSourceFileId(id)
-  return /\.[jt]sx$/u.test(fileName) && !fileName.includes('/node_modules/') && !fileName.includes('\\node_modules\\')
+  return /\.[jt]sx$/u.test(fileName) && isWorkspaceSourceFile(fileName)
+}
+
+function shouldInjectVueSourceAttributes(id: string) {
+  const fileName = getSourceFileId(id)
+  return /\.vue$/u.test(fileName) && id === fileName && isWorkspaceSourceFile(fileName)
 }
 
 function isNativeJsxElementName(name: unknown) {
@@ -42,7 +75,7 @@ function hasSourceAttribute(attributes: unknown[]) {
 
 function createAgentSourcePlugin(fileName: string): PluginObj {
   return {
-    name: 'agent-dev-source-attribute',
+    name: 'ai-ins-source-attribute',
     visitor: {
       JSXOpeningElement(path) {
         const { node } = path
@@ -74,16 +107,167 @@ function createAgentSourcePlugin(fileName: string): PluginObj {
   }
 }
 
-export type { DevInspectPluginOptions }
+function escapeHtmlAttribute(value: string) {
+  return value.replaceAll('&', '&amp;').replaceAll('"', '&quot;')
+}
 
-export function agentDev(options: DevInspectPluginOptions = {}): Plugin {
+function getLineStartOffsets(source: string) {
+  const offsets = [0]
+
+  for (let index = 0; index < source.length; index += 1) {
+    if (source.charCodeAt(index) === 10) {
+      offsets.push(index + 1)
+    }
+  }
+
+  return offsets
+}
+
+function getLocationFromOffset(offsets: number[], offset: number) {
+  let low = 0
+  let high = offsets.length - 1
+
+  while (low <= high) {
+    const middle = Math.floor((low + high) / 2)
+    const lineOffset = offsets[middle]
+    const nextLineOffset = offsets[middle + 1] ?? Number.POSITIVE_INFINITY
+
+    if (offset < lineOffset) {
+      high = middle - 1
+      continue
+    }
+
+    if (offset >= nextLineOffset) {
+      low = middle + 1
+      continue
+    }
+
+    return {
+      column: offset - lineOffset + 1,
+      line: middle + 1,
+    }
+  }
+
+  const lastLine = offsets[offsets.length - 1] ?? 0
+  return {
+    column: offset - lastLine + 1,
+    line: offsets.length,
+  }
+}
+
+function hasVueSourceAttribute(props: Array<{ name?: string; type: number }>) {
+  return props.some((prop) => prop.type === NodeTypes.ATTRIBUTE && (prop.name === sourceAttribute || prop.name === sourceRangeAttribute))
+}
+
+function getTemplateContentStartOffset(source: string, block: { content: string; loc: { end: VueSourceLocation; start: VueSourceLocation } }) {
+  const blockSource = source.slice(block.loc.start.offset, block.loc.end.offset)
+  const contentOffset = blockSource.indexOf(block.content)
+
+  if (contentOffset >= 0) {
+    return block.loc.start.offset + contentOffset
+  }
+
+  return source.indexOf(block.content, block.loc.start.offset)
+}
+
+function collectVueSourceInsertions(nodes: VueNode[], fileName: string, templateOffset: number, lineOffsets: number[], insertions: Array<{ content: string; offset: number }>) {
+  for (const node of nodes) {
+    if (node.type === NodeTypes.ELEMENT) {
+      if (node.tagType === ElementTypes.ELEMENT && node.tag && node.loc && !hasVueSourceAttribute(node.props ?? [])) {
+        const startOffset = templateOffset + node.loc.start.offset
+        const endOffset = templateOffset + node.loc.end.offset
+        const start = getLocationFromOffset(lineOffsets, startOffset)
+        const end = getLocationFromOffset(lineOffsets, endOffset)
+        const insertionOffset = startOffset + node.tag.length + 1
+        const sourceValue = escapeHtmlAttribute(`${fileName}:${start.line}:${start.column}`)
+        const rangeValue = escapeHtmlAttribute(`${fileName}:${start.line}:${start.column}-${end.line}:${end.column}`)
+
+        insertions.push({
+          content: ` ${sourceAttribute}="${sourceValue}" ${sourceRangeAttribute}="${rangeValue}"`,
+          offset: insertionOffset,
+        })
+      }
+
+      if (node.children?.length) {
+        collectVueSourceInsertions(node.children, fileName, templateOffset, lineOffsets, insertions)
+      }
+      continue
+    }
+
+    if (node.branches?.length) {
+      for (const branch of node.branches) {
+        if (branch.children?.length) {
+          collectVueSourceInsertions(branch.children, fileName, templateOffset, lineOffsets, insertions)
+        }
+      }
+    }
+
+    if (node.children?.length) {
+      collectVueSourceInsertions(node.children, fileName, templateOffset, lineOffsets, insertions)
+    }
+  }
+}
+
+async function injectJsxSourceAttributes(code: string, fileName: string) {
+  const result = await transformAsync(code, {
+    babelrc: false,
+    code: true,
+    configFile: false,
+    filename: fileName,
+    parserOpts: {
+      plugins: ['jsx', 'typescript'],
+      sourceType: 'module',
+    },
+    plugins: [createAgentSourcePlugin(fileName)],
+    sourceMaps: true,
+  })
+
+  return result?.code ? { code: result.code, map: result.map } : null
+}
+
+function injectVueTemplateSourceAttributes(code: string, fileName: string) {
+  const { descriptor, errors } = parseVueSfc(code, { filename: fileName })
+
+  if (errors.length || !descriptor.template) {
+    return null
+  }
+
+  const templateOffset = getTemplateContentStartOffset(code, descriptor.template)
+  if (templateOffset < 0) {
+    return null
+  }
+
+  const templateAst = parseVueTemplate(descriptor.template.content)
+  const lineOffsets = getLineStartOffsets(code)
+  const insertions: Array<{ content: string; offset: number }> = []
+
+  collectVueSourceInsertions(templateAst.children as VueNode[], fileName, templateOffset, lineOffsets, insertions)
+
+  if (!insertions.length) {
+    return null
+  }
+
+  let transformedCode = code
+  for (const insertion of insertions.sort((left, right) => right.offset - left.offset)) {
+    transformedCode = `${transformedCode.slice(0, insertion.offset)}${insertion.content}${transformedCode.slice(insertion.offset)}`
+  }
+
+  return {
+    code: transformedCode,
+    map: null,
+  }
+}
+
+export type { AiInsPluginOptions }
+
+export function aiIns(options: AiInsPluginOptions = {}): Plugin {
   let base = '/'
   let isServe = false
   let root = ''
   const pluginProxy = normalizeProxy(options.codex?.proxy ?? options.proxy)
 
   return {
-    name: 'agent-dev:vite',
+    name: 'ai-ins:vite',
     enforce: 'pre',
     apply: 'serve',
     configResolved(config) {
@@ -93,41 +277,34 @@ export function agentDev(options: DevInspectPluginOptions = {}): Plugin {
       ensureLaunchEditor(config.command)
     },
     configureServer(server: ViteDevServer) {
-      for (const route of createDevInspectMiddlewares(server.config.root, options)) {
+      for (const route of createAiInsMiddlewares(server.config.root, options)) {
         server.middlewares.use(route.path, route.middleware)
       }
     },
     load(id) {
       if (id !== resolvedClientModuleId || !isServe) return null
-      return getDevInspectClientCode({ base, defaultProvider: options.agents?.defaultProvider, options, pluginProxy, root })
+      return getAiInsClientCode({ base, defaultProvider: options.agents?.defaultProvider, options, pluginProxy, root })
     },
     resolveId(source) {
       if (source === clientModuleId) return resolvedClientModuleId
       return null
     },
     async transform(code, id) {
-      if (!isServe || !shouldInjectSourceAttributes(id)) return null
       const fileName = getSourceFileId(id)
-      const result = await transformAsync(code, {
-        babelrc: false,
-        code: true,
-        configFile: false,
-        filename: fileName,
-        parserOpts: {
-          plugins: ['jsx', 'typescript'],
-          sourceType: 'module',
-        },
-        plugins: [createAgentSourcePlugin(fileName)],
-        sourceMaps: true,
-      })
-
-      return result?.code ? { code: result.code, map: result.map } : null
+      if (!isServe) return null
+      if (shouldInjectJsxSourceAttributes(id)) {
+        return injectJsxSourceAttributes(code, fileName)
+      }
+      if (shouldInjectVueSourceAttributes(id)) {
+        return injectVueTemplateSourceAttributes(code, fileName)
+      }
+      return null
     },
     transformIndexHtml() {
       if (!isServe) return
-      return [{ attrs: { type: 'module' }, children: 'import "/@id/__x00__agent-dev/client";', tag: 'script' }]
+      return [{ attrs: { type: 'module' }, children: 'import "/@id/__x00__ai-ins/client";', tag: 'script' }]
     },
   }
 }
 
-export default agentDev
+export default aiIns

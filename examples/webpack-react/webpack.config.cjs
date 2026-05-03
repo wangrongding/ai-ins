@@ -1,5 +1,5 @@
 const HtmlWebpackPlugin = require('html-webpack-plugin')
-const { AgentDevWebpackPlugin } = require('@agent-dev/webpack')
+const { AiInsWebpackPlugin } = require('@ai-ins/webpack')
 
 module.exports = {
   devServer: {
@@ -26,8 +26,8 @@ module.exports = {
     ],
   },
   plugins: [
-    // 在这里添加 AgentDevWebpackPlugin 插件即可
-    new AgentDevWebpackPlugin(),
+    // 在这里添加 AiInsWebpackPlugin 插件即可
+    new AiInsWebpackPlugin(),
     new HtmlWebpackPlugin({ template: './src/index.html' }),
   ],
   resolve: {

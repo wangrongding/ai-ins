@@ -6,10 +6,10 @@ function App() {
     <main className="page">
       <section className="shell">
         <div className="hero">
-          <p className="eyebrow">Agent Dev Inspect</p>
-          <h1 className="title">调试 Agent Dev 的起点页</h1>
+          <p className="eyebrow">AI Ins</p>
+          <h1 className="title">调试 AI Ins 的起点页</h1>
           <p className="subtitle">
-            这个 Webpack React 示例已经接入 Agent Dev。摁住 Option 键，并点击页面元素后，可以从 DOM 节点定位到源码位置，再让编码 agent
+            这个 Webpack React 示例已经接入 AI Ins。摁住 Option 键，并点击页面元素后，可以从 DOM 节点定位到源码位置，再让编码 agent
             直接修改对应组件。
           </p>
         </div>
@@ -24,7 +24,7 @@ function App() {
               </li>
               <li className="item">
                 <span className="step">2</span>
-                <span>按住 Option 并点击页面中的任意区域，进入 dev inspect。</span>
+                <span>按住 Option 并点击页面中的任意区域，打开 AI Ins 面板。</span>
               </li>
               <li className="item">
                 <span className="step">3</span>
@@ -32,7 +32,7 @@ function App() {
               </li>
               <li className="item">
                 <span className="step">4</span>
-                <span>向 agent 描述想要的改动，确认热更新后的页面结果。</span>
+                <span>向 AI 编码代理描述想要的改动，确认热更新后的页面结果。</span>
               </li>
             </ol>
           </article>
@@ -52,7 +52,7 @@ createRoot(
         <div className="callout">
           <span className="badge">Tip</span>
           <span>
-            如果点击后能看到 src/main.tsx 的定位信息，说明 Agent Dev
+            如果点击后能看到 src/main.tsx 的定位信息，说明 AI Ins
             的源码映射和 Webpack 插件链路正在工作。
           </span>
         </div>

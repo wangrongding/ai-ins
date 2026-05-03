@@ -20,7 +20,7 @@ importers:
 
   examples/vite-react:
     dependencies:
-      '@agent-dev/vite':
+      '@ai-ins/vite':
         specifier: workspace:*
         version: link:../../packages/vite
       '@types/react':
@@ -47,7 +47,7 @@ importers:
 
   examples/vite-vue3:
     dependencies:
-      '@agent-dev/vite':
+      '@ai-ins/vite':
         specifier: workspace:*
         version: link:../../packages/vite
       '@vitejs/plugin-vue':
@@ -68,7 +68,7 @@ importers:
 
   examples/webpack-react:
     dependencies:
-      '@agent-dev/webpack':
+      '@ai-ins/webpack':
         specifier: workspace:*
         version: link:../../packages/webpack
       '@types/react':
@@ -125,7 +125,7 @@ importers:
 
   packages/vite:
     dependencies:
-      '@agent-dev/core':
+      '@ai-ins/core':
         specifier: workspace:*
         version: link:../core
       '@babel/core':
@@ -153,7 +153,7 @@ importers:
 
   packages/webpack:
     dependencies:
-      '@agent-dev/core':
+      '@ai-ins/core':
         specifier: workspace:*
         version: link:../core
       '@babel/core':

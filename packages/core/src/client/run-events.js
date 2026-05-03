@@ -3,7 +3,7 @@ function subscribeAgentRun(run) {
     return
   }
 
-  const eventSource = new window.EventSource(`${base}__dev-inspect-agent/events?id=${encodeURIComponent(run.id)}`)
+  const eventSource = new window.EventSource(`${base}__ai-ins-agent/events?id=${encodeURIComponent(run.id)}`)
   runSubscriptions.set(run.id, eventSource)
 
   eventSource.onmessage = (event) => {
@@ -34,7 +34,7 @@ function subscribeAgentRun(run) {
       run.status = 'failed'
       run.completed = true
       run.statusMessage = payload.message || `${run.providerLabel} 启动失败`
-      appendRunOutput(run, `\n[inspect] ${run.statusMessage}\n`, 'stderr')
+      appendRunOutput(run, `\n[ai-ins] ${run.statusMessage}\n`, 'stderr')
       eventSource.close()
       runSubscriptions.delete(run.id)
     }
@@ -120,7 +120,7 @@ async function hydrateAgentRuns() {
     refreshRunDetail()
     updateDockButton()
   } catch (error) {
-    console.error('[inspect] load agent runs failed:', error)
+    console.error('[ai-ins] load AI Ins runs failed:', error)
   }
 }
 

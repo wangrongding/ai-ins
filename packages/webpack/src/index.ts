@@ -1,11 +1,11 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { createDevInspectMiddlewares, getDevInspectClientCode, normalizeProxy } from '@agent-dev/core'
-import type { DevInspectPluginOptions } from '@agent-dev/core'
+import { createAiInsMiddlewares, getAiInsClientCode, normalizeProxy } from '@ai-ins/core'
+import type { AiInsPluginOptions } from '@ai-ins/core'
 
-export type { DevInspectPluginOptions }
+export type { AiInsPluginOptions }
 
-export type AgentDevWebpackPluginOptions = DevInspectPluginOptions & { clientPath?: string }
+export type AiInsWebpackPluginOptions = AiInsPluginOptions & { clientPath?: string }
 
 type WebpackCompiler = {
   options?: {
@@ -67,7 +67,7 @@ function testMatchesExtension(test: unknown, extension: string) {
   }
 
   test.lastIndex = 0
-  return test.test(`agent-dev-entry${extension}`)
+  return test.test(`ai-ins-entry${extension}`)
 }
 
 function isJsTsRule(rule: Record<string, unknown>) {
@@ -128,9 +128,9 @@ function injectSourceLoaderIntoRules(rules: unknown[]): boolean {
   return didInject
 }
 
-export class AgentDevWebpackPlugin {
-  readonly name = 'agent-dev:webpack'
-  constructor(private readonly options: AgentDevWebpackPluginOptions = {}) {}
+export class AiInsWebpackPlugin {
+  readonly name = 'ai-ins:webpack'
+  constructor(private readonly options: AiInsWebpackPluginOptions = {}) {}
 
   apply(compiler: WebpackCompiler) {
     if (!compiler.options) compiler.options = {}
@@ -160,15 +160,15 @@ export class AgentDevWebpackPlugin {
       const root = devServer.compiler?.context || process.cwd()
       const app = devServer.app
       if (app) {
-        for (const route of createDevInspectMiddlewares(root, pluginOptions)) {
+        for (const route of createAiInsMiddlewares(root, pluginOptions)) {
           app.use(route.path, route.middleware as (...args: unknown[]) => unknown)
         }
         const clientMiddleware = (_req: unknown, res: { setHeader: (key: string, value: string) => void; end: (body: string) => void }) => {
           res.setHeader('Content-Type', 'application/javascript; charset=utf-8')
-          res.end(getDevInspectClientCode({ base: '/', defaultProvider: pluginOptions.agents?.defaultProvider, options: pluginOptions, pluginProxy: normalizeProxy(pluginOptions.codex?.proxy ?? pluginOptions.proxy), root }))
+          res.end(getAiInsClientCode({ base: '/', defaultProvider: pluginOptions.agents?.defaultProvider, options: pluginOptions, pluginProxy: normalizeProxy(pluginOptions.codex?.proxy ?? pluginOptions.proxy), root }))
         }
-        app.use('/__agent-dev/client.js', clientMiddleware as (...args: unknown[]) => unknown)
-        if (pluginOptions.clientPath && pluginOptions.clientPath !== '/__agent-dev/client.js') {
+        app.use('/__ai-ins/client.js', clientMiddleware as (...args: unknown[]) => unknown)
+        if (pluginOptions.clientPath && pluginOptions.clientPath !== '/__ai-ins/client.js') {
           app.use(pluginOptions.clientPath, clientMiddleware as (...args: unknown[]) => unknown)
         }
       }
@@ -177,8 +177,8 @@ export class AgentDevWebpackPlugin {
   }
 }
 
-export function agentDev(options: AgentDevWebpackPluginOptions = {}) {
-  return new AgentDevWebpackPlugin(options)
+export function aiIns(options: AiInsWebpackPluginOptions = {}) {
+  return new AiInsWebpackPlugin(options)
 }
 
-export default AgentDevWebpackPlugin
+export default AiInsWebpackPlugin

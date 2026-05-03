@@ -12,7 +12,7 @@ window.addEventListener('mousemove', (event) => {
     return
   }
 
-  if (!(event.target instanceof HTMLElement) || event.target.closest('.wbx-dev-inspect-dialog, .wbx-dev-inspect-dock')) {
+  if (!(event.target instanceof HTMLElement) || event.target.closest('.wbx-ai-ins-dialog, .wbx-ai-ins-dock')) {
     clearOverlay()
     return
   }
@@ -29,7 +29,7 @@ window.addEventListener('mousemove', (event) => {
 
   clearOverlay()
   currentTarget = sourceTarget
-  currentTarget.dataset.devInspectTarget = 'true'
+  currentTarget.dataset.aiInsTarget = 'true'
 })
 
 window.addEventListener(
@@ -40,7 +40,7 @@ window.addEventListener(
     }
 
     const target = event.target
-    if (!(target instanceof HTMLElement) || target.closest('.wbx-dev-inspect-dialog, .wbx-dev-inspect-dock')) {
+    if (!(target instanceof HTMLElement) || target.closest('.wbx-ai-ins-dialog, .wbx-ai-ins-dock')) {
       return
     }
 
@@ -66,7 +66,7 @@ window.addEventListener(
       return
     }
 
-    showAgentPanel(preferredLayer, layers)
+    showAiInsPanel(preferredLayer, layers)
     cleanUp()
   },
   true,

@@ -1,4 +1,4 @@
-# @agent-dev/webpack
+# @ai-ins/webpack
 
 ## 0.2.0
 
@@ -9,4 +9,4 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @agent-dev/core@0.2.0
+  - @ai-ins/core@0.2.0

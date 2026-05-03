@@ -5,11 +5,11 @@ async function openInEditor(layerPath) {
     return
   }
 
-  console.error('[inspect] open-in-editor failed:', await response.text())
+  console.error('[ai-ins] open in editor failed:', await response.text())
 }
 
-async function runAgentInspectEdit(layer, layers, providerId, prompt, proxy) {
-  const response = await fetch(`${base}__dev-inspect-agent`, {
+async function runAiInsAgent(layer, layers, providerId, prompt, proxy) {
+  const response = await fetch(`${base}__ai-ins-agent`, {
     body: JSON.stringify({
       file: layer.path,
       layers,
@@ -31,7 +31,7 @@ async function runAgentInspectEdit(layer, layers, providerId, prompt, proxy) {
 }
 
 async function loadAgentRuns() {
-  const response = await fetch(`${base}__dev-inspect-agent/runs`)
+  const response = await fetch(`${base}__ai-ins-agent/runs`)
 
   if (!response.ok) {
     throw new Error(await response.text())
@@ -41,7 +41,7 @@ async function loadAgentRuns() {
 }
 
 async function deleteAgentRun(runId) {
-  const response = await fetch(`${base}__dev-inspect-agent/runs?id=${encodeURIComponent(runId)}`, {
+  const response = await fetch(`${base}__ai-ins-agent/runs?id=${encodeURIComponent(runId)}`, {
     method: 'DELETE',
   })
 

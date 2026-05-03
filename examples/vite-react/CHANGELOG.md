@@ -1,4 +1,4 @@
-# @agent-dev/playground-vite
+# @ai-ins/playground-vite
 
 ## 0.1.0
 
@@ -9,4 +9,4 @@
 ### Patch Changes
 
 - Updated dependencies
-  - @agent-dev/vite@0.2.0
+  - @ai-ins/vite@0.2.0
