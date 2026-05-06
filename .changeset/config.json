@@ -7,5 +7,11 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": []
+  "ignore": [
+    "@ai-ins/playground-vite",
+    "@ai-ins/playground-vite-vue3",
+    "@ai-ins/playground-vite-solidjs",
+    "@ai-ins/playground-vite-svelte",
+    "@ai-ins/playground-webpack"
+  ]
 }
