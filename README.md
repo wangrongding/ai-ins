@@ -1,12 +1,17 @@
 # ai-ins
 
-AI Ins 是一个本地开发辅助工具，让你在开发web/electron等项目的时候无需离开项目窗口，在项目内编写项目。  
+AI Ins 是一个本地开发辅助工具，让你在开发web/electron等项目的时候无需离开项目窗口，在项目内编写项目。
 
-通过按住 `Option` / `Alt` 点选页面上的 DOM，打开内置的 AI Ins 面板，把目标元素和修改要求一起交给本地 CLI Agent 执行，并在页面里持续查看任务输出。  
+- 不用来回找文件。
+- 不用复制组件路径。
+- 不用描述“xxx模块，xxx按钮...”。
+- 接手陌生项目，直接快速上手修改。不再需要花时间熟悉项目结构、查找相关代码位置。
+
+通过按住 `Option` / `Alt` 点选页面上的 DOM，打开内置的 AI Ins 面板，把目标元素和修改要求一起交给本地 CLI Agent 执行，并在页面里持续查看任务输出。
 
 macOS 按住 `Option + Cmd`，Windows / Linux 按住 `Ctrl + Alt` 点击页面元素会直接打开IDE，并跳转到源码位置。
 
-<img width="1672" height="783" alt="859d26a9-c362-4ae8-a2ed-62a017dc214c" src="https://github.com/user-attachments/assets/b524667f-ff12-4874-a669-59a2ab97e572" />
+<img width="1672" alt="859d26a9-c362-4ae8-a2ed-62a017dc214c" src="https://github.com/user-attachments/assets/b524667f-ff12-4874-a669-59a2ab97e572" />
 
 ## 当前能力
 
@@ -18,14 +23,14 @@ macOS 按住 `Option + Cmd`，Windows / Linux 按住 `Ctrl + Alt` 点击页面�
 
 ## 支持状态
 
-| 包                   | 状态   | 说明                                                                                       |
-| -------------------- | ------ | ------------------------------------------------------------------------------------------ |
-| `ai-ins`          | 可用   | 提供 `ai-ins` 命令，用于初始化项目配置。                                                |
-| `@ai-ins/vite`    | 可用   | 主要支持路径，包含客户端注入和 React / Vue / SolidJS / Svelte source 适配。                  |
+| 包                | 状态   | 说明                                                                                       |
+| ----------------- | ------ | ------------------------------------------------------------------------------------------ |
+| `ai-ins`          | 可用   | 提供 `ai-ins` 命令，用于初始化项目配置。                                                   |
+| `@ai-ins/vite`    | 可用   | 主要支持路径，包含客户端注入和 React / Vue / SolidJS / Svelte source 适配。                |
 | `@ai-ins/webpack` | 可用   | 注册 devServer middleware，自动注入客户端脚本，并在开发态给 JSX DOM 元素注入 source 标记。 |
 | `@ai-ins/core`    | 内部包 | 提供 middleware、Agent provider、客户端脚本生成等共享能力。                                |
 
-<img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/c157f619-34ad-45e2-b2e8-b5d04e4d92ee" />
+<img width="1672" alt="image" src="https://github.com/user-attachments/assets/c157f619-34ad-45e2-b2e8-b5d04e4d92ee" />
 
 ## 快速接入
 
@@ -58,7 +63,7 @@ import aiIns from '@ai-ins/vite' // <-- 引入插件
 export default defineConfig({
   plugins: [
     aiIns(), // <-- 使用插件
-    react()
+    react(),
   ],
 })
 ```
