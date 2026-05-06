@@ -21,7 +21,7 @@ macOS 按住 `Option + Cmd`，Windows / Linux 按住 `Ctrl + Alt` 点击页面�
 | 包                   | 状态   | 说明                                                                                       |
 | -------------------- | ------ | ------------------------------------------------------------------------------------------ |
 | `ai-ins`          | 可用   | 提供 `ai-ins` 命令，用于初始化项目配置。                                                |
-| `@ai-ins/vite`    | 可用   | 主要支持路径，包含客户端注入和 React source 适配。                                         |
+| `@ai-ins/vite`    | 可用   | 主要支持路径，包含客户端注入和 React / Vue / SolidJS source 适配。                          |
 | `@ai-ins/webpack` | 可用   | 注册 devServer middleware，自动注入客户端脚本，并在开发态给 JSX DOM 元素注入 source 标记。 |
 | `@ai-ins/core`    | 内部包 | 提供 middleware、Agent provider、客户端脚本生成等共享能力。                                |
 
@@ -146,7 +146,7 @@ pnpm dev:webpack
 
 `pnpm dev:watch` 会同时 watch core、Vite 插件和 `examples/vite-react` playground。改 `packages/core/src/client/` 或 `packages/vite/src/index.ts` 后刷新浏览器即可。`pnpm dev` 仍然会先构建 core / Vite 插件，再启动 playground。
 
-`pnpm dev:vite` 会同时启动 `examples/vite-react` 和 `examples/vite-vue3` 两个 Vite playground。
+`pnpm dev:vite` 会同时启动 `examples/vite-react`、`examples/vite-vue3` 和 `examples/vite-solidjs` 三个 Vite playground。
 
 `pnpm dev:webpack` 会先构建 core / Webpack 插件，再同时 watch core、Webpack 插件和 `examples/webpack-react` playground。改 `packages/core/src/client/` 后刷新浏览器即可看到新的 AI Ins 面板 runtime；如果改的是 Webpack 插件初始化逻辑，重启 dev server 后生效。
 
@@ -166,6 +166,7 @@ packages/vite      # Vite 插件
 packages/webpack   # Webpack devServer 插件
 examples/vite-react
 examples/vite-vue3
+examples/vite-solidjs
 ```
 
 ## 常见问题

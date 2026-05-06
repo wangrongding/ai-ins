@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "pnpm --filter @ai-ins/core build && pnpm --filter @ai-ins/vite build && pnpm --filter @ai-ins/playground-vite dev",
     "dev:watch": "pnpm --parallel --filter @ai-ins/core --filter @ai-ins/vite --filter @ai-ins/playground-vite dev",
-    "dev:vite": "pnpm --parallel --filter @ai-ins/core --filter @ai-ins/vite --filter @ai-ins/playground-vite --filter @ai-ins/playground-vite-vue3 dev",
+    "dev:vite": "pnpm --parallel --filter @ai-ins/core --filter @ai-ins/vite --filter @ai-ins/playground-vite --filter @ai-ins/playground-vite-vue3 --filter @ai-ins/playground-vite-solidjs dev",
     "dev:webpack": "pnpm --filter @ai-ins/core build && pnpm --filter @ai-ins/webpack build && pnpm --parallel --filter @ai-ins/core --filter @ai-ins/webpack --filter @ai-ins/playground-webpack dev",
     "dev:webpack:once": "pnpm --filter @ai-ins/core build && pnpm --filter @ai-ins/webpack build && pnpm --filter @ai-ins/playground-webpack dev",
     "build": "pnpm -r --filter './packages/*' build",
