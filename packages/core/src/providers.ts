@@ -14,8 +14,41 @@ function getCodexArgs(root: string, options: AiInsPluginOptions) {
   return args
 }
 
+function getCopilotArgs(options: AiInsPluginOptions) {
+  const args = ['--allow-all-tools', '--no-color', '--silent', '--stream', 'on', '-p']
+  const model = options.copilot?.model || process.env.AI_INS_COPILOT_MODEL
+
+  if (model) {
+    args.unshift('--model', model)
+  }
+
+  return args
+}
+
+function getClaudeArgs(options: AiInsPluginOptions) {
+  const args = [
+    '-p',
+    '--permission-mode',
+    'acceptEdits',
+    '--output-format',
+    'stream-json',
+    '--verbose',
+    '--include-partial-messages',
+    '--no-session-persistence',
+  ]
+  const model = options.claude?.model || process.env.AI_INS_CLAUDE_MODEL
+
+  if (model) {
+    args.push('--model', model)
+  }
+
+  return args
+}
+
 function getBuiltinAgentProviders(root: string, options: AiInsPluginOptions, pluginProxy: string): ResolvedAiInsAgentProvider[] {
   const codexProxy = getConfiguredAgentProxy(options.codex?.proxy, pluginProxy)
+  const claudeProxy = getConfiguredAgentProxy(options.claude?.proxy, pluginProxy)
+  const copilotProxy = getConfiguredAgentProxy(options.copilot?.proxy, pluginProxy)
 
   return [
     {
@@ -29,34 +62,24 @@ function getBuiltinAgentProviders(root: string, options: AiInsPluginOptions, plu
       proxy: codexProxy,
     },
     {
-      args: [
-        '-p',
-        '--permission-mode',
-        'acceptEdits',
-        '--output-format',
-        'stream-json',
-        '--verbose',
-        '--include-partial-messages',
-        '--no-session-persistence',
-      ],
-      command: process.env.CLAUDE_CLI || 'claude',
+      args: getClaudeArgs(options),
+      command: options.claude?.command || process.env.CLAUDE_CLI || 'claude',
       enabled: true,
       id: 'claude',
       input: 'argument',
       label: 'Claude',
       output: 'jsonl',
-      proxy: normalizeProxy(pluginProxy),
+      proxy: claudeProxy,
     },
     {
-      args: [],
-      command: '',
-      disabledReason: 'Copilot 还没有标准的本地改码 CLI，请在 aiIns({ agents: { providers: [...] } }) 里配置适配器。',
-      enabled: false,
+      args: getCopilotArgs(options),
+      command: options.copilot?.command || process.env.COPILOT_CLI || 'copilot',
+      enabled: true,
       id: 'copilot',
-      input: 'stdin',
+      input: 'argument',
       label: 'Copilot',
       output: 'plain',
-      proxy: getConfiguredAgentProxy('', pluginProxy),
+      proxy: copilotProxy,
     },
   ]
 }

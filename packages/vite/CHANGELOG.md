@@ -1,5 +1,12 @@
 # @ai-ins/vite
 
+## 0.3.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @ai-ins/core@0.3.0
+
 ## 0.3.0
 
 ### Minor Changes

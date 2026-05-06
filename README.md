@@ -13,7 +13,7 @@ macOS 按住 `Option + Cmd`，Windows / Linux 按住 `Ctrl + Alt` 点击页面�
 - 通过运行 `npx ai-ins init` 自动识别项目内的构建工具（Vite / Webpack...），安装对应的 `@ai-ins/*` 包，并尝试修改配置文件。
 - Vite dev server 自动注入 AI Ins 客户端，支持 `Option` / `Alt` 点选 DOM 打开面板。
 - 面板内可以选择 Agent、填写代理、提交修改要求，并并发跟踪多个运行任务。
-- 内置 Codex 和 Claude CLI provider；Copilot 目前只是占位，需要通过自定义 provider 接入。
+- 内置 Codex、Claude 和 Copilot CLI provider。
 - macOS 下会优先使用正在运行的 VS Code / Zed / WebStorm / Cursor 等编辑器打开源码。
 
 ## 支持状态
@@ -130,8 +130,11 @@ Provider 字段说明：
 ```bash
 CODEX_CLI=codex
 CLAUDE_CLI=claude
+COPILOT_CLI=copilot
 AI_INS_PROXY=http://127.0.0.1:7890
 AI_INS_CODEX_MODEL=gpt-5.5
+AI_INS_CLAUDE_MODEL=sonnet
+AI_INS_COPILOT_MODEL=gpt-5.2
 ```
 
 代理解析优先级：插件配置 / provider 配置优先，其次读取 `AI_INS_PROXY`，再读取常见的 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`，最后尝试读取 macOS / Windows 系统代理。

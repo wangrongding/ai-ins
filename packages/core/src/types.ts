@@ -83,5 +83,15 @@ export type AiInsPluginOptions = {
     model?: string
     proxy?: string
   }
+  claude?: {
+    command?: string
+    model?: string
+    proxy?: string
+  }
+  copilot?: {
+    command?: string
+    model?: string
+    proxy?: string
+  }
   proxy?: string
 }
