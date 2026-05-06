@@ -7,11 +7,17 @@ AI Ins 是一个本地开发辅助工具，让你在开发web/electron等项目�
 - 不用描述“xxx模块，xxx按钮...”。
 - 接手陌生项目，直接快速上手修改。不再需要花时间熟悉项目结构、查找相关代码位置。
 
-你只需要：按住 `Option` / `Alt` 点选页面上的 DOM，通过打开的内置 AI Ins 面板，把目标元素和修改要求一起交给本地 CLI Agent 执行，并在页面里持续查看任务输出，任务完成后通过热更新直接看到修改结果即可。
+你只需要：按住 `Option` / `Alt` 点选页面上的 DOM，通过打开的内置 AI Ins 面板，把目标元素和修改要求一起交给本地 CLI Agent 执行，并在页面里持续查看任务输出，任务完成后通过热更新直接看到修改结果即可。  
+
+
+
+https://github.com/user-attachments/assets/f909f905-3297-49da-8881-8b48689c015c
+
+
 
 并且在 macOS 按住 `Option + Cmd`，Windows / Linux 按住 `Ctrl + Alt` 点击页面元素也支持直接打开IDE，并跳转到源码位置，用以查看修改细节或者手动调整。
 
-<img width="1672" alt="859d26a9-c362-4ae8-a2ed-62a017dc214c" src="https://github.com/user-attachments/assets/b524667f-ff12-4874-a669-59a2ab97e572" />
+<img width="1600" alt="859d26a9-c362-4ae8-a2ed-62a017dc214c" src="https://github.com/user-attachments/assets/b524667f-ff12-4874-a669-59a2ab97e572" />
 
 ## 当前能力
 
@@ -30,7 +36,7 @@ AI Ins 是一个本地开发辅助工具，让你在开发web/electron等项目�
 | `@ai-ins/webpack` | 可用   | 注册 devServer middleware，自动注入客户端脚本，并在开发态给 JSX DOM 元素注入 source 标记。 |
 | `@ai-ins/core`    | 内部包 | 提供 middleware、Agent provider、客户端脚本生成等共享能力。                                |
 
-<img width="1672" alt="image" src="https://github.com/user-attachments/assets/c157f619-34ad-45e2-b2e8-b5d04e4d92ee" />
+<img width="1600" alt="image" src="https://github.com/user-attachments/assets/c157f619-34ad-45e2-b2e8-b5d04e4d92ee" />
 
 ## 快速接入
 
