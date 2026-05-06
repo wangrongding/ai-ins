@@ -1,5 +1,6 @@
 import type { Plugin, ViteDevServer } from 'vite'
 import { transformAsync, type PluginObj } from '@babel/core'
+import { parse as parseSvelte } from 'svelte/compiler'
 import { ElementTypes, NodeTypes, parse as parseVueTemplate } from '@vue/compiler-dom'
 import { parse as parseVueSfc } from '@vue/compiler-sfc'
 import { createAiInsMiddlewares, ensureLaunchEditor, getAiInsClientCode, normalizeProxy } from '@ai-ins/core'
@@ -32,6 +33,19 @@ type VueNode = {
   tagType?: number
 }
 
+type SvelteNode = {
+  attributes?: Array<{
+    name?: string
+    type?: string
+  }>
+  children?: SvelteNode[]
+  end?: number
+  fallback?: SvelteNode[]
+  name?: string
+  start?: number
+  type?: string
+}
+
 function getSourceFileId(id: string) {
   const [fileName] = id.split('?', 1)
   return fileName
@@ -49,6 +63,11 @@ function shouldInjectJsxSourceAttributes(id: string) {
 function shouldInjectVueSourceAttributes(id: string) {
   const fileName = getSourceFileId(id)
   return /\.vue$/u.test(fileName) && id === fileName && isWorkspaceSourceFile(fileName)
+}
+
+function shouldInjectSvelteSourceAttributes(id: string) {
+  const fileName = getSourceFileId(id)
+  return /\.svelte$/u.test(fileName) && id === fileName && isWorkspaceSourceFile(fileName)
 }
 
 function isNativeJsxElementName(name: unknown) {
@@ -159,6 +178,10 @@ function hasVueSourceAttribute(props: Array<{ name?: string; type: number }>) {
   return props.some((prop) => prop.type === NodeTypes.ATTRIBUTE && (prop.name === sourceAttribute || prop.name === sourceRangeAttribute))
 }
 
+function hasSvelteSourceAttribute(attributes: Array<{ name?: string; type?: string }>) {
+  return attributes.some((attribute) => attribute.type === 'Attribute' && (attribute.name === sourceAttribute || attribute.name === sourceRangeAttribute))
+}
+
 function getTemplateContentStartOffset(source: string, block: { content: string; loc: { end: VueSourceLocation; start: VueSourceLocation } }) {
   const blockSource = source.slice(block.loc.start.offset, block.loc.end.offset)
   const contentOffset = blockSource.indexOf(block.content)
@@ -208,6 +231,44 @@ function collectVueSourceInsertions(nodes: VueNode[], fileName: string, template
   }
 }
 
+function collectSvelteSourceInsertions(node: SvelteNode, fileName: string, lineOffsets: number[], insertions: Array<{ content: string; offset: number }>, visited = new Set<SvelteNode>()) {
+  if (!node || visited.has(node)) {
+    return
+  }
+
+  visited.add(node)
+
+  if (node.type === 'Element' && node.name && Number.isInteger(node.start) && Number.isInteger(node.end) && !hasSvelteSourceAttribute(node.attributes ?? [])) {
+    const startOffset = node.start!
+    const endOffset = node.end!
+    const start = getLocationFromOffset(lineOffsets, startOffset)
+    const end = getLocationFromOffset(lineOffsets, endOffset)
+    const insertionOffset = startOffset + node.name.length + 1
+    const sourceValue = escapeHtmlAttribute(`${fileName}:${start.line}:${start.column}`)
+    const rangeValue = escapeHtmlAttribute(`${fileName}:${start.line}:${start.column}-${end.line}:${end.column}`)
+
+    insertions.push({
+      content: ` ${sourceAttribute}="${sourceValue}" ${sourceRangeAttribute}="${rangeValue}"`,
+      offset: insertionOffset,
+    })
+  }
+
+  for (const value of Object.values(node) as unknown[]) {
+    if (Array.isArray(value)) {
+      for (const child of value) {
+        if (child && typeof child === 'object' && 'type' in child) {
+          collectSvelteSourceInsertions(child as SvelteNode, fileName, lineOffsets, insertions, visited)
+        }
+      }
+      continue
+    }
+
+    if (value && typeof value === 'object' && 'type' in value) {
+      collectSvelteSourceInsertions(value as SvelteNode, fileName, lineOffsets, insertions, visited)
+    }
+  }
+}
+
 async function injectJsxSourceAttributes(code: string, fileName: string) {
   const result = await transformAsync(code, {
     babelrc: false,
@@ -242,6 +303,39 @@ function injectVueTemplateSourceAttributes(code: string, fileName: string) {
   const insertions: Array<{ content: string; offset: number }> = []
 
   collectVueSourceInsertions(templateAst.children as VueNode[], fileName, templateOffset, lineOffsets, insertions)
+
+  if (!insertions.length) {
+    return null
+  }
+
+  let transformedCode = code
+  for (const insertion of insertions.sort((left, right) => right.offset - left.offset)) {
+    transformedCode = `${transformedCode.slice(0, insertion.offset)}${insertion.content}${transformedCode.slice(insertion.offset)}`
+  }
+
+  return {
+    code: transformedCode,
+    map: null,
+  }
+}
+
+function injectSvelteSourceAttributes(code: string, fileName: string) {
+  let ast: { html?: SvelteNode }
+
+  try {
+    ast = parseSvelte(code, { filename: fileName }) as { html?: SvelteNode }
+  } catch {
+    return null
+  }
+
+  if (!ast.html) {
+    return null
+  }
+
+  const lineOffsets = getLineStartOffsets(code)
+  const insertions: Array<{ content: string; offset: number }> = []
+
+  collectSvelteSourceInsertions(ast.html, fileName, lineOffsets, insertions)
 
   if (!insertions.length) {
     return null
@@ -297,6 +391,9 @@ export function aiIns(options: AiInsPluginOptions = {}): Plugin {
       }
       if (shouldInjectVueSourceAttributes(id)) {
         return injectVueTemplateSourceAttributes(code, fileName)
+      }
+      if (shouldInjectSvelteSourceAttributes(id)) {
+        return injectSvelteSourceAttributes(code, fileName)
       }
       return null
     },

@@ -37,6 +37,7 @@
   "dependencies": {
     "@ai-ins/core": "workspace:*",
     "@babel/core": "^7.29.0",
+    "svelte": "^5.55.5",
     "@vue/compiler-dom": "^3.5.13",
     "@vue/compiler-sfc": "^3.5.13"
   }
