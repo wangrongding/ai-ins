@@ -23,6 +23,40 @@ function createSvgElement(tag, attributes = {}) {
   return element
 }
 
+function createIcon(paths, label) {
+  const icon = createSvgElement('svg', {
+    'aria-hidden': 'true',
+    fill: 'none',
+    viewBox: '0 0 24 24',
+  })
+  icon.append(
+    ...paths.map((path) =>
+      createSvgElement('path', {
+        d: path,
+        stroke: 'currentColor',
+        'stroke-linecap': 'round',
+        'stroke-linejoin': 'round',
+        'stroke-width': '2',
+      }),
+    ),
+  )
+  icon.dataset.label = label
+  return icon
+}
+
+function createIconButton(className, label, paths) {
+  const button = createElement('button', className)
+  button.type = 'button'
+  setIconButtonIcon(button, label, paths)
+  return button
+}
+
+function setIconButtonIcon(button, label, paths) {
+  button.title = label
+  button.setAttribute('aria-label', label)
+  button.replaceChildren(createIcon(paths, label))
+}
+
 function createLoadingSpinner() {
   const spinner = createSvgElement('svg', {
     'aria-hidden': 'true',

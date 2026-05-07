@@ -33,6 +33,27 @@ function showAiInsPanel(layer, layers) {
   const main = createElement('main', 'wbx-ai-ins-main')
   const form = createElement('form', 'wbx-ai-ins-composer')
   const target = createElement('div', 'wbx-ai-ins-target')
+  const targetText = createElement('span', 'wbx-ai-ins-target-text')
+  const targetActions = createElement('span', 'wbx-ai-ins-target-actions')
+  const copyTargetIcon = [
+    'M8 8h10a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z',
+    'M4 14H3a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1',
+  ]
+  const copiedTargetIcon = ['M20 6 9 17l-5-5']
+  const ideTargetIcon = [
+    'M7 8 3 12l4 4',
+    'm17 8 4 4-4 4',
+    'm14 4-4 16',
+  ]
+  const revealTargetIcon = [
+    'M3 7h5l2 2h11v9a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z',
+    'M3 7V5a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v2',
+  ]
+  const copyTargetButton = createIconButton('wbx-ai-ins-icon-button', '复制源码位置', copyTargetIcon)
+  const ideTargetButton = createIconButton('wbx-ai-ins-icon-button', 'IDE 打开', ideTargetIcon)
+  const revealTargetButton = createIconButton('wbx-ai-ins-icon-button', '打开所在位置', revealTargetIcon)
+  targetActions.append(copyTargetButton, ideTargetButton, revealTargetButton)
+  target.append(targetText, targetActions)
   const grid = createElement('div', 'wbx-ai-ins-form-grid')
 
   const proxyField = createElement('label', 'wbx-ai-ins-field')
@@ -91,7 +112,11 @@ function showAiInsPanel(layer, layers) {
     runCount,
     status,
     submitButton,
+    copyTargetButton,
+    ideTargetButton,
+    revealTargetButton,
     target,
+    targetText,
     textarea,
   }
 
@@ -109,6 +134,50 @@ function showAiInsPanel(layer, layers) {
     if (event.key === 'Enter' && event.shiftKey) {
       event.preventDefault()
       form.requestSubmit()
+    }
+  })
+  let copyTargetResetTimer
+  copyTargetButton.addEventListener('click', async () => {
+    if (!draftTarget?.layer) {
+      return
+    }
+
+    try {
+      await copyTextToClipboard(getDisplayPath(draftTarget.layer.path))
+      window.clearTimeout(copyTargetResetTimer)
+      copyTargetButton.classList.add('wbx-ai-ins-icon-button-success')
+      setIconButtonIcon(copyTargetButton, '已复制', copiedTargetIcon)
+      copyTargetResetTimer = window.setTimeout(() => {
+        copyTargetButton.classList.remove('wbx-ai-ins-icon-button-success')
+        setIconButtonIcon(copyTargetButton, '复制源码位置', copyTargetIcon)
+      }, 1200)
+      status.textContent = '已复制源码位置。'
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : String(error)
+    }
+  })
+  ideTargetButton.addEventListener('click', async () => {
+    if (!draftTarget?.layer) {
+      return
+    }
+
+    try {
+      await openInEditor(draftTarget.layer.path)
+      status.textContent = '已在 IDE 打开。'
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : String(error)
+    }
+  })
+  revealTargetButton.addEventListener('click', async () => {
+    if (!draftTarget?.layer) {
+      return
+    }
+
+    try {
+      await revealInFolder(draftTarget.layer.path)
+      status.textContent = '已打开所在位置。'
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : String(error)
     }
   })
   form.addEventListener('submit', async (event) => {

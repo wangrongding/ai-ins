@@ -144,6 +144,31 @@ function refreshRunDetail() {
   })
 }
 
+async function copyTextToClipboard(text) {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text)
+    return
+  }
+
+  const textarea = createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', '')
+  textarea.style.position = 'fixed'
+  textarea.style.left = '-9999px'
+  textarea.style.top = '0'
+  document.body.append(textarea)
+  textarea.select()
+
+  try {
+    const copied = document.execCommand('copy')
+    if (!copied) {
+      throw new Error('复制失败。')
+    }
+  } finally {
+    textarea.remove()
+  }
+}
+
 function refreshComposer() {
   if (!panelRefs) {
     return
@@ -151,9 +176,13 @@ function refreshComposer() {
 
   const provider = getProvider(panelRefs.providerSelect.value)
   const hasTarget = Boolean(draftTarget?.layer)
-  panelRefs.target.textContent = hasTarget
+  panelRefs.targetText.textContent = hasTarget
     ? `${draftTarget.layer.name} · ${getDisplayPath(draftTarget.layer.path)}`
     : 'Option / Alt 点击页面元素选择组件'
+  panelRefs.target.title = hasTarget ? `${draftTarget.layer.name} · ${draftTarget.layer.path}` : ''
+  panelRefs.copyTargetButton.disabled = !hasTarget
+  panelRefs.ideTargetButton.disabled = !hasTarget
+  panelRefs.revealTargetButton.disabled = !hasTarget
   panelRefs.submitButton.disabled = submitting || !hasTarget || !provider?.enabled
   panelRefs.submitButton.textContent = submitting ? '启动中' : `交给 ${provider?.label || 'Agent'}`
 

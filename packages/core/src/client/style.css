@@ -284,16 +284,70 @@
 }
 
 .wbx-ai-ins-target {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  margin-bottom: 10px;
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.055);
-  padding: 8px 10px;
+  padding: 6px 8px 6px 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   font-size: 11px;
   color: #b6c5d8;
+}
+
+.wbx-ai-ins-target-text {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wbx-ai-ins-target-actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.wbx-ai-ins-icon-button {
+  display: inline-flex;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #93a4b8;
+  cursor: pointer;
+}
+
+.wbx-ai-ins-icon-button:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: #e2e8f0;
+}
+
+.wbx-ai-ins-icon-button-success,
+.wbx-ai-ins-icon-button-success:hover {
+  background: rgba(34, 197, 94, 0.14);
+  color: #86efac;
+}
+
+.wbx-ai-ins-icon-button:disabled {
+  cursor: default;
+  opacity: 0.34;
+}
+
+.wbx-ai-ins-icon-button:disabled:hover {
+  background: transparent;
+  color: #93a4b8;
+}
+
+.wbx-ai-ins-icon-button svg {
+  width: 15px;
+  height: 15px;
 }
 
 .wbx-ai-ins-footer {

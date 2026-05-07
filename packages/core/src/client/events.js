@@ -62,7 +62,11 @@ window.addEventListener(
     event.stopImmediatePropagation?.()
 
     if (isOpenSourceShortcut(event)) {
-      void openInEditor(preferredLayer.path).finally(cleanUp)
+      void openInEditor(preferredLayer.path)
+        .catch((error) => {
+          console.error('[ai-ins] open in editor failed:', error)
+        })
+        .finally(cleanUp)
       return
     }
 

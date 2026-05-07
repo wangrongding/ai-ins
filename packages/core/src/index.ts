@@ -4,6 +4,7 @@ import {
   aiInsEventsMiddleware,
   aiInsRunsMiddleware,
   openInEditorMiddleware,
+  revealInFolderMiddleware,
 } from './middleware'
 import { getClientAgentProviders, getDefaultAgentProviderId } from './providers'
 import { getConfiguredCodexProxy, normalizeProxy } from './proxy'
@@ -15,6 +16,7 @@ export {
   aiInsEventsMiddleware,
   aiInsRunsMiddleware,
   openInEditorMiddleware,
+  revealInFolderMiddleware,
 } from './middleware'
 export { getClientAgentProviders, getDefaultAgentProviderId } from './providers'
 export { getConfiguredCodexProxy, normalizeProxy } from './proxy'
@@ -25,6 +27,7 @@ export function createAiInsMiddlewares(root: string, options: AiInsPluginOptions
 
   return [
     { path: '/__open-in-editor', middleware: openInEditorMiddleware(root) },
+    { path: '/__reveal-in-folder', middleware: revealInFolderMiddleware(root) },
     { path: '/__ai-ins-agent/events', middleware: aiInsEventsMiddleware() },
     { path: '/__ai-ins-agent/runs', middleware: aiInsRunsMiddleware(root) },
     { path: '/__ai-ins-agent', middleware: aiInsEditMiddleware(root, options, codexProxy) },

@@ -5,7 +5,17 @@ async function openInEditor(layerPath) {
     return
   }
 
-  console.error('[ai-ins] open in editor failed:', await response.text())
+  throw new Error(await response.text())
+}
+
+async function revealInFolder(layerPath) {
+  const response = await fetch(`${base}__reveal-in-folder?file=${encodeURIComponent(layerPath)}`)
+
+  if (response.ok) {
+    return
+  }
+
+  throw new Error(await response.text())
 }
 
 async function runAiInsAgent(layer, layers, providerId, prompt, proxy) {

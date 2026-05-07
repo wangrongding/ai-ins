@@ -1,3 +1,6 @@
 node_modules
 .codex
 dist
+
+.DS_Store
+

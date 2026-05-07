@@ -15,8 +15,20 @@ import {
 } from './source'
 import { spawn } from 'child_process'
 import { createWriteStream, existsSync, mkdirSync } from 'fs'
-import { join } from 'path'
+import { dirname, join } from 'path'
 import type { AiInsMiddleware, AiInsPluginOptions } from './types'
+
+function getRevealInFolderCommand(fileName: string) {
+  if (process.platform === 'darwin') {
+    return { args: ['-R', fileName], command: 'open' }
+  }
+
+  if (process.platform === 'win32') {
+    return { args: [`/select,${fileName}`], command: 'explorer.exe' }
+  }
+
+  return { args: [dirname(fileName)], command: 'xdg-open' }
+}
 
 export function aiInsEventsMiddleware(): AiInsMiddleware {
   return (req, res) => {
@@ -404,6 +416,49 @@ export function openInEditorMiddleware(root: string): AiInsMiddleware {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       console.error('[ai-ins] open in editor failed:', message)
+      res.statusCode = 500
+      res.end(message)
+    }
+  }
+}
+
+export function revealInFolderMiddleware(root: string): AiInsMiddleware {
+  return (req, res) => {
+    const requestUrl = req.url ? new URL(req.url, 'http://localhost') : null
+    const rawTarget = requestUrl?.searchParams.get('file')
+
+    if (!rawTarget) {
+      res.statusCode = 400
+      res.end('missing file query parameter')
+      return
+    }
+
+    const { fileName } = parseOpenInEditorTarget(rawTarget, root)
+    if (!existsSync(fileName)) {
+      res.statusCode = 404
+      res.end(`source file not found: ${fileName}`)
+      return
+    }
+
+    const { args, command } = getRevealInFolderCommand(fileName)
+
+    try {
+      const child = spawn(command, args, {
+        detached: true,
+        shell: shouldUseShellForCommand(command),
+        stdio: 'ignore',
+      })
+
+      child.on('error', (error) => {
+        console.error('[ai-ins] reveal in folder failed:', error.message)
+      })
+
+      child.unref()
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({ command, fileName }))
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.error('[ai-ins] reveal in folder failed:', message)
       res.statusCode = 500
       res.end(message)
     }
