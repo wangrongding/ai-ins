@@ -1,5 +1,5 @@
 import { formatAgentJsonLine } from './agent-output'
-import { getEditorArgs, resolveCommand, resolveLaunchEditor } from './editor'
+import { getEditorArgs, resolveCommand, resolveLaunchEditor, shouldUseShellForCommand } from './editor'
 import { getDefaultAgentProviderId, resolveAgentProviders } from './providers'
 import { getAgentEnv, normalizeProxy } from './proxy'
 import { appendAiInsEvent, aiInsRuns, createAiInsRun, getAiInsRunSummary, sendAiInsEvent } from './run-store'
@@ -207,6 +207,7 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
       const child = spawn(agentCommand, args, {
         cwd: root,
         env: getAgentEnv(proxy),
+        shell: shouldUseShellForCommand(agentCommand),
         stdio: ['pipe', 'pipe', 'pipe'],
       })
       const run = aiInsRuns.get(runId)
@@ -389,7 +390,12 @@ export function openInEditorMiddleware(root: string): AiInsMiddleware {
     try {
       const child = spawn(editor, getEditorArgs(editor, fileName, lineNumber, columnNumber), {
         detached: true,
+        shell: shouldUseShellForCommand(editor),
         stdio: 'ignore',
+      })
+
+      child.on('error', (error) => {
+        console.error('[ai-ins] open in editor failed:', error.message)
       })
 
       child.unref()

@@ -11,9 +11,9 @@
     "dev:vite": "pnpm --parallel --filter @ai-ins/core --filter @ai-ins/vite --filter '@ai-ins/playground-vite*' dev",
     "dev:webpack": "pnpm --filter @ai-ins/core build && pnpm --filter @ai-ins/webpack build && pnpm --parallel --filter @ai-ins/core --filter @ai-ins/webpack --filter @ai-ins/playground-webpack dev",
     "dev:webpack:once": "pnpm --filter @ai-ins/core build && pnpm --filter @ai-ins/webpack build && pnpm --filter @ai-ins/playground-webpack dev",
-    "build": "pnpm -r --filter './packages/*' build",
-    "typecheck": "pnpm -r --filter './packages/*' typecheck",
-    "clean": "pnpm -r --filter './packages/*' clean && rm -rf node_modules",
+    "build": "pnpm -r --filter=./packages/* build",
+    "typecheck": "pnpm -r --filter=./packages/* typecheck",
+    "clean": "pnpm -r --filter=./packages/* clean && node -e \"import { rmSync } from 'node:fs'; rmSync('node_modules', { force: true, recursive: true })\"",
     "changeset": "changeset",
     "version-packages": "changeset version",
     "release": "pnpm build && changeset publish"

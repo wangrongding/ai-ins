@@ -385,7 +385,7 @@ export function aiIns(options: AiInsPluginOptions = {}): Plugin {
     },
     async transform(code, id) {
       const fileName = getSourceFileId(id)
-      if (!isServe) return null
+      if (!isServe || options.disableSourceAttributes) return null
       if (shouldInjectJsxSourceAttributes(id)) {
         return injectJsxSourceAttributes(code, fileName)
       }

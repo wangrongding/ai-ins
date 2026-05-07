@@ -93,5 +93,9 @@ export type AiInsPluginOptions = {
     model?: string
     proxy?: string
   }
+  /**
+   * Disable source attributes when they would conflict with framework SSR hydration.
+   */
+  disableSourceAttributes?: boolean
   proxy?: string
 }

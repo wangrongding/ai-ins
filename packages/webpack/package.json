@@ -1,6 +1,6 @@
 {
   "name": "@ai-ins/webpack",
-  "version": "0.2.1",
+  "version": "0.2.3",
   "description": "Webpack plugin for AI Ins.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -20,8 +20,9 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --shims && cp src/client-entry.js src/source-loader.cjs dist/",
-    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --shims --watch --onSuccess \"cp src/client-entry.js src/source-loader.cjs dist/\"",
+    "copy-build": "node scripts/copy-build.mjs",
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --shims && pnpm copy-build",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --shims --watch --onSuccess \"pnpm copy-build\"",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },

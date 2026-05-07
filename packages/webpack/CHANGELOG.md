@@ -1,5 +1,20 @@
 # @ai-ins/webpack
 
+## 0.2.3
+
+### Patch Changes
+
+- Improve editor command resolution on Windows and macOS, support shell-based editor commands on Windows, and allow Vite source attributes to be disabled for SSR hydration compatibility.
+- Updated dependencies
+  - @ai-ins/core@0.3.2
+
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [47ef2a8]
+  - @ai-ins/core@0.3.1
+
 ## 0.2.1
 
 ### Patch Changes

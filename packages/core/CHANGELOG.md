@@ -1,5 +1,19 @@
 # @ai-ins/core
 
+## 0.3.2
+
+### Patch Changes
+
+- Improve editor command resolution on Windows and macOS, support shell-based editor commands on Windows, and allow Vite source attributes to be disabled for SSR hydration compatibility.
+
+## 0.3.1
+
+### Patch Changes
+
+- 47ef2a8: Fix the published client runtime layout so `dist/client/style.css` is emitted at the path read by the runtime.
+
+  Improve editor command resolution on Windows and macOS, and allow source attributes to be disabled when they conflict with framework SSR hydration.
+
 ## 0.3.0
 
 ### Minor Changes
