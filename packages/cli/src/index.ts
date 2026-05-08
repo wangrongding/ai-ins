@@ -30,17 +30,37 @@ function printHelp() {
   console.log(`ai-ins
 
 Usage:
+  ai-ins [--bundler vite|webpack] [--no-install]
   ai-ins init [--bundler vite|webpack] [--no-install]
 
 Examples:
+  npx ai-ins
+  npx ai-ins --bundler vite
   npx ai-ins init
   npx ai-ins init --bundler vite
+`)
+}
+
+function printInitHelp() {
+  console.log(`ai-ins init
+
+Usage:
+  ai-ins [init] [--bundler vite|webpack] [--no-install]
+
+Options:
+  --bundler vite|webpack  Specify the bundler instead of auto-detecting it.
+  --no-install           Update config only, without installing dependencies.
+  --cwd <path>           Run init in a different project directory.
 `)
 }
 
 function fail(message: string): never {
   console.error(`ai-ins: ${message}`)
   process.exit(1)
+}
+
+function isHelpArg(arg: string | undefined) {
+  return arg === '--help' || arg === '-h'
 }
 
 function readJsonFile<T>(fileName: string): T {
@@ -386,6 +406,11 @@ function patchWebpackConfig(root: string) {
 }
 
 function runInit(args: string[]) {
+  if (isHelpArg(args[0])) {
+    printInitHelp()
+    return
+  }
+
   const options = parseInitOptions(args)
   const packageJsonPath = join(options.cwd, 'package.json')
   if (!existsSync(packageJsonPath)) {
@@ -408,13 +433,23 @@ function runInit(args: string[]) {
 
 function main(args: string[]) {
   const command = args[0]
-  if (!command || command === '--help' || command === '-h') {
+  if (isHelpArg(command)) {
     printHelp()
+    return
+  }
+
+  if (!command) {
+    runInit([])
     return
   }
 
   if (command === 'init') {
     runInit(args.slice(1))
+    return
+  }
+
+  if (command.startsWith('-') || command === 'vite' || command === 'webpack') {
+    runInit(args)
     return
   }
 

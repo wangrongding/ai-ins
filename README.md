@@ -21,7 +21,7 @@ https://github.com/user-attachments/assets/f909f905-3297-49da-8881-8b48689c015c
 
 ## 当前能力
 
-- 通过运行 `npx ai-ins init` 自动识别项目内的构建工具（Vite / Webpack...），安装对应的 `@ai-ins/*` 包，并尝试修改配置文件。
+- 通过运行 `npx ai-ins` 自动识别项目内的构建工具（Vite / Webpack...），安装对应的 `@ai-ins/*` 包，并尝试修改配置文件。
 - Vite dev server 自动注入 AI Ins 客户端，支持 `Option` / `Alt` 点选 DOM 打开面板。
 - 面板内可以选择 Agent、填写代理、提交修改要求，并并发跟踪多个运行任务。
 - 内置 Codex、Claude 和 Copilot CLI provider。
@@ -41,23 +41,23 @@ https://github.com/user-attachments/assets/f909f905-3297-49da-8881-8b48689c015c
 ## 快速接入
 
 ```bash
-npx ai-ins init
+npx ai-ins
 ```
 
 指定构建工具：
 
 ```bash
-npx ai-ins init --bundler vite
-npx ai-ins init --bundler webpack
+npx ai-ins --bundler vite
+npx ai-ins --bundler webpack
 ```
 
 只改配置、不安装依赖：
 
 ```bash
-npx ai-ins init --no-install
+npx ai-ins --no-install
 ```
 
-CLI 会根据 `packageManager` 或 lockfile 选择 `pnpm` / `yarn` / `bun` / `npm`。如果配置文件结构太特殊，CLI 会提示你手动把插件加入配置。
+不带子命令时，CLI 会默认执行初始化逻辑；显式写 `npx ai-ins init` 也仍然支持，后续新增的其它子命令会继续通过 `ai-ins <command>` 调用。CLI 会根据 `packageManager` 或 lockfile 选择 `pnpm` / `yarn` / `bun` / `npm`。如果配置文件结构太特殊，CLI 会提示你手动把插件加入配置。
 
 ## Vite 使用方式
 
@@ -174,7 +174,7 @@ pnpm build
 ## 包结构
 
 ```txt
-packages/cli       # ai-ins CLI 包，提供 ai-ins init
+packages/cli       # ai-ins CLI 包，默认提供 init 初始化逻辑
 packages/core      # middleware、Agent provider、客户端 runtime
 packages/vite      # Vite 插件
 packages/webpack   # Webpack devServer 插件

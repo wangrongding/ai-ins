@@ -111,6 +111,7 @@ npm view @ai-ins/webpack version
 检查 CLI 是否可用：
 
 ```bash
+npx ai-ins --no-install
 npx ai-ins --help
 npx ai-ins init --help
 ```
@@ -184,4 +185,3 @@ Package name too similar to existing package ...
 ```
 
 这是 npm 的包名风控。需要更换包名、改为 scoped 包，或向 npm support 申请人工复核。
-
