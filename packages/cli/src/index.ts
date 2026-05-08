@@ -9,6 +9,7 @@ type Bundler = 'vite' | 'webpack'
 type InitOptions = {
   bundler?: Bundler
   cwd: string
+  forceInstall: boolean
   install: boolean
 }
 
@@ -30,12 +31,13 @@ function printHelp() {
   console.log(`ai-ins
 
 Usage:
-  ai-ins [--bundler vite|webpack] [--no-install]
-  ai-ins init [--bundler vite|webpack] [--no-install]
+  ai-ins [--bundler vite|webpack] [--no-install] [--force]
+  ai-ins init [--bundler vite|webpack] [--no-install] [--force]
 
 Examples:
   npx ai-ins
   npx ai-ins --bundler vite
+  npx ai-ins --force
   npx ai-ins init
   npx ai-ins init --bundler vite
 `)
@@ -45,11 +47,12 @@ function printInitHelp() {
   console.log(`ai-ins init
 
 Usage:
-  ai-ins [init] [--bundler vite|webpack] [--no-install]
+  ai-ins [init] [--bundler vite|webpack] [--no-install] [--force]
 
 Options:
   --bundler vite|webpack  Specify the bundler instead of auto-detecting it.
   --no-install           Update config only, without installing dependencies.
+  --force                Install the latest matching @ai-ins/* package even if it is already installed.
   --cwd <path>           Run init in a different project directory.
 `)
 }
@@ -97,13 +100,18 @@ function detectBundler(root: string, packageJson: PackageJson, requested?: Bundl
 }
 
 function parseInitOptions(args: string[]): InitOptions {
-  const options: InitOptions = { cwd: process.cwd(), install: true }
+  const options: InitOptions = { cwd: process.cwd(), forceInstall: false, install: true }
 
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index]
 
     if (arg === '--no-install') {
       options.install = false
+      continue
+    }
+
+    if (arg === '--force') {
+      options.forceInstall = true
       continue
     }
 
@@ -129,6 +137,10 @@ function parseInitOptions(args: string[]): InitOptions {
     }
 
     fail(`unknown option: ${arg}`)
+  }
+
+  if (!options.install && options.forceInstall) {
+    fail('--force cannot be used with --no-install')
   }
 
   return options
@@ -161,15 +173,20 @@ function getInstallCommand(root: string, packageManager: string, packageName: st
   return { args: ['install', '-D', packageName], command: 'npm' }
 }
 
-function installPackage(root: string, packageJson: PackageJson, packageName: string) {
-  if (hasDependency(packageJson, packageName)) {
+function getLatestPackageSpec(packageName: string) {
+  return `${packageName}@latest`
+}
+
+function installPackage(root: string, packageJson: PackageJson, packageName: string, forceInstall: boolean) {
+  if (hasDependency(packageJson, packageName) && !forceInstall) {
     console.log(`- ${packageName} is already installed`)
     return
   }
 
   const packageManager = getPackageManager(root, packageJson)
-  const installCommand = getInstallCommand(root, packageManager, packageName)
-  console.log(`- Installing ${packageName} with ${packageManager}`)
+  const packageSpec = forceInstall ? getLatestPackageSpec(packageName) : packageName
+  const installCommand = getInstallCommand(root, packageManager, packageSpec)
+  console.log(forceInstall ? `- Installing latest ${packageName} with ${packageManager}` : `- Installing ${packageName} with ${packageManager}`)
 
   const result = spawnSync(installCommand.command, installCommand.args, {
     cwd: root,
@@ -178,7 +195,7 @@ function installPackage(root: string, packageJson: PackageJson, packageName: str
   })
 
   if (result.status !== 0) {
-    fail(`failed to install ${packageName}`)
+    fail(`failed to install ${packageSpec}`)
   }
 }
 
@@ -423,7 +440,7 @@ function runInit(args: string[]) {
 
   console.log(`AI Ins init (${bundler})`)
   if (options.install) {
-    installPackage(options.cwd, packageJson, packageName)
+    installPackage(options.cwd, packageJson, packageName, options.forceInstall)
   }
 
   const configFile = bundler === 'vite' ? patchViteConfig(options.cwd) : patchWebpackConfig(options.cwd)

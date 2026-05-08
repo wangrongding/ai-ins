@@ -1,6 +1,6 @@
 {
   "name": "ai-ins",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Initialize AI Ins in Vite and Webpack projects.",
   "type": "module",
   "bin": {

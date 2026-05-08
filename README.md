@@ -57,7 +57,13 @@ npx ai-ins --bundler webpack
 npx ai-ins --no-install
 ```
 
-不带子命令时，CLI 会默认执行初始化逻辑；显式写 `npx ai-ins init` 也仍然支持，后续新增的其它子命令会继续通过 `ai-ins <command>` 调用。CLI 会根据 `packageManager` 或 lockfile 选择 `pnpm` / `yarn` / `bun` / `npm`。如果配置文件结构太特殊，CLI 会提示你手动把插件加入配置。
+强制重新安装最新的适配包：
+
+```bash
+npx ai-ins --force
+```
+
+不带子命令时，CLI 会默认执行初始化逻辑；显式写 `npx ai-ins init` 也仍然支持，后续新增的其它子命令会继续通过 `ai-ins <command>` 调用。CLI 会根据 `packageManager` 或 lockfile 选择 `pnpm` / `yarn` / `bun` / `npm`。如果项目已经安装过对应依赖，默认会跳过安装；加上 `--force` 时会重新安装最新版，例如 Vite 项目会安装 `@ai-ins/vite@latest`。如果配置文件结构太特殊，CLI 会提示你手动把插件加入配置。
 
 ## Vite 使用方式
 
