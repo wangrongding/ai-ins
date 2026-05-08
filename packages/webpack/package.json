@@ -1,6 +1,6 @@
 {
   "name": "@ai-ins/webpack",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Webpack plugin for AI Ins.",
   "type": "module",
   "main": "./dist/index.cjs",

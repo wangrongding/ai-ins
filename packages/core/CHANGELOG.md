@@ -1,5 +1,11 @@
 # @ai-ins/core
 
+## 0.3.3
+
+### Patch Changes
+
+- Release core and Vite packages alongside the CLI default init update.
+
 ## 0.3.2
 
 ### Patch Changes
