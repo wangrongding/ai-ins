@@ -59,6 +59,27 @@ function withBase(base: string, path: string) {
   return `${normalizedBase}${normalizedPath}`
 }
 
+function getBasePath(base: string) {
+  if (!base || base === './' || base === '.') {
+    return '/'
+  }
+
+  try {
+    if (/^[a-z][a-z\d+\-.]*:\/\//iu.test(base)) {
+      return new URL(base).pathname || '/'
+    }
+  } catch {
+    return '/'
+  }
+
+  return base.startsWith('/') ? base : `/${base}`
+}
+
+function getMiddlewarePaths(base: string, path: string) {
+  const basePath = getBasePath(base)
+  return [...new Set([path, withBase(basePath, path)])]
+}
+
 function isWorkspaceSourceFile(fileName: string) {
   return !fileName.includes('/node_modules/') && !fileName.includes('\\node_modules\\')
 }
@@ -380,7 +401,9 @@ export function aiIns(options: AiInsPluginOptions = {}): Plugin {
     },
     configureServer(server: ViteDevServer) {
       for (const route of createAiInsMiddlewares(server.config.root, options)) {
-        server.middlewares.use(route.path, route.middleware)
+        for (const path of getMiddlewarePaths(base, route.path)) {
+          server.middlewares.use(path, route.middleware)
+        }
       }
     },
     load(id) {

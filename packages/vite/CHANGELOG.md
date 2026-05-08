@@ -1,5 +1,11 @@
 # @ai-ins/vite
 
+## 0.3.5
+
+### Patch Changes
+
+- Register AI Ins dev middleware under the configured Vite base path so client requests work when apps are served from a subpath.
+
 ## 0.3.4
 
 ### Patch Changes
