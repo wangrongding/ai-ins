@@ -8,6 +8,7 @@ import type { AiInsPluginOptions } from '@ai-ins/core'
 
 const clientModuleId = 'ai-ins/client'
 const resolvedClientModuleId = `\0${clientModuleId}`
+const encodedClientModulePath = `/@id/__x00__${clientModuleId}`
 const sourceAttribute = 'data-ai-ins-source'
 const sourceRangeAttribute = 'data-ai-ins-source-range'
 
@@ -49,6 +50,13 @@ type SvelteNode = {
 function getSourceFileId(id: string) {
   const [fileName] = id.split('?', 1)
   return fileName
+}
+
+function withBase(base: string, path: string) {
+  const normalizedBase = base.endsWith('/') ? base : `${base}/`
+  const normalizedPath = path.startsWith('/') ? path.slice(1) : path
+
+  return `${normalizedBase}${normalizedPath}`
 }
 
 function isWorkspaceSourceFile(fileName: string) {
@@ -399,7 +407,7 @@ export function aiIns(options: AiInsPluginOptions = {}): Plugin {
     },
     transformIndexHtml() {
       if (!isServe) return
-      return [{ attrs: { type: 'module' }, children: 'import "/@id/__x00__ai-ins/client";', tag: 'script' }]
+      return [{ attrs: { type: 'module' }, children: `import "${withBase(base, encodedClientModulePath)}";`, tag: 'script' }]
     },
   }
 }
