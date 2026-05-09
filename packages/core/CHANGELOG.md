@@ -1,5 +1,11 @@
 # @ai-ins/core
 
+## 0.3.4
+
+### Patch Changes
+
+- Prefer runnable Windows command shims like `.cmd` when resolving agent CLI commands so Codex, Claude, Copilot, and custom providers launch correctly.
+
 ## 0.3.3
 
 ### Patch Changes

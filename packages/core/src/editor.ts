@@ -93,6 +93,27 @@ function resolvePathWithWindowsExtension(command: string) {
   return existsSync(command) ? command : null
 }
 
+function getWindowsCommandExtensionRank(command: string) {
+  const extension = extname(command).toLowerCase()
+
+  if (!extension) return 100
+  if (extension === '.cmd') return 0
+  if (extension === '.bat') return 1
+  if (extension === '.exe') return 2
+  if (extension === '.com') return 3
+  if (extension === '.ps1') return 4
+
+  const pathExtensionIndex = getWindowsPathExtensions().findIndex((candidate) => candidate.toLowerCase() === extension)
+  return pathExtensionIndex >= 0 ? 10 + pathExtensionIndex : 50
+}
+
+function pickWindowsCommand(candidates: string[]) {
+  return candidates
+    .filter(Boolean)
+    .sort((left, right) => getWindowsCommandExtensionRank(left) - getWindowsCommandExtensionRank(right))
+    .at(0)
+}
+
 function resolveWindowsCommand(command: string) {
   try {
     const output = execFileSync('where.exe', [command], {
@@ -101,10 +122,11 @@ function resolveWindowsCommand(command: string) {
       .toString()
       .trim()
 
-    return output.split(/\r?\n/).find(Boolean) ?? null
+    return pickWindowsCommand(output.split(/\r?\n/u)) ?? null
   } catch {
     const pathValue = process.env.PATH || process.env.Path || process.env.path || ''
     const extensions = extname(command) ? [''] : getWindowsPathExtensions()
+    const candidates: string[] = []
 
     for (const pathEntry of pathValue.split(delimiter).filter(Boolean)) {
       const directory = pathEntry.trim().replace(/^['"](.+)['"]$/u, '$1')
@@ -113,12 +135,12 @@ function resolveWindowsCommand(command: string) {
         const candidate = join(directory, `${command}${extension.toLowerCase()}`)
 
         if (existsSync(candidate)) {
-          return candidate
+          candidates.push(candidate)
         }
       }
     }
 
-    return null
+    return pickWindowsCommand(candidates) ?? null
   }
 }
 
