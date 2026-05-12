@@ -1,5 +1,11 @@
 # @ai-ins/core
 
+## Unreleased
+
+### Minor Changes
+
+- Add built-in Gemini CLI and Cursor Agent CLI providers with model/proxy options and readable structured-output rendering.
+
 ## 0.3.4
 
 ### Patch Changes

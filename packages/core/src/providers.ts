@@ -25,6 +25,28 @@ function getCopilotArgs(options: AiInsPluginOptions) {
   return args
 }
 
+function getCursorArgs(options: AiInsPluginOptions) {
+  const args = ['--print', '--output-format', 'stream-json']
+  const model = options.cursor?.model || process.env.AI_INS_CURSOR_MODEL
+
+  if (model) {
+    args.push('--model', model)
+  }
+
+  return args
+}
+
+function getGeminiArgs(options: AiInsPluginOptions) {
+  const args = ['--output-format', 'json']
+  const model = options.gemini?.model || process.env.AI_INS_GEMINI_MODEL || process.env.GEMINI_MODEL
+
+  if (model) {
+    args.push('--model', model)
+  }
+
+  return args
+}
+
 function getClaudeArgs(options: AiInsPluginOptions) {
   const args = [
     '-p',
@@ -49,6 +71,8 @@ function getBuiltinAgentProviders(root: string, options: AiInsPluginOptions, plu
   const codexProxy = getConfiguredAgentProxy(options.codex?.proxy, pluginProxy)
   const claudeProxy = getConfiguredAgentProxy(options.claude?.proxy, pluginProxy)
   const copilotProxy = getConfiguredAgentProxy(options.copilot?.proxy, pluginProxy)
+  const cursorProxy = getConfiguredAgentProxy(options.cursor?.proxy, pluginProxy)
+  const geminiProxy = getConfiguredAgentProxy(options.gemini?.proxy, pluginProxy)
 
   return [
     {
@@ -80,6 +104,26 @@ function getBuiltinAgentProviders(root: string, options: AiInsPluginOptions, plu
       label: 'Copilot',
       output: 'plain',
       proxy: copilotProxy,
+    },
+    {
+      args: getGeminiArgs(options),
+      command: options.gemini?.command || process.env.GEMINI_CLI || 'gemini',
+      enabled: true,
+      id: 'gemini',
+      input: 'stdin',
+      label: 'Gemini',
+      output: 'json',
+      proxy: geminiProxy,
+    },
+    {
+      args: getCursorArgs(options),
+      command: options.cursor?.command || process.env.CURSOR_AGENT_CLI || 'cursor-agent',
+      enabled: true,
+      id: 'cursor',
+      input: 'argument',
+      label: 'Cursor',
+      output: 'jsonl',
+      proxy: cursorProxy,
     },
   ]
 }

@@ -105,18 +105,30 @@ function collectJsonText(value: unknown, depth = 0): string[] {
     return resultText
   }
 
-  const directText = getStringRecordValue(value, ['message', 'text', 'delta', 'content', 'summary', 'title', 'command', 'cmd', 'error', 'status'])
+  const directText = getStringRecordValue(value, ['message', 'response', 'text', 'delta', 'content', 'summary', 'title', 'command', 'cmd', 'error', 'status'])
   if (directText) {
     return [directText]
   }
 
-  return ['message', 'delta', 'content', 'item', 'event', 'tool_call', 'toolCall', 'result', 'data']
+  return ['message', 'response', 'delta', 'content', 'item', 'event', 'tool_call', 'toolCall', 'result', 'data']
     .flatMap((key) => collectJsonText(value[key], depth + 1))
     .filter(Boolean)
 }
 
 function truncateAgentOutput(message: string, maxLength = 2400) {
   return message.length > maxLength ? `${message.slice(0, maxLength)}\n[ai-ins] output truncated\n` : message
+}
+
+function formatCursorSystemEvent(event: Record<string, unknown>) {
+  const subtype = getStringRecordValue(event, ['subtype'])
+
+  if (subtype === 'init') {
+    const model = getStringRecordValue(event, ['model'])
+    const cwd = getStringRecordValue(event, ['cwd'])
+    return `[system] Cursor Agent started${model ? ` (${model})` : ''}${cwd ? ` in ${cwd}` : ''}\n`
+  }
+
+  return ''
 }
 
 function formatClaudeSystemEvent(event: Record<string, unknown>) {
@@ -149,7 +161,7 @@ export function formatAgentJsonLine(rawEvent: unknown) {
 
   const eventType = getStringRecordValue(rawEvent, ['type', 'event', 'kind', 'sessionUpdate'])
   if (eventType === 'system') {
-    const systemMessage = formatClaudeSystemEvent(rawEvent)
+    const systemMessage = formatClaudeSystemEvent(rawEvent) || formatCursorSystemEvent(rawEvent)
     if (systemMessage) {
       return systemMessage
     }
