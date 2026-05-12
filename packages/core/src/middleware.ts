@@ -284,6 +284,16 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
           return
         }
 
+        if (provider.output === 'json') {
+          try {
+            appendOutput(formatAgentJsonLine(JSON.parse(stdoutBuffer)), 'stdout')
+          } catch {
+            appendOutput(`${stdoutBuffer}\n`, 'stdout')
+          }
+          stdoutBuffer = ''
+          return
+        }
+
         flushStdoutLine(stdoutBuffer)
         stdoutBuffer = ''
       }
@@ -296,6 +306,10 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
         }
 
         stdoutBuffer += message
+        if (provider.output === 'json') {
+          return
+        }
+
         const lines = stdoutBuffer.split(/\r?\n/u)
         stdoutBuffer = lines.pop() ?? ''
 

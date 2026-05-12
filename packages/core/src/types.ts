@@ -50,7 +50,7 @@ export type AiInsAgentProviderInput = {
   id: string
   input?: 'argument' | 'stdin'
   label?: string
-  output?: 'codex-json' | 'jsonl' | 'plain'
+  output?: 'codex-json' | 'json' | 'jsonl' | 'plain'
   proxy?: string
 }
 
@@ -62,7 +62,7 @@ export type ResolvedAiInsAgentProvider = {
   id: string
   input: 'argument' | 'stdin'
   label: string
-  output: 'codex-json' | 'jsonl' | 'plain'
+  output: 'codex-json' | 'json' | 'jsonl' | 'plain'
   proxy: string
 }
 
@@ -89,6 +89,16 @@ export type AiInsPluginOptions = {
     proxy?: string
   }
   copilot?: {
+    command?: string
+    model?: string
+    proxy?: string
+  }
+  cursor?: {
+    command?: string
+    model?: string
+    proxy?: string
+  }
+  gemini?: {
     command?: string
     model?: string
     proxy?: string

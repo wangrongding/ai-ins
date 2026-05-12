@@ -130,12 +130,40 @@ Next.js 适配会在开发态启动本地 AI Ins middleware 服务，并通过 `
 
 ## Agent 配置
 
+内置 provider 包括 `codex`、`claude`、`copilot`、`gemini` 和 `cursor`。Gemini CLI 官方 headless 模式支持 stdin 与 JSON 输出；Cursor Agent CLI 官方建议在非交互场景使用 `--print --output-format stream-json`，AI Ins 会按这两个 CLI 的结构化输出做实时展示。
+
 默认 provider：
 
 ```ts
 aiIns({
   agents: {
     defaultProvider: 'codex',
+  },
+})
+```
+
+切换到 Gemini CLI：
+
+```ts
+aiIns({
+  agents: {
+    defaultProvider: 'gemini',
+  },
+  gemini: {
+    model: 'gemini-2.5-flash',
+  },
+})
+```
+
+切换到 Cursor Agent CLI：
+
+```ts
+aiIns({
+  agents: {
+    defaultProvider: 'cursor',
+  },
+  cursor: {
+    model: 'gpt-5',
   },
 })
 ```
@@ -165,7 +193,7 @@ Provider 字段说明：
 - `command`：本地可执行命令。
 - `args`：启动参数。
 - `input`：`stdin` 或 `argument`，表示 prompt 通过标准输入还是命令参数传入。
-- `output`：`codex-json`、`jsonl` 或 `plain`，用于解析输出流。
+- `output`：`codex-json`、`json`、`jsonl` 或 `plain`，用于解析输出流。
 - `proxy`：单个 provider 的代理配置。
 
 ## 环境变量
@@ -174,13 +202,19 @@ Provider 字段说明：
 CODEX_CLI=codex
 CLAUDE_CLI=claude
 COPILOT_CLI=copilot
+GEMINI_CLI=gemini
+CURSOR_AGENT_CLI=cursor-agent
 AI_INS_PROXY=http://127.0.0.1:7890
 AI_INS_CODEX_MODEL=gpt-5.5
 AI_INS_CLAUDE_MODEL=sonnet
 AI_INS_COPILOT_MODEL=gpt-5.2
+AI_INS_GEMINI_MODEL=gemini-2.5-flash
+AI_INS_CURSOR_MODEL=gpt-5
 ```
 
 代理解析优先级：插件配置 / provider 配置优先，其次读取 `AI_INS_PROXY`，再读取常见的 `HTTP_PROXY`、`HTTPS_PROXY`、`ALL_PROXY`，最后尝试读取 macOS / Windows 系统代理。
+
+跨平台命令解析会优先使用 `PATH` 中的可执行文件；Windows 下会优先选择 `.cmd` / `.bat` 等 npm 或原生命令 shim，因此只要 Codex、Claude、Copilot、Gemini 或 Cursor CLI 的安装目录已加入 `PATH`，macOS 和 Windows 都可以使用同一套配置。
 
 ## 本仓库开发
 
