@@ -1,0 +1,49 @@
+{
+  "name": "@ai-ins/nextjs",
+  "version": "0.1.0",
+  "description": "Next.js plugin for AI Ins.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./client": {
+      "import": "./dist/client-entry.js",
+      "require": "./dist/client-entry.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "copy-build": "node scripts/copy-build.mjs",
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --shims && pnpm copy-build",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --shims --watch --onSuccess \"pnpm copy-build\"",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "next": "^16.0.10",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3",
+    "webpack": "^5.99.0"
+  },
+  "peerDependencies": {
+    "next": "^14.0.0 || ^15.0.0 || ^16.0.0"
+  },
+  "dependencies": {
+    "@ai-ins/core": "workspace:*",
+    "@babel/core": "^7.29.0",
+    "@babel/plugin-transform-react-jsx": "^7.28.6",
+    "@babel/plugin-transform-typescript": "^7.28.6"
+  }
+}

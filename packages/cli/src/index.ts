@@ -4,7 +4,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import process from 'node:process'
 
-type Bundler = 'vite' | 'webpack'
+type Bundler = 'nextjs' | 'vite' | 'webpack'
 
 type InitOptions = {
   bundler?: Bundler
@@ -20,10 +20,13 @@ type PackageJson = {
 }
 
 const aiInsPackages: Record<Bundler, string> = {
+  nextjs: '@ai-ins/nextjs',
   vite: '@ai-ins/vite',
   webpack: '@ai-ins/webpack',
 }
 
+const nextConfigFiles = ['next.config.ts', 'next.config.mts', 'next.config.js', 'next.config.mjs', 'next.config.cts', 'next.config.cjs']
+const nextClientInstrumentationFiles = ['instrumentation-client.ts', 'instrumentation-client.js']
 const viteConfigFiles = ['vite.config.ts', 'vite.config.mts', 'vite.config.js', 'vite.config.mjs', 'vite.config.cts', 'vite.config.cjs']
 const webpackConfigFiles = ['webpack.config.ts', 'webpack.config.mts', 'webpack.config.js', 'webpack.config.mjs', 'webpack.config.cts', 'webpack.config.cjs']
 
@@ -31,11 +34,12 @@ function printHelp() {
   console.log(`ai-ins
 
 Usage:
-  ai-ins [--bundler vite|webpack] [--no-install] [--force]
-  ai-ins init [--bundler vite|webpack] [--no-install] [--force]
+  ai-ins [--bundler nextjs|vite|webpack] [--no-install] [--force]
+  ai-ins init [--bundler nextjs|vite|webpack] [--no-install] [--force]
 
 Examples:
   npx ai-ins
+  npx ai-ins --bundler nextjs
   npx ai-ins --bundler vite
   npx ai-ins --force
   npx ai-ins init
@@ -47,13 +51,13 @@ function printInitHelp() {
   console.log(`ai-ins init
 
 Usage:
-  ai-ins [init] [--bundler vite|webpack] [--no-install] [--force]
+  ai-ins [init] [--bundler nextjs|vite|webpack] [--no-install] [--force]
 
 Options:
-  --bundler vite|webpack  Specify the bundler instead of auto-detecting it.
-  --no-install           Update config only, without installing dependencies.
-  --force                Install the latest matching @ai-ins/* package even if it is already installed.
-  --cwd <path>           Run init in a different project directory.
+  --bundler nextjs|vite|webpack  Specify the bundler instead of auto-detecting it.
+  --no-install                  Update config only, without installing dependencies.
+  --force                       Install the latest matching @ai-ins/* package even if it is already installed.
+  --cwd <path>                  Run init in a different project directory.
 `)
 }
 
@@ -88,6 +92,10 @@ function detectBundler(root: string, packageJson: PackageJson, requested?: Bundl
     return requested
   }
 
+  if (hasDependency(packageJson, 'next') || findExistingFile(root, nextConfigFiles)) {
+    return 'nextjs'
+  }
+
   if (hasDependency(packageJson, 'vite') || findExistingFile(root, viteConfigFiles)) {
     return 'vite'
   }
@@ -96,7 +104,7 @@ function detectBundler(root: string, packageJson: PackageJson, requested?: Bundl
     return 'webpack'
   }
 
-  fail('could not detect Vite or Webpack. Run with --bundler vite or --bundler webpack.')
+  fail('could not detect Next.js, Vite or Webpack. Run with --bundler nextjs, --bundler vite or --bundler webpack.')
 }
 
 function parseInitOptions(args: string[]): InitOptions {
@@ -125,13 +133,13 @@ function parseInitOptions(args: string[]): InitOptions {
 
     if (arg === '--bundler') {
       const value = args[index + 1]
-      if (value !== 'vite' && value !== 'webpack') fail('--bundler must be vite or webpack')
+      if (value !== 'nextjs' && value !== 'vite' && value !== 'webpack') fail('--bundler must be nextjs, vite or webpack')
       options.bundler = value
       index += 1
       continue
     }
 
-    if (arg === 'vite' || arg === 'webpack') {
+    if (arg === 'nextjs' || arg === 'vite' || arg === 'webpack') {
       options.bundler = arg
       continue
     }
@@ -422,6 +430,97 @@ function patchWebpackConfig(root: string) {
   return configFile
 }
 
+function patchNextConfig(root: string) {
+  const configFile = findExistingFile(root, nextConfigFiles) ?? join(root, 'next.config.ts')
+  if (!existsSync(configFile)) {
+    writeFileSync(
+      configFile,
+      `import { withAiIns } from '@ai-ins/nextjs'\nimport type { NextConfig } from 'next'\n\nconst nextConfig: NextConfig = {}\n\nexport default withAiIns(nextConfig)\n`,
+    )
+    return configFile
+  }
+
+  const code = readFileSync(configFile, 'utf-8')
+  if (code.includes('@ai-ins/nextjs')) {
+    return configFile
+  }
+
+  const helperName = uniqueIdentifier(code, 'withAiIns')
+  const isCommonJs = configFile.endsWith('.cjs') || code.includes('module.exports') || code.includes('require(')
+  const statement = isCommonJs
+    ? helperName === 'withAiIns'
+      ? `const { withAiIns } = require('@ai-ins/nextjs')`
+      : `const { withAiIns: ${helperName} } = require('@ai-ins/nextjs')`
+    : helperName === 'withAiIns'
+      ? `import { withAiIns } from '@ai-ins/nextjs'`
+      : `import { withAiIns as ${helperName} } from '@ai-ins/nextjs'`
+  const withImport = isCommonJs ? insertRequire(code, statement) : insertImport(code, statement)
+
+  const commonJsObjectMatch = /module\.exports\s*=\s*\{/u.exec(withImport)
+  if (commonJsObjectMatch?.index !== undefined) {
+    const openIndex = commonJsObjectMatch.index + commonJsObjectMatch[0].lastIndexOf('{')
+    const closeIndex = findMatchingBracket(withImport, openIndex, '{', '}')
+    if (closeIndex !== -1) {
+      const start = commonJsObjectMatch.index
+      const end = closeIndex + (withImport[closeIndex + 1] === ';' ? 2 : 1)
+      const expression = withImport.slice(openIndex, closeIndex + 1)
+      writeFileSync(configFile, `${withImport.slice(0, start)}module.exports = ${helperName}(${expression})${withImport.slice(end)}`)
+      return configFile
+    }
+  }
+
+  const commonJsMatch = /module\.exports\s*=\s*([^\n]+?);?\s*$/mu.exec(withImport)
+  if (commonJsMatch?.index !== undefined) {
+    const expression = commonJsMatch[1].trim()
+    const start = commonJsMatch.index
+    const end = commonJsMatch.index + commonJsMatch[0].length
+    const replacement = `module.exports = ${helperName}(${expression})`
+    writeFileSync(configFile, `${withImport.slice(0, start)}${replacement}${withImport.slice(end)}`)
+    return configFile
+  }
+
+  const exportObjectMatch = /export\s+default\s+\{/u.exec(withImport)
+  if (exportObjectMatch?.index !== undefined) {
+    const openIndex = exportObjectMatch.index + exportObjectMatch[0].lastIndexOf('{')
+    const closeIndex = findMatchingBracket(withImport, openIndex, '{', '}')
+    if (closeIndex !== -1) {
+      const start = exportObjectMatch.index
+      const end = closeIndex + (withImport[closeIndex + 1] === ';' ? 2 : 1)
+      const expression = withImport.slice(openIndex, closeIndex + 1)
+      writeFileSync(configFile, `${withImport.slice(0, start)}export default ${helperName}(${expression})${withImport.slice(end)}`)
+      return configFile
+    }
+  }
+
+  const exportMatch = /export\s+default\s+([^\n]+?);?\s*$/mu.exec(withImport)
+  if (exportMatch?.index !== undefined) {
+    const expression = exportMatch[1].trim()
+    const start = exportMatch.index
+    const end = exportMatch.index + exportMatch[0].length
+    const replacement = `export default ${helperName}(${expression})`
+    writeFileSync(configFile, `${withImport.slice(0, start)}${replacement}${withImport.slice(end)}`)
+    return configFile
+  }
+
+  fail(`could not update ${configFile}. Wrap your Next.js config with ${helperName}(nextConfig) manually.`)
+}
+
+function patchNextClientInstrumentation(root: string) {
+  const configFile = findExistingFile(root, nextClientInstrumentationFiles) ?? join(root, 'instrumentation-client.ts')
+  if (!existsSync(configFile)) {
+    writeFileSync(configFile, `import '@ai-ins/nextjs/client'\n`)
+    return configFile
+  }
+
+  const code = readFileSync(configFile, 'utf-8')
+  if (code.includes('@ai-ins/nextjs/client')) {
+    return configFile
+  }
+
+  writeFileSync(configFile, insertImport(code, `import '@ai-ins/nextjs/client'`))
+  return configFile
+}
+
 function runInit(args: string[]) {
   if (isHelpArg(args[0])) {
     printInitHelp()
@@ -443,8 +542,12 @@ function runInit(args: string[]) {
     installPackage(options.cwd, packageJson, packageName, options.forceInstall)
   }
 
-  const configFile = bundler === 'vite' ? patchViteConfig(options.cwd) : patchWebpackConfig(options.cwd)
+  const configFile = bundler === 'nextjs' ? patchNextConfig(options.cwd) : bundler === 'vite' ? patchViteConfig(options.cwd) : patchWebpackConfig(options.cwd)
+  const clientFile = bundler === 'nextjs' ? patchNextClientInstrumentation(options.cwd) : undefined
   console.log(`- Updated ${configFile}`)
+  if (clientFile) {
+    console.log(`- Updated ${clientFile}`)
+  }
   console.log('Done. Restart your dev server to load AI Ins.')
 }
 
@@ -465,7 +568,7 @@ function main(args: string[]) {
     return
   }
 
-  if (command.startsWith('-') || command === 'vite' || command === 'webpack') {
+  if (command.startsWith('-') || command === 'nextjs' || command === 'vite' || command === 'webpack') {
     runInit(args)
     return
   }

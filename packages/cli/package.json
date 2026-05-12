@@ -1,7 +1,7 @@
 {
   "name": "ai-ins",
-  "version": "0.2.2",
-  "description": "Initialize AI Ins in Vite and Webpack projects.",
+  "version": "0.3.0",
+  "description": "Initialize AI Ins in Next.js, Vite and Webpack projects.",
   "type": "module",
   "bin": {
     "ai-ins": "./dist/index.js"

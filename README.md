@@ -25,7 +25,7 @@ https://github.com/user-attachments/assets/f909f905-3297-49da-8881-8b48689c015c
 
 ## 当前能力
 
-- 通过运行 `npx ai-ins` 自动识别项目内的构建工具（Vite / Webpack...），安装对应的 `@ai-ins/*` 包，并尝试修改配置文件。
+- 通过运行 `npx ai-ins` 自动识别项目内的构建工具（Next.js / Vite / Webpack...），安装对应的 `@ai-ins/*` 包，并尝试修改配置文件。
 - Vite dev server 自动注入 AI Ins 客户端，支持 `Option` / `Alt` 点选 DOM 打开面板。
 - 面板内可以选择 Agent、填写代理、提交修改要求，并并发跟踪多个运行任务。
 - 内置 Codex、Claude 和 Copilot CLI provider。
@@ -38,6 +38,7 @@ https://github.com/user-attachments/assets/f909f905-3297-49da-8881-8b48689c015c
 | `ai-ins`          | 可用   | 提供 `ai-ins` 命令，用于初始化项目配置。                                                   |
 | `@ai-ins/vite`    | 可用   | 主要支持路径，包含客户端注入和 React / Vue / SolidJS / Svelte source 适配。                |
 | `@ai-ins/webpack` | 可用   | 注册 devServer middleware，自动注入客户端脚本，并在开发态给 JSX DOM 元素注入 source 标记。 |
+| `@ai-ins/nextjs`  | 可用   | 支持 Next.js dev server，包含 Webpack / Turbopack JSX source 标记和 middleware 转发。       |
 | `@ai-ins/core`    | 内部包 | 提供 middleware、Agent provider、客户端脚本生成等共享能力。                                |
 
 <img width="1600" alt="image" src="https://github.com/user-attachments/assets/c157f619-34ad-45e2-b2e8-b5d04e4d92ee" />
@@ -54,6 +55,7 @@ npx ai-ins
 ```bash
 npx ai-ins --bundler vite
 npx ai-ins --bundler webpack
+npx ai-ins --bundler nextjs
 ```
 
 只改配置、不安装依赖：
@@ -106,6 +108,25 @@ module.exports = {
 ```
 
 Webpack 插件会在开发构建中自动注入客户端脚本，并通过 pre-loader 给 JSX DOM 元素注入 source 标记。
+
+## Next.js 使用方式
+
+```ts
+import { withAiIns } from '@ai-ins/nextjs'
+import type { NextConfig } from 'next'
+
+const nextConfig: NextConfig = {}
+
+export default withAiIns(nextConfig)
+```
+
+同时在项目根目录添加或更新 `instrumentation-client.ts`：
+
+```ts
+import '@ai-ins/nextjs/client'
+```
+
+Next.js 适配会在开发态启动本地 AI Ins middleware 服务，并通过 `rewrites()` 转发 `__ai-ins` 相关请求。Webpack dev server 会通过 `webpack()` hook 注入 source loader；Turbopack dev server 会通过 `turbopack.rules` 使用同一个 loader。
 
 ## Agent 配置
 
@@ -166,12 +187,15 @@ AI_INS_COPILOT_MODEL=gpt-5.2
 ```bash
 pnpm install
 pnpm dev:watch
+pnpm dev:nextjs
 pnpm dev:webpack
 ```
 
 `pnpm dev:watch` 会同时 watch core、Vite 插件和 `examples/vite-react` playground。改 `packages/core/src/client/` 或 `packages/vite/src/index.ts` 后刷新浏览器即可。`pnpm dev` 仍然会先构建 core / Vite 插件，再启动 playground。
 
 `pnpm dev:vite` 会同时启动 `examples/vite-react`、`examples/vite-vue3`、`examples/vite-solidjs` 和 `examples/vite-svelte` 四个 Vite playground。
+
+`pnpm dev:nextjs` 会先构建 core / Next.js 插件，再启动 `examples/nextjs-react` playground，默认使用 Turbopack。需要走 Webpack dev server 时可以运行 `pnpm dev:nextjs:webpack`。
 
 `pnpm dev:webpack` 会先构建 core / Webpack 插件，再同时 watch core、Webpack 插件和 `examples/webpack-react` playground。改 `packages/core/src/client/` 后刷新浏览器即可看到新的 AI Ins 面板 runtime；如果改的是 Webpack 插件初始化逻辑，重启 dev server 后生效。
 
@@ -189,10 +213,12 @@ packages/cli       # ai-ins CLI 包，默认提供 init 初始化逻辑
 packages/core      # middleware、Agent provider、客户端 runtime
 packages/vite      # Vite 插件
 packages/webpack   # Webpack devServer 插件
+packages/nextjs    # Next.js 插件，支持 Webpack / Turbopack dev server
 examples/vite-react
 examples/vite-vue3
 examples/vite-solidjs
 examples/vite-svelte
+examples/nextjs-react
 ```
 
 ## 常见问题

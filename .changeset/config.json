@@ -12,6 +12,7 @@
     "@ai-ins/playground-vite-vue3",
     "@ai-ins/playground-vite-solidjs",
     "@ai-ins/playground-vite-svelte",
+    "@ai-ins/playground-nextjs",
     "@ai-ins/playground-webpack"
   ]
 }

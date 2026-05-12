@@ -1,5 +1,11 @@
 # ai-ins
 
+## 0.3.0
+
+### Minor Changes
+
+- Add Next.js support with Webpack and Turbopack source markers, dev middleware rewrites, client runtime injection, CLI init detection, and a Next.js playground.
+
 ## 0.2.2
 
 ### Patch Changes
