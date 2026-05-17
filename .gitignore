@@ -1,5 +1,6 @@
 node_modules
 .codex
+.ai-ins
 dist
 
 .DS_Store

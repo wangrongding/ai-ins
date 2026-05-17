@@ -1,5 +1,5 @@
 import { createRoot, type Root } from 'react-dom/client'
-import { clearPanelPromptDraft, PanelView } from './PanelView'
+import { clearPanelPromptDraft, getPanelDefaultSubmitShortcutLabel, PanelView } from './PanelView'
 import type { AgentProvider, AgentRun, LayerTarget, ProxyMode } from './types'
 
 declare global {
@@ -98,7 +98,7 @@ function getPanelStatus() {
     return provider?.disabledReason || '这个 Agent 还没有配置'
   }
 
-  return draftTarget?.layer ? 'Shift + Enter 发送，关闭面板不会中断任务' : '先 Option / Alt 点击一个 DOM'
+  return draftTarget?.layer ? `默认 ${getPanelDefaultSubmitShortcutLabel()} 发送，可切换成 Enter，关闭面板不会中断任务` : '先 Option / Alt 点击一个 DOM'
 }
 
 function setPanelStatus(value: string) {
@@ -312,6 +312,7 @@ function refreshComposer() {
 function showAiInsPanel(layer?: LayerTarget, layers?: LayerTarget[]) {
   if (layer) {
     draftTarget = { layer, layers: layers || [layer] }
+    selectedRunId = undefined
     panelStatus = ''
   }
 

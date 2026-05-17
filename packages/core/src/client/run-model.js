@@ -99,7 +99,7 @@ function removeClientRun(runId) {
   runs.splice(index, 1)
 
   if (selectedRunId === runId) {
-    selectedRunId = runs[0]?.id
+    selectedRunId = undefined
   }
 
   globalThis.aiInsPanelRuntime?.refreshRunList()

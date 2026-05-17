@@ -377,7 +377,7 @@
 
 .wbx-ai-ins-form-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(150px, 190px);
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 190px) minmax(150px, 190px);
   gap: 10px;
 }
 
