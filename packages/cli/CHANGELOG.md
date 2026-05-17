@@ -1,5 +1,11 @@
 # ai-ins
 
+## 0.3.2
+
+### Patch Changes
+
+- Add a package-level README for the `ai-ins` CLI so npm users and AI agents can follow the correct integration flow, especially for multi-config projects.
+
 ## 0.3.1
 
 ### Patch Changes
