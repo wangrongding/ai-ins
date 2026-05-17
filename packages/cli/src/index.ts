@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { isAbsolute, join, relative } from 'node:path'
 import process from 'node:process'
 
 type Bundler = 'nextjs' | 'vite' | 'webpack'
 
 type InitOptions = {
   bundler?: Bundler
+  config?: string
   cwd: string
   forceInstall: boolean
   install: boolean
@@ -29,18 +30,21 @@ const nextConfigFiles = ['next.config.ts', 'next.config.mts', 'next.config.js', 
 const nextClientInstrumentationFiles = ['instrumentation-client.ts', 'instrumentation-client.js']
 const viteConfigFiles = ['vite.config.ts', 'vite.config.mts', 'vite.config.js', 'vite.config.mjs', 'vite.config.cts', 'vite.config.cjs']
 const webpackConfigFiles = ['webpack.config.ts', 'webpack.config.mts', 'webpack.config.js', 'webpack.config.mjs', 'webpack.config.cts', 'webpack.config.cjs']
+const viteConfigPattern = /^vite(?:\.[^.]+)*\.config(?:\.[^.]+)*\.[cm]?[jt]s$/u
+const webpackConfigPattern = /^webpack(?:\.[^.]+)*(?:\.config(?:\.[^.]+)*|\.(?:dev|prod|common|base))(?:\.[^.]+)*\.[cm]?[jt]s$/u
 
 function printHelp() {
   console.log(`ai-ins
 
 Usage:
-  ai-ins [--bundler nextjs|vite|webpack] [--no-install] [--force]
-  ai-ins init [--bundler nextjs|vite|webpack] [--no-install] [--force]
+  ai-ins [--bundler nextjs|vite|webpack] [--config <path>] [--no-install] [--force]
+  ai-ins init [--bundler nextjs|vite|webpack] [--config <path>] [--no-install] [--force]
 
 Examples:
   npx ai-ins
   npx ai-ins --bundler nextjs
   npx ai-ins --bundler vite
+  npx ai-ins --bundler vite --config apps/web/vite.config.ts
   npx ai-ins --force
   npx ai-ins init
   npx ai-ins init --bundler vite
@@ -51,10 +55,11 @@ function printInitHelp() {
   console.log(`ai-ins init
 
 Usage:
-  ai-ins [init] [--bundler nextjs|vite|webpack] [--no-install] [--force]
+  ai-ins [init] [--bundler nextjs|vite|webpack] [--config <path>] [--no-install] [--force]
 
 Options:
   --bundler nextjs|vite|webpack  Specify the bundler instead of auto-detecting it.
+  --config <path>                Update a specific bundler config file instead of auto-picking one.
   --no-install                  Update config only, without installing dependencies.
   --force                       Install the latest matching @ai-ins/* package even if it is already installed.
   --cwd <path>                  Run init in a different project directory.
@@ -87,21 +92,118 @@ function findExistingFile(root: string, candidates: string[]) {
   return candidates.map((fileName) => join(root, fileName)).find((fileName) => existsSync(fileName))
 }
 
-function detectBundler(root: string, packageJson: PackageJson, requested?: Bundler): Bundler {
+function inferBundlerFromConfig(fileName: string): Bundler | undefined {
+  const baseName = fileName.split(/[/\\]/u).at(-1) ?? fileName
+
+  if (nextConfigFiles.includes(baseName)) {
+    return 'nextjs'
+  }
+
+  if (viteConfigFiles.includes(baseName) || viteConfigPattern.test(baseName)) {
+    return 'vite'
+  }
+
+  if (webpackConfigFiles.includes(baseName) || webpackConfigPattern.test(baseName)) {
+    return 'webpack'
+  }
+
+  return undefined
+}
+
+function listMatchingFiles(root: string, pattern: RegExp) {
+  return readdirSync(root, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && pattern.test(entry.name))
+    .map((entry) => join(root, entry.name))
+    .sort((left, right) => left.localeCompare(right))
+}
+
+function uniqueFiles(fileNames: string[]) {
+  return [...new Set(fileNames)]
+}
+
+function getConfigCandidates(root: string, bundler: Bundler) {
+  if (bundler === 'nextjs') {
+    return nextConfigFiles.map((fileName) => join(root, fileName)).filter((fileName) => existsSync(fileName))
+  }
+
+  if (bundler === 'vite') {
+    return uniqueFiles([
+      ...viteConfigFiles.map((fileName) => join(root, fileName)).filter((fileName) => existsSync(fileName)),
+      ...listMatchingFiles(root, viteConfigPattern),
+    ])
+  }
+
+  return uniqueFiles([
+    ...webpackConfigFiles.map((fileName) => join(root, fileName)).filter((fileName) => existsSync(fileName)),
+    ...listMatchingFiles(root, webpackConfigPattern),
+  ])
+}
+
+function getDefaultConfigFile(root: string, bundler: Bundler) {
+  return join(root, bundler === 'nextjs' ? 'next.config.ts' : bundler === 'vite' ? 'vite.config.ts' : 'webpack.config.js')
+}
+
+function resolveRequestedPath(root: string, fileName: string) {
+  return isAbsolute(fileName) ? fileName : join(root, fileName)
+}
+
+function formatDisplayPath(root: string, fileName: string) {
+  const displayPath = relative(root, fileName)
+  return displayPath || fileName
+}
+
+function getBundlerLabel(bundler: Bundler) {
+  return bundler === 'nextjs' ? 'Next.js' : bundler === 'vite' ? 'Vite' : 'Webpack'
+}
+
+function resolveConfigFile(root: string, bundler: Bundler, requestedConfig?: string) {
+  if (requestedConfig) {
+    return resolveRequestedPath(root, requestedConfig)
+  }
+
+  const configFiles = getConfigCandidates(root, bundler)
+  if (configFiles.length === 1) {
+    return configFiles[0]
+  }
+
+  if (configFiles.length > 1) {
+    const details = configFiles.map((fileName) => `  - ${formatDisplayPath(root, fileName)}`).join('\n')
+    fail(`found multiple ${getBundlerLabel(bundler)} config files:\n${details}\nRun with --bundler ${bundler} --config <path> to choose one.`)
+  }
+
+  return getDefaultConfigFile(root, bundler)
+}
+
+function detectBundler(root: string, packageJson: PackageJson, requested?: Bundler, requestedConfig?: string): Bundler {
   if (requested) {
     return requested
   }
 
-  if (hasDependency(packageJson, 'next') || findExistingFile(root, nextConfigFiles)) {
-    return 'nextjs'
+  const inferredBundler = requestedConfig ? inferBundlerFromConfig(requestedConfig) : undefined
+  if (inferredBundler) {
+    return inferredBundler
   }
 
-  if (hasDependency(packageJson, 'vite') || findExistingFile(root, viteConfigFiles)) {
-    return 'vite'
+  const detectedBundlers: Bundler[] = []
+
+  if (hasDependency(packageJson, 'next') || getConfigCandidates(root, 'nextjs').length > 0) {
+    detectedBundlers.push('nextjs')
   }
 
-  if (hasDependency(packageJson, 'webpack') || hasDependency(packageJson, 'webpack-dev-server') || findExistingFile(root, webpackConfigFiles)) {
-    return 'webpack'
+  if (hasDependency(packageJson, 'vite') || getConfigCandidates(root, 'vite').length > 0) {
+    detectedBundlers.push('vite')
+  }
+
+  if (hasDependency(packageJson, 'webpack') || hasDependency(packageJson, 'webpack-dev-server') || getConfigCandidates(root, 'webpack').length > 0) {
+    detectedBundlers.push('webpack')
+  }
+
+  if (detectedBundlers.length === 1) {
+    return detectedBundlers[0]
+  }
+
+  if (detectedBundlers.length > 1) {
+    fail(`found multiple possible bundlers (${detectedBundlers.join(', ')}). Run with --bundler nextjs, --bundler vite or --bundler webpack.`)
   }
 
   fail('could not detect Next.js, Vite or Webpack. Run with --bundler nextjs, --bundler vite or --bundler webpack.')
@@ -127,6 +229,14 @@ function parseInitOptions(args: string[]): InitOptions {
       const value = args[index + 1]
       if (!value) fail('--cwd requires a path')
       options.cwd = value
+      index += 1
+      continue
+    }
+
+    if (arg === '--config') {
+      const value = args[index + 1]
+      if (!value) fail('--config requires a path')
+      options.config = value
       index += 1
       continue
     }
@@ -370,8 +480,8 @@ function patchPluginConfig(code: string, expression: string, position: 'start' |
   return addPluginToArray(code, expression, position) ?? addPluginProperty(code, expression)
 }
 
-function patchViteConfig(root: string) {
-  const configFile = findExistingFile(root, viteConfigFiles) ?? join(root, 'vite.config.ts')
+function patchViteConfig(root: string, requestedConfig?: string) {
+  const configFile = resolveConfigFile(root, 'vite', requestedConfig)
   if (!existsSync(configFile)) {
     writeFileSync(
       configFile,
@@ -396,8 +506,8 @@ function patchViteConfig(root: string) {
   return configFile
 }
 
-function patchWebpackConfig(root: string) {
-  const configFile = findExistingFile(root, webpackConfigFiles) ?? join(root, 'webpack.config.js')
+function patchWebpackConfig(root: string, requestedConfig?: string) {
+  const configFile = resolveConfigFile(root, 'webpack', requestedConfig)
   if (!existsSync(configFile)) {
     writeFileSync(
       configFile,
@@ -430,8 +540,8 @@ function patchWebpackConfig(root: string) {
   return configFile
 }
 
-function patchNextConfig(root: string) {
-  const configFile = findExistingFile(root, nextConfigFiles) ?? join(root, 'next.config.ts')
+function patchNextConfig(root: string, requestedConfig?: string) {
+  const configFile = resolveConfigFile(root, 'nextjs', requestedConfig)
   if (!existsSync(configFile)) {
     writeFileSync(
       configFile,
@@ -534,7 +644,7 @@ function runInit(args: string[]) {
   }
 
   const packageJson = readJsonFile<PackageJson>(packageJsonPath)
-  const bundler = detectBundler(options.cwd, packageJson, options.bundler)
+  const bundler = detectBundler(options.cwd, packageJson, options.bundler, options.config)
   const packageName = aiInsPackages[bundler]
 
   console.log(`AI Ins init (${bundler})`)
@@ -542,7 +652,7 @@ function runInit(args: string[]) {
     installPackage(options.cwd, packageJson, packageName, options.forceInstall)
   }
 
-  const configFile = bundler === 'nextjs' ? patchNextConfig(options.cwd) : bundler === 'vite' ? patchViteConfig(options.cwd) : patchWebpackConfig(options.cwd)
+  const configFile = bundler === 'nextjs' ? patchNextConfig(options.cwd, options.config) : bundler === 'vite' ? patchViteConfig(options.cwd, options.config) : patchWebpackConfig(options.cwd, options.config)
   const clientFile = bundler === 'nextjs' ? patchNextClientInstrumentation(options.cwd) : undefined
   console.log(`- Updated ${configFile}`)
   if (clientFile) {

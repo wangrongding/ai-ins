@@ -1,5 +1,11 @@
 # ai-ins
 
+## 0.3.1
+
+### Patch Changes
+
+- Improve `ai-ins init` for multi-config projects by adding `--config <path>`, better bundler/config detection, and clearer README guidance for humans and AI agents.
+
 ## 0.3.0
 
 ### Minor Changes

@@ -9,11 +9,20 @@ AI Ins 是一个本地开发辅助工具，让你在开发web/electron等项目�
 
 ## 快速接入
 
-在 web 或 electron 项目里运行下面的命令，CLI 会自动识别项目内的构建工具（Vite / Webpack...），安装对应的 `@ai-ins/*` 包，并尝试修改配置文件：
+单配置的 web 或 electron 项目里，可以直接运行下面的命令。CLI 会自动识别项目内的构建工具（Vite / Webpack / Next.js），安装对应的 `@ai-ins/*` 包，并尝试修改配置文件：
 
 ```bash
 npx ai-ins
 ```
+
+如果项目里有多个 Vite / Webpack 配置文件，或者你明确知道要改哪一个配置文件，建议从一开始就显式指定：
+
+```bash
+npx ai-ins --bundler vite --config apps/web/vite.config.ts
+npx ai-ins --bundler webpack --config build/webpack.dev.js
+```
+
+`--config` 支持相对项目根目录的路径，也支持绝对路径。CLI 在检测到多个候选配置文件时会直接停止，并提示你使用 `--config`，不会再盲猜要改哪个文件。
 
 你只需要：按住 `Option` / `Alt` 点选页面上的 DOM，通过打开的内置 AI Ins 面板，把目标元素和修改要求一起交给本地 CLI Agent 执行，并在页面里持续查看任务输出，任务完成后通过热更新直接看到修改结果即可。
 
@@ -26,6 +35,8 @@ https://github.com/user-attachments/assets/f909f905-3297-49da-8881-8b48689c015c
 ## 当前能力
 
 - 通过运行 `npx ai-ins` 自动识别项目内的构建工具（Next.js / Vite / Webpack...），安装对应的 `@ai-ins/*` 包，并尝试修改配置文件。
+- 支持通过 `--config <path>` 指定目标配置文件，适合多 Vite 配置、多 Webpack 配置或非标准文件名场景。
+- 在检测到多个候选配置文件或多个可能的 bundler 时，CLI 会直接要求你显式指定，而不是静默修改第一个匹配项。
 - Vite dev server 自动注入 AI Ins 客户端，支持 `Option` / `Alt` 点选 DOM 打开面板。
 - 面板内可以选择 Agent、填写代理、提交修改要求，并并发跟踪多个运行任务。
 - 内置 Codex、Claude 和 Copilot CLI provider。
@@ -58,6 +69,16 @@ npx ai-ins --bundler webpack
 npx ai-ins --bundler nextjs
 ```
 
+指定目标配置文件：
+
+```bash
+npx ai-ins --config vite.config.ts
+npx ai-ins --bundler vite --config apps/web/vite.config.ts
+npx ai-ins --bundler webpack --config build/webpack.dev.js
+```
+
+如果你已经用 `--config` 明确传入了类似 `vite.config.ts` 或 `webpack.dev.js` 这样的文件名，CLI 会先按文件名推断 bundler；如果文件名本身不够明确，仍然建议同时传 `--bundler`。
+
 只改配置、不安装依赖：
 
 ```bash
@@ -70,9 +91,52 @@ npx ai-ins --no-install
 npx ai-ins --force
 ```
 
-不带子命令时，CLI 会默认执行初始化逻辑；显式写 `npx ai-ins init` 也仍然支持，后续新增的其它子命令会继续通过 `ai-ins <command>` 调用。CLI 会根据 `packageManager` 或 lockfile 选择 `pnpm` / `yarn` / `bun` / `npm`。如果项目已经安装过对应依赖，默认会跳过安装；加上 `--force` 时会重新安装最新版，例如 Vite 项目会安装 `@ai-ins/vite@latest`。如果配置文件结构太特殊，CLI 会提示你手动把插件加入配置。
+不带子命令时，CLI 会默认执行初始化逻辑；显式写 `npx ai-ins init` 也仍然支持，后续新增的其它子命令会继续通过 `ai-ins <command>` 调用。CLI 会根据 `packageManager` 或 lockfile 选择 `pnpm` / `yarn` / `bun` / `npm`。如果项目已经安装过对应依赖，默认会跳过安装；加上 `--force` 时会重新安装最新版，例如 Vite 项目会安装 `@ai-ins/vite@latest`。如果检测到多个可能的 bundler、多个候选配置文件，或者配置文件结构太特殊，CLI 会提示你显式指定 `--bundler` / `--config`，或者手动把插件加入配置。
+
+## 给 AI / Agent 的接入规则
+
+如果你是 AI agent，用户说“帮我接入 ai-ins”时，优先按下面的顺序执行：
+
+1. 先识别项目使用的是 Next.js、Vite 还是 Webpack。
+2. 先检查要接入的 app/包目录里是否存在多个 bundler 配置文件。
+3. 单配置项目：优先运行 `npx ai-ins --bundler <bundler>`。
+4. 多配置项目：必须运行 `npx ai-ins --bundler <bundler> --config <目标配置文件>`，不要直接运行裸的 `npx ai-ins`。
+5. 如果 CLI 无法安全修改配置，就按下面的 bundler 示例手动接入，不要猜测应该改哪一个文件。
+6. 对 Vite 项目，把 `aiIns()` 放在 React / Vue / Svelte 等框架插件前面。
+7. 对 Next.js 项目，除了更新 `next.config.*` 之外，还要确保 `instrumentation-client.ts` 或 `instrumentation-client.js` 引入 `@ai-ins/nextjs/client`。
+
+你也可以直接把下面这段话交给 AI：
+
+```text
+帮我在这个项目里接入 ai-ins。先判断 bundler；如果有多个配置文件，不要直接跑 npx ai-ins，而是使用 --bundler 和 --config 指定目标配置；如果 CLI 无法安全改写，就按 README 里的对应示例手动接入。
+```
+
+## 多配置文件项目
+
+对单配置项目，`npx ai-ins` 依然是最快的入口。
+
+对下面这些场景，推荐直接使用 `--config`：
+
+- 一个仓库里有多个 Vite app，各自有自己的 `vite.config.*`。
+- Electron、SSR、微前端项目里同时存在 `vite.config.ts`、`vite.renderer.config.ts`、`vite.main.config.ts`。
+- Webpack 项目里同时存在 `webpack.config.js`、`webpack.dev.js`、`webpack.prod.js`。
+- 你知道 dev server 实际读取的是某个特定配置文件，而不是根目录默认文件名。
+
+典型命令：
+
+```bash
+# Vite
+npx ai-ins --bundler vite --config vite.config.ts
+npx ai-ins --bundler vite --config apps/admin/vite.config.ts
+
+# Webpack
+npx ai-ins --bundler webpack --config webpack.dev.js
+npx ai-ins --bundler webpack --config build/webpack.renderer.config.js
+```
 
 ## Vite 使用方式
+
+如果 CLI 无法自动修改，或者你更希望手动接入，可以直接按下面的方式配置：
 
 ```ts
 import react from '@vitejs/plugin-react'
@@ -98,6 +162,8 @@ export default defineConfig({
 
 ## Webpack 使用方式
 
+如果 CLI 无法自动修改，或者你需要手动接入某个特定的 Webpack 配置文件，可以直接按下面的方式配置：
+
 ```js
 const { AiInsWebpackPlugin } = require('@ai-ins/webpack')
 
@@ -110,6 +176,8 @@ module.exports = {
 Webpack 插件会在开发构建中自动注入客户端脚本，并通过 pre-loader 给 JSX DOM 元素注入 source 标记。
 
 ## Next.js 使用方式
+
+如果 CLI 无法自动修改，或者你希望手动接入，可以直接按下面的方式配置：
 
 ```ts
 import { withAiIns } from '@ai-ins/nextjs'
