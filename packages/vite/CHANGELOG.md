@@ -1,5 +1,13 @@
 # @ai-ins/vite
 
+## 0.4.1
+
+### Patch Changes
+
+- Add author and GitHub package metadata across published packages, and refresh the `ai-ins` CLI package README.
+- Updated dependencies
+  - @ai-ins/core@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes

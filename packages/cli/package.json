@@ -1,7 +1,17 @@
 {
   "name": "ai-ins",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Initialize AI Ins in Next.js, Vite and Webpack projects.",
+  "author": "Rongding Wang <wangrongding@qq.com> (https://github.com/wangrongding)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wangrongding/ai-ins.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/wangrongding/ai-ins/issues"
+  },
+  "homepage": "https://github.com/wangrongding/ai-ins/tree/main/packages/cli",
   "type": "module",
   "bin": {
     "ai-ins": "./dist/index.js"

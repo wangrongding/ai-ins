@@ -1,7 +1,17 @@
 {
   "name": "@ai-ins/nextjs",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Next.js plugin for AI Ins.",
+  "author": "Rongding Wang <wangrongding@qq.com> (https://github.com/wangrongding)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wangrongding/ai-ins.git",
+    "directory": "packages/nextjs"
+  },
+  "bugs": {
+    "url": "https://github.com/wangrongding/ai-ins/issues"
+  },
+  "homepage": "https://github.com/wangrongding/ai-ins/tree/main/packages/nextjs",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

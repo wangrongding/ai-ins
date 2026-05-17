@@ -1,4 +1,4 @@
-# ai-ins CLI
+# ai-ins
 
 `ai-ins` 是 AI Ins 的项目接入 CLI，用来把 AI Ins 接到 Next.js、Vite 和 Webpack 项目里。
 

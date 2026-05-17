@@ -1,7 +1,17 @@
 {
   "name": "@ai-ins/webpack",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "description": "Webpack plugin for AI Ins.",
+  "author": "Rongding Wang <wangrongding@qq.com> (https://github.com/wangrongding)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wangrongding/ai-ins.git",
+    "directory": "packages/webpack"
+  },
+  "bugs": {
+    "url": "https://github.com/wangrongding/ai-ins/issues"
+  },
+  "homepage": "https://github.com/wangrongding/ai-ins/tree/main/packages/webpack",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

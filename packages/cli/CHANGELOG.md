@@ -1,5 +1,11 @@
 # ai-ins
 
+## 0.3.3
+
+### Patch Changes
+
+- Add author and GitHub package metadata across published packages, and refresh the `ai-ins` CLI package README.
+
 ## 0.3.2
 
 ### Patch Changes
