@@ -55,16 +55,36 @@ function formatRunTime(timestamp) {
   })
 }
 
-function trimOutput(output) {
-  return output.length > 70000 ? output.slice(-60000) : output
+const maxPanelOutputLength = 70000
+const panelOutputHeadLength = 12000
+const panelOutputTailLength = 52000
+const panelOutputCompactionNotice = '\n\n[ai-ins] 面板输出过长，已保留开头和最新部分；完整输出请打开上方日志文件。\n\n'
+
+function slicePanelOutputHead(output) {
+  const newlineIndex = output.lastIndexOf('\n', panelOutputHeadLength)
+  return output.slice(0, newlineIndex > panelOutputHeadLength * 0.75 ? newlineIndex + 1 : panelOutputHeadLength)
+}
+
+function slicePanelOutputTail(output) {
+  const tailStart = Math.max(0, output.length - panelOutputTailLength)
+  const newlineIndex = output.indexOf('\n', tailStart)
+  return output.slice(newlineIndex !== -1 && newlineIndex < tailStart + 1000 ? newlineIndex + 1 : tailStart)
+}
+
+function compactOutputForPanel(output) {
+  if (output.length <= maxPanelOutputLength) {
+    return output
+  }
+
+  return `${slicePanelOutputHead(output)}${panelOutputCompactionNotice}${slicePanelOutputTail(output)}`
 }
 
 function appendRunOutput(run, message, tone) {
   const prefix = tone === 'stderr' ? '[stderr] ' : ''
-  run.output = trimOutput(`${run.output}${prefix}${message}`)
+  run.output = compactOutputForPanel(`${run.output}${prefix}${message}`)
 
   if (selectedRunId === run.id) {
-    refreshRunDetail()
+    globalThis.aiInsPanelRuntime?.refreshRunDetail()
   }
 }
 
@@ -82,9 +102,9 @@ function removeClientRun(runId) {
     selectedRunId = runs[0]?.id
   }
 
-  refreshRunList()
-  refreshRunDetail()
-  updateDockButton()
+  globalThis.aiInsPanelRuntime?.refreshRunList()
+  globalThis.aiInsPanelRuntime?.refreshRunDetail()
+  globalThis.aiInsPanelRuntime?.updateDockButton()
 }
 
 async function deleteRun(run) {

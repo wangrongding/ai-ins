@@ -1,0 +1,21 @@
+{
+  "name": "@ai-ins/playground-panel-react",
+  "version": "0.1.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@ai-ins/vite": "workspace:*",
+    "@vitejs/plugin-react": "^6.0.1",
+    "vite": "^8.0.10",
+    "typescript": "^5.8.3",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  }
+}

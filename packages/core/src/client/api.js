@@ -18,7 +18,7 @@ async function revealInFolder(layerPath) {
   throw new Error(await response.text())
 }
 
-async function runAiInsAgent(layer, layers, providerId, prompt, proxy) {
+async function runAiInsAgent(layer, layers, providerId, prompt, proxyMode, proxy) {
   const response = await fetch(`${base}__ai-ins-agent`, {
     body: JSON.stringify({
       file: layer.path,
@@ -26,6 +26,7 @@ async function runAiInsAgent(layer, layers, providerId, prompt, proxy) {
       prompt,
       provider: providerId,
       proxy,
+      proxyMode,
     }),
     headers: {
       'Content-Type': 'application/json',

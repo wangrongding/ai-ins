@@ -1,7 +1,5 @@
 import { execSync } from 'child_process'
 
-let cachedSystemProxy: string | undefined
-
 export function normalizeProxy(rawProxy: unknown) {
   const proxy = typeof rawProxy === 'string' ? rawProxy.trim() : ''
   if (!proxy) {
@@ -50,19 +48,15 @@ export function getConfiguredAgentProxy(providerProxy = '', fallbackProxy = '') 
 }
 
 function getSystemProxy() {
-  if (cachedSystemProxy !== undefined) {
-    return cachedSystemProxy
-  }
-
   if (process.platform === 'darwin') {
-    cachedSystemProxy = getMacSystemProxy()
-  } else if (process.platform === 'win32') {
-    cachedSystemProxy = getWindowsSystemProxy()
-  } else {
-    cachedSystemProxy = ''
+    return getMacSystemProxy()
   }
 
-  return cachedSystemProxy
+  if (process.platform === 'win32') {
+    return getWindowsSystemProxy()
+  }
+
+  return ''
 }
 
 function getMacSystemProxy() {
@@ -159,8 +153,17 @@ function normalizeWindowsProxyEntry(proxy: string | undefined, protocol: 'http' 
   return normalizeProxy(`${protocol}://${proxy}`)
 }
 
-export function getAgentEnv(proxy: string) {
+export function getAgentEnv(proxy: string, options: { clearProxy?: boolean } = {}) {
   const env = { ...process.env }
+
+  if (options.clearProxy) {
+    delete env.HTTP_PROXY
+    delete env.HTTPS_PROXY
+    delete env.ALL_PROXY
+    delete env.http_proxy
+    delete env.https_proxy
+    delete env.all_proxy
+  }
 
   if (!proxy) {
     return env

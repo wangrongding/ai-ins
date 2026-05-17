@@ -8,6 +8,7 @@ const sourceAttribute = 'data-ai-ins-source'
 const sourceRangeAttribute = 'data-ai-ins-source-range'
 const dockPositionStorageKey = 'ai-ins-dock-position'
 const proxyStorageKey = 'ai-ins-proxy'
+const proxyModeStorageKey = 'ai-ins-proxy-mode'
 const providerStorageKey = 'ai-ins-provider'
 
 let currentTarget

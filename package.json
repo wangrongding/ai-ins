@@ -7,6 +7,7 @@
   "packageManager": "pnpm@10.33.2",
   "scripts": {
     "dev": "pnpm --filter @ai-ins/core build && pnpm --filter @ai-ins/vite build && pnpm --filter @ai-ins/playground-vite dev",
+    "dev:panel": "pnpm --filter @ai-ins/core build && pnpm --filter @ai-ins/vite build && pnpm --parallel --filter @ai-ins/core --filter @ai-ins/vite --filter @ai-ins/playground-panel-react dev",
     "dev:watch": "pnpm --parallel --filter @ai-ins/core --filter @ai-ins/vite --filter @ai-ins/playground-vite dev",
     "dev:nextjs": "pnpm --filter @ai-ins/core build && pnpm --filter @ai-ins/nextjs build && pnpm --filter @ai-ins/playground-nextjs dev",
     "dev:nextjs:webpack": "pnpm --filter @ai-ins/core build && pnpm --filter @ai-ins/nextjs build && pnpm --filter @ai-ins/playground-nextjs dev:webpack",

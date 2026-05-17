@@ -3,6 +3,7 @@ import type { AiInsEvent, AiInsRun, ResolvedAiInsAgentProvider } from './types'
 import type { ServerResponse } from 'http'
 
 const maxBufferedAiInsEvents = 800
+const droppedEventsNotice = '[ai-ins] 服务端只保留最近的任务事件；较早输出已从面板缓冲中省略，完整输出请打开上方日志文件。\n\n'
 
 export const aiInsRuns = new Map<string, AiInsRun>()
 
@@ -41,7 +42,9 @@ export function appendAiInsEvent(runId: string, event: AiInsEvent) {
 
   run.events.push(event)
   if (run.events.length > maxBufferedAiInsEvents) {
-    run.events.splice(0, run.events.length - maxBufferedAiInsEvents)
+    const droppedCount = run.events.length - maxBufferedAiInsEvents
+    run.events.splice(0, droppedCount)
+    run.droppedEventCount += droppedCount
   }
 
   for (const subscriber of run.subscribers) {
@@ -64,6 +67,7 @@ export function createAiInsRun(
   aiInsRuns.set(runId, {
     completed: false,
     createdAt: Date.now(),
+    droppedEventCount: 0,
     events: [],
     fileName: metadata.fileName,
     lineNumber: metadata.lineNumber,
@@ -88,7 +92,8 @@ function getRunOutput(run: AiInsRun, root: string) {
     })
     .join('')
 
-  return `${run.providerLabel} 已启动\n日志：${getDisplayPath(run.logPath, root)}\n\n${output}`
+  const bufferNotice = run.droppedEventCount ? droppedEventsNotice : ''
+  return `${run.providerLabel} 已启动\n日志：${getDisplayPath(run.logPath, root)}\n\n${bufferNotice}${output}`
 }
 
 export function getAiInsRunSummary(runId: string, run: AiInsRun, root: string) {

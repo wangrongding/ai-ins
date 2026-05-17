@@ -1,6 +1,6 @@
 {
   "name": "@ai-ins/core",
-  "version": "0.3.4",
+  "version": "0.4.0",
   "description": "Core runtime for AI Ins bundler plugins.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -20,15 +20,20 @@
     "access": "public"
   },
   "scripts": {
+    "build:client": "esbuild src/client-panel/runtime.tsx --bundle --format=esm --platform=browser --target=es2022 --jsx=automatic --define:process.env.NODE_ENV=\\\"production\\\" --minify --outfile=src/client/react-panel.generated.js",
+    "dev:client": "esbuild src/client-panel/runtime.tsx --bundle --format=esm --platform=browser --target=es2022 --jsx=automatic --define:process.env.NODE_ENV=\\\"production\\\" --minify --outfile=src/client/react-panel.generated.js --watch",
     "copy-client": "node scripts/copy-client.mjs",
-    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --shims && pnpm copy-client",
-    "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --shims --watch --onSuccess \"pnpm copy-client\"",
+    "build": "pnpm build:client && tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --shims && pnpm copy-client",
+    "dev": "node scripts/dev.mjs",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3"
-  },
-  "dependencies": {}
+  }
 }

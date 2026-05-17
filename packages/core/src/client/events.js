@@ -70,7 +70,7 @@ window.addEventListener(
       return
     }
 
-    showAiInsPanel(preferredLayer, layers)
+    globalThis.aiInsPanelRuntime?.showAiInsPanel(preferredLayer, layers)
     cleanUp()
   },
   true,

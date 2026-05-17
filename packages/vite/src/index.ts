@@ -3,7 +3,7 @@ import { transformAsync, type PluginObj } from '@babel/core'
 import { parse as parseSvelte } from 'svelte/compiler'
 import { ElementTypes, NodeTypes, parse as parseVueTemplate } from '@vue/compiler-dom'
 import { parse as parseVueSfc } from '@vue/compiler-sfc'
-import { createAiInsMiddlewares, ensureLaunchEditor, getAiInsClientCode, normalizeProxy } from '@ai-ins/core'
+import { createAiInsMiddlewares, ensureLaunchEditor, getAiInsClientCode, getAiInsClientWatchFiles, normalizeProxy } from '@ai-ins/core'
 import type { AiInsPluginOptions } from '@ai-ins/core'
 
 const clientModuleId = 'ai-ins/client'
@@ -384,6 +384,7 @@ function injectSvelteSourceAttributes(code: string, fileName: string) {
 export type { AiInsPluginOptions }
 
 export function aiIns(options: AiInsPluginOptions = {}): Plugin {
+  let aiInsRoot = ''
   let base = '/'
   let isServe = false
   let root = ''
@@ -397,18 +398,32 @@ export function aiIns(options: AiInsPluginOptions = {}): Plugin {
       base = config.base
       isServe = config.command === 'serve'
       root = config.root
+      aiInsRoot = options.root || config.root
       ensureLaunchEditor(config.command)
     },
     configureServer(server: ViteDevServer) {
-      for (const route of createAiInsMiddlewares(server.config.root, options)) {
-        for (const path of getMiddlewarePaths(base, route.path)) {
-          server.middlewares.use(path, route.middleware)
-        }
+      aiInsRoot = options.root || server.config.root
+      for (const route of createAiInsMiddlewares(aiInsRoot, options)) {
+        server.middlewares.use(route.path, route.middleware)
       }
+
+      const clientWatchFiles = new Set<string>(getAiInsClientWatchFiles())
+      server.watcher.add([...clientWatchFiles])
+      server.watcher.on('change', (fileName) => {
+        if (!clientWatchFiles.has(fileName)) {
+          return
+        }
+
+        const clientModule = server.moduleGraph.getModuleById(resolvedClientModuleId)
+        if (clientModule) {
+          server.moduleGraph.invalidateModule(clientModule)
+        }
+        server.ws.send({ path: '*', type: 'full-reload' })
+      })
     },
     load(id) {
       if (id !== resolvedClientModuleId || !isServe) return null
-      return getAiInsClientCode({ base, defaultProvider: options.agents?.defaultProvider, options, pluginProxy, root })
+      return getAiInsClientCode({ base, defaultProvider: options.agents?.defaultProvider, options, pluginProxy, root: aiInsRoot || root })
     },
     resolveId(source) {
       if (source === clientModuleId) return resolvedClientModuleId

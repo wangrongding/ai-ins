@@ -20,10 +20,15 @@ function closeAiInsPanel() {
     return
   }
 
+  if (typeof unmountAiInsPanel === 'function') {
+    unmountAiInsPanel()
+  } else {
+    globalThis.aiInsPanelRuntime?.unmountAiInsPanel()
+  }
   aiInsPanel.remove()
   aiInsPanel = undefined
   panelRefs = undefined
-  updateDockButton()
+  globalThis.aiInsPanelRuntime?.updateDockButton()
 }
 
 function getSourceElement(element) {
@@ -123,6 +128,26 @@ function saveStoredProxy(proxy) {
       window.localStorage.setItem(proxyStorageKey, proxy)
     } else {
       window.localStorage.removeItem(proxyStorageKey)
+    }
+  } catch {
+    // Ignore storage restrictions in embedded browsers.
+  }
+}
+
+function readStoredProxyMode() {
+  try {
+    return window.localStorage.getItem(proxyModeStorageKey) || ''
+  } catch {
+    return ''
+  }
+}
+
+function saveStoredProxyMode(proxyMode) {
+  try {
+    if (proxyMode) {
+      window.localStorage.setItem(proxyModeStorageKey, proxyMode)
+    } else {
+      window.localStorage.removeItem(proxyModeStorageKey)
     }
   } catch {
     // Ignore storage restrictions in embedded browsers.

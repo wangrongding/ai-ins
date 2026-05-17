@@ -157,7 +157,7 @@ export class AiInsWebpackPlugin {
     const pluginOptions = this.options
 
     compiler.options.devServer.setupMiddlewares = (middlewares: unknown[], devServer: WebpackDevServerLike) => {
-      const root = devServer.compiler?.context || process.cwd()
+      const root = pluginOptions.root || devServer.compiler?.context || process.cwd()
       const app = devServer.app
       if (app) {
         for (const route of createAiInsMiddlewares(root, pluginOptions)) {

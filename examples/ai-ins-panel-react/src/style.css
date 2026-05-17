@@ -1,0 +1,23 @@
+.panel-playground-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px;
+  background: rgba(3, 7, 18, 0.58);
+  color: #e5e7eb;
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.panel-playground-shell [data-ai-ins-target] {
+  outline: auto 1px !important;
+  cursor: pointer !important;
+}

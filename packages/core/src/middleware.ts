@@ -1,7 +1,7 @@
 import { formatAgentJsonLine } from './agent-output'
 import { getEditorArgs, resolveCommand, resolveLaunchEditor, shouldUseShellForCommand } from './editor'
-import { getDefaultAgentProviderId, resolveAgentProviders } from './providers'
-import { getAgentEnv, normalizeProxy } from './proxy'
+import { getClientAgentProviders, getDefaultAgentProviderId, resolveAgentProviders } from './providers'
+import { getAgentEnv, getConfiguredCodexProxy, normalizeProxy } from './proxy'
 import { appendAiInsEvent, aiInsRuns, createAiInsRun, getAiInsRunSummary, sendAiInsEvent } from './run-store'
 import {
   buildAgentPrompt,
@@ -17,6 +17,12 @@ import { spawn } from 'child_process'
 import { createWriteStream, existsSync, mkdirSync } from 'fs'
 import { dirname, join } from 'path'
 import type { AiInsMiddleware, AiInsPluginOptions } from './types'
+
+type AiInsProxyMode = 'custom' | 'off' | 'system'
+
+function parseProxyMode(value: unknown): AiInsProxyMode | undefined {
+  return value === 'custom' || value === 'off' || value === 'system' ? value : undefined
+}
 
 function getRevealInFolderCommand(fileName: string) {
   if (process.platform === 'darwin') {
@@ -114,6 +120,22 @@ export function aiInsRunsMiddleware(root: string): AiInsMiddleware {
   }
 }
 
+export function aiInsConfigMiddleware(root: string, options: AiInsPluginOptions, pluginProxy: string): AiInsMiddleware {
+  return (_req, res) => {
+    const providers = getClientAgentProviders(root, options, pluginProxy)
+
+    res.setHeader('Content-Type', 'application/json')
+    res.end(
+      JSON.stringify({
+        defaultProvider: getDefaultAgentProviderId(providers, options.agents?.defaultProvider),
+        defaultProxy: getConfiguredCodexProxy(pluginProxy),
+        providers,
+        root,
+      }),
+    )
+  }
+}
+
 export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, pluginProxy: string): AiInsMiddleware {
   return async (req, res) => {
     if (req.method !== 'POST') {
@@ -124,7 +146,7 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
 
     try {
       const body = await readRequestBody(req)
-      const payload = JSON.parse(body || '{}') as { file?: unknown; layers?: unknown; prompt?: unknown; provider?: unknown; proxy?: unknown }
+      const payload = JSON.parse(body || '{}') as { file?: unknown; layers?: unknown; prompt?: unknown; provider?: unknown; proxy?: unknown; proxyMode?: unknown }
       const rawTarget = typeof payload.file === 'string' ? payload.file : ''
       const rawPrompt = typeof payload.prompt === 'string' ? payload.prompt.trim() : ''
       const providers = resolveAgentProviders(root, options, pluginProxy)
@@ -163,7 +185,22 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
         return
       }
 
-      const proxy = normalizeProxy(payload.proxy) || provider.proxy
+      const proxyMode = parseProxyMode(payload.proxyMode)
+      const requestedProxy = normalizeProxy(payload.proxy)
+      if (proxyMode === 'custom' && !requestedProxy) {
+        res.statusCode = 400
+        res.end('invalid custom proxy URL')
+        return
+      }
+
+      let proxy = requestedProxy || provider.proxy
+      if (proxyMode === 'off') {
+        proxy = ''
+      } else if (proxyMode === 'custom') {
+        proxy = requestedProxy
+      } else if (proxyMode === 'system') {
+        proxy = provider.proxy
+      }
 
       const { columnNumber, fileName, lineNumber } = parseOpenInEditorTarget(rawTarget, root)
       if (!isPathInsideRoot(fileName, root)) {
@@ -218,7 +255,7 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
 
       const child = spawn(agentCommand, args, {
         cwd: root,
-        env: getAgentEnv(proxy),
+        env: getAgentEnv(proxy, { clearProxy: Boolean(proxyMode) }),
         shell: shouldUseShellForCommand(agentCommand),
         stdio: ['pipe', 'pipe', 'pipe'],
       })

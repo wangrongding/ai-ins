@@ -1,5 +1,14 @@
 # @ai-ins/webpack
 
+## 0.2.6
+
+### Patch Changes
+
+- Add the new React-based panel runtime in core, expose runtime config for the client,
+  and improve Vite/Webpack dev-server integration for custom roots and client reloads.
+- Updated dependencies
+  - @ai-ins/core@0.4.0
+
 ## 0.2.5
 
 ### Patch Changes

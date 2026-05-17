@@ -27,6 +27,7 @@ export type AiInsRun = {
   code?: number | null
   completed: boolean
   createdAt: number
+  droppedEventCount: number
   events: AiInsEvent[]
   fileName: string
   lineNumber: number
@@ -108,4 +109,9 @@ export type AiInsPluginOptions = {
    */
   disableSourceAttributes?: boolean
   proxy?: string
+  /**
+   * Repository root that AI Ins agents are allowed to inspect and edit.
+   * Defaults to the bundler dev server root.
+   */
+  root?: string
 }

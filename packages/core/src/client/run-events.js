@@ -47,8 +47,8 @@ function subscribeAgentRun(run) {
       runSubscriptions.delete(run.id)
     }
 
-    refreshRunList()
-    refreshRunDetail()
+    globalThis.aiInsPanelRuntime?.refreshRunList()
+    globalThis.aiInsPanelRuntime?.refreshRunDetail()
   }
 
   eventSource.onerror = () => {
@@ -58,8 +58,8 @@ function subscribeAgentRun(run) {
 
     run.status = 'disconnected'
     run.statusMessage = '进度连接断开，可继续看日志文件'
-    refreshRunList()
-    refreshRunDetail()
+    globalThis.aiInsPanelRuntime?.refreshRunList()
+    globalThis.aiInsPanelRuntime?.refreshRunDetail()
   }
 }
 
@@ -92,7 +92,7 @@ function upsertRunFromSummary(summary) {
   run.sourcePath = summary.sourcePath || run.sourcePath
   run.status = summary.status || run.status
   run.statusMessage = summary.statusMessage || run.statusMessage
-  run.output = isCompleted ? summary.output || run.output : `${run.providerLabel} 已启动\n日志：${getDisplayPath(run.logPath || '')}\n\n`
+  run.output = isCompleted ? compactOutputForPanel(summary.output || run.output) : `${run.providerLabel} 已启动\n日志：${getDisplayPath(run.logPath || '')}\n\n`
 
   if (!existingRun) {
     runs.push(run)
@@ -116,9 +116,9 @@ async function hydrateAgentRuns() {
       upsertRunFromSummary(summary)
     }
 
-    refreshRunList()
-    refreshRunDetail()
-    updateDockButton()
+    globalThis.aiInsPanelRuntime?.refreshRunList()
+    globalThis.aiInsPanelRuntime?.refreshRunDetail()
+    globalThis.aiInsPanelRuntime?.updateDockButton()
   } catch (error) {
     console.error('[ai-ins] load AI Ins runs failed:', error)
   }
@@ -143,7 +143,7 @@ function createRun(result, layer, provider, prompt) {
   runs.unshift(run)
   selectedRunId = run.id
   subscribeAgentRun(run)
-  refreshRunList()
-  refreshRunDetail()
-  updateDockButton()
+  globalThis.aiInsPanelRuntime?.refreshRunList()
+  globalThis.aiInsPanelRuntime?.refreshRunDetail()
+  globalThis.aiInsPanelRuntime?.updateDockButton()
 }

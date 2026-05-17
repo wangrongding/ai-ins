@@ -1,5 +1,12 @@
 # @ai-ins/nextjs
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies
+  - @ai-ins/core@0.4.0
+
 ## 0.1.0
 
 ### Minor Changes
