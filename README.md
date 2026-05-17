@@ -171,7 +171,7 @@ export default defineConfig({
 
 - `Option` / `Alt` + 点击页面元素：打开 AI Ins 面板并选中目标。
 - macOS `Option + Cmd`，Windows / Linux `Ctrl + Alt` + 点击页面元素：在编辑器里打开源码位置。
-- 面板内 `Shift + Enter`：提交当前修改要求。
+- 面板内默认 `⌘ + Enter`（Windows / Linux 为 `Ctrl + Enter`）提交，也可切到 `Enter` 提交。
 - 关闭面板不会中断已启动的 Agent 任务，任务会继续在侧边列表里更新。
 
 ## Webpack 使用方式

@@ -231,7 +231,7 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
         root,
       })
 
-      const logDirectory = join(root, '.codex', 'ai-ins')
+      const logDirectory = join(root, '.ai-ins')
       mkdirSync(logDirectory, { recursive: true })
       const runId = `${new Date().toISOString().replace(/[:.]/gu, '-')}-${provider.id}`
       const logPath = join(logDirectory, `${runId}.log`)

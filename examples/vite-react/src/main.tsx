@@ -128,18 +128,53 @@ function Card({ onOpenDocs }: { onOpenDocs: () => void }) {
 }
 
 function Docs({ onBack }: { onBack: () => void }) {
-  const blocks = parseMarkdown(readme)
-  const directory = blocks.flatMap((block, index) =>
-    block.type === 'heading'
-      ? [
-          {
-            id: getHeadingId(block.text, index),
-            level: block.level,
-            text: block.text,
-          },
-        ]
-      : [],
+  const blocks = React.useMemo(() => parseMarkdown(readme), [])
+  const directory = React.useMemo(
+    () =>
+      blocks.flatMap((block, index) =>
+        block.type === 'heading'
+          ? [
+              {
+                id: getHeadingId(block.text, index),
+                level: block.level,
+                text: block.text,
+              },
+            ]
+          : [],
+      ),
+    [blocks],
   )
+  const [activeId, setActiveId] = React.useState(() => window.location.hash.replace(/^#/, ''))
+
+  React.useEffect(() => {
+    if (!directory.length) {
+      return
+    }
+
+    const syncActiveId = () => {
+      const offset = 140
+      const nextActiveId = directory.reduce((currentId, item) => {
+        const heading = document.getElementById(item.id)
+
+        if (!heading || heading.getBoundingClientRect().top > offset) {
+          return currentId
+        }
+
+        return item.id
+      }, directory[0].id)
+
+      setActiveId(nextActiveId)
+    }
+
+    syncActiveId()
+    window.addEventListener('hashchange', syncActiveId)
+    window.addEventListener('scroll', syncActiveId, { passive: true })
+
+    return () => {
+      window.removeEventListener('hashchange', syncActiveId)
+      window.removeEventListener('scroll', syncActiveId)
+    }
+  }, [directory])
 
   return (
     <main className='docs'>
@@ -155,7 +190,12 @@ function Docs({ onBack }: { onBack: () => void }) {
           <ol>
             {directory.map((item) => (
               <li className={`docs-directory-level-${item.level}`} key={item.id}>
-                <a href={`#${item.id}`}>
+                <a
+                  aria-current={activeId === item.id ? 'location' : undefined}
+                  className={activeId === item.id ? 'docs-directory-link-active' : undefined}
+                  href={`#${item.id}`}
+                  onClick={() => setActiveId(item.id)}
+                >
                   <InlineMarkdown text={item.text} />
                 </a>
               </li>

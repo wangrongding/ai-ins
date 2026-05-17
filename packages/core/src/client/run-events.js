@@ -98,10 +98,6 @@ function upsertRunFromSummary(summary) {
     runs.push(run)
   }
 
-  if (!selectedRunId) {
-    selectedRunId = run.id
-  }
-
   if (!run.completed) {
     subscribeAgentRun(run)
   }

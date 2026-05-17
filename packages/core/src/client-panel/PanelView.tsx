@@ -1,11 +1,13 @@
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
+import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
 import { arrowDownIcon, checkIcon, codeIcon, copyIcon, Icon, IconButton, maximizeIcon, minimizeIcon, moonIcon, sunIcon } from './icons'
 import type { AgentProvider, AgentRun, ProxyMode } from './types'
 
 const promptDraftStorageKey = 'ai-ins-panel-prompt-draft'
 const panelThemeStorageKey = 'ai-ins-panel-theme'
+const panelSubmitShortcutStorageKey = 'ai-ins-panel-submit-shortcut'
 const outputAutoScrollThreshold = 32
 type PanelTheme = 'dark' | 'light'
+type PanelSubmitShortcut = 'enter' | 'modifier-enter'
 
 function readPanelPromptDraft() {
   try {
@@ -31,14 +33,6 @@ export function clearPanelPromptDraft() {
   savePanelPromptDraft('')
 }
 
-function panelGetSystemTheme(): PanelTheme {
-  try {
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
-  } catch {
-    return 'dark'
-  }
-}
-
 function readPanelStoredTheme() {
   try {
     const value = window.localStorage.getItem(panelThemeStorageKey)
@@ -49,7 +43,7 @@ function readPanelStoredTheme() {
 }
 
 function readPanelTheme(): PanelTheme {
-  return readPanelStoredTheme() || panelGetSystemTheme()
+  return readPanelStoredTheme() || 'dark'
 }
 
 function savePanelTheme(value: PanelTheme) {
@@ -58,6 +52,77 @@ function savePanelTheme(value: PanelTheme) {
   } catch {
     // Ignore storage restrictions in embedded browsers.
   }
+}
+
+function readPanelStoredSubmitShortcut() {
+  try {
+    const value = window.localStorage.getItem(panelSubmitShortcutStorageKey)
+    if (value === 'modifier-enter' || value === 'enter') {
+      return value
+    }
+    if (value === 'platform') {
+      return 'modifier-enter'
+    }
+    if (value === 'shift-enter') {
+      return 'enter'
+    }
+    return ''
+  } catch {
+    return ''
+  }
+}
+
+function readPanelSubmitShortcut(): PanelSubmitShortcut {
+  return readPanelStoredSubmitShortcut() || 'modifier-enter'
+}
+
+function savePanelSubmitShortcut(value: PanelSubmitShortcut) {
+  try {
+    window.localStorage.setItem(panelSubmitShortcutStorageKey, value)
+  } catch {
+    // Ignore storage restrictions in embedded browsers.
+  }
+}
+
+function panelIsMacPlatform() {
+  try {
+    const platform = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform || navigator.platform || ''
+    return /mac|iphone|ipad|ipod/i.test(platform)
+  } catch {
+    return false
+  }
+}
+
+function panelGetModifierSubmitShortcutLabel(macPlatform: boolean) {
+  return macPlatform ? '⌘ + Enter' : 'Ctrl + Enter'
+}
+
+function panelGetEnterShortcutLabel() {
+  return 'Enter'
+}
+
+export function getPanelDefaultSubmitShortcutLabel() {
+  return panelGetModifierSubmitShortcutLabel(panelIsMacPlatform())
+}
+
+function panelMatchesSubmitShortcut(
+  event: Pick<KeyboardEvent, 'altKey' | 'ctrlKey' | 'key' | 'metaKey' | 'shiftKey'>,
+  submitShortcut: PanelSubmitShortcut,
+  macPlatform: boolean,
+) {
+  if (event.key !== 'Enter' || event.altKey) {
+    return false
+  }
+
+  if (submitShortcut === 'enter') {
+    return !event.shiftKey && !event.ctrlKey && !event.metaKey
+  }
+
+  if (macPlatform) {
+    return event.metaKey && !event.ctrlKey && !event.shiftKey
+  }
+
+  return event.ctrlKey && !event.metaKey && !event.shiftKey
 }
 
 type PanelViewProps = {
@@ -539,12 +604,19 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   const [outputExpanded, setOutputExpanded] = useState(false)
   const [outputModalDetachedFromBottom, setOutputModalDetachedFromBottom] = useState(false)
   const [theme, setTheme] = useState<PanelTheme>(() => readPanelTheme())
+  const [submitShortcut, setSubmitShortcut] = useState<PanelSubmitShortcut>(() => readPanelSubmitShortcut())
   const promptHydratedRef = useRef(false)
   const outputShouldFollowRef = useRef(true)
   const outputModalShouldFollowRef = useRef(true)
   const outputRef = useRef<HTMLDivElement>(null)
   const outputModalRef = useRef<HTMLDivElement>(null)
-  const selectedRun = useMemo(() => runs.find((run) => run.id === selectedRunId) || runs[0], [runs, selectedRunId])
+  const selectedRun = useMemo(() => {
+    if (!selectedRunId) {
+      return undefined
+    }
+
+    return runs.find((run) => run.id === selectedRunId)
+  }, [runs, selectedRunId])
   const provider = providers.find((candidate) => candidate.id === providerId) || providers.find((candidate) => candidate.enabled) || providers[0]
   const hasTarget = Boolean(targetTitle)
   const customProxyMissing = proxyMode === 'custom' && !proxy.trim()
@@ -552,30 +624,17 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   const selectedRunOutput = selectedRun ? selectedRun.output || selectedRun.statusMessage || '等待输出...' : ''
   const selectedRunScrollId = selectedRun?.id
   const lightTheme = theme === 'light'
-
-  useEffect(() => {
-    if (readPanelStoredTheme()) {
-      return
-    }
-
-    let media: MediaQueryList
-    try {
-      media = window.matchMedia('(prefers-color-scheme: light)')
-    } catch {
-      return
-    }
-
-    const handleSystemThemeChange = (event: MediaQueryListEvent) => {
-      if (readPanelStoredTheme()) {
-        return
-      }
-
-      setTheme(event.matches ? 'light' : 'dark')
-    }
-
-    media.addEventListener('change', handleSystemThemeChange)
-    return () => media.removeEventListener('change', handleSystemThemeChange)
-  }, [])
+  const macPlatform = useMemo(() => panelIsMacPlatform(), [])
+  const modifierSubmitShortcutLabel = useMemo(() => panelGetModifierSubmitShortcutLabel(macPlatform), [macPlatform])
+  const submitShortcutOptions = useMemo<Array<{ label: string; value: PanelSubmitShortcut }>>(
+    () => [
+      { label: modifierSubmitShortcutLabel, value: 'modifier-enter' },
+      { label: panelGetEnterShortcutLabel(), value: 'enter' },
+    ],
+    [modifierSubmitShortcutLabel],
+  )
+  const submitShortcutLabel =
+    submitShortcut === 'modifier-enter' ? modifierSubmitShortcutLabel : panelGetEnterShortcutLabel()
 
   useEffect(() => {
     outputShouldFollowRef.current = true
@@ -732,12 +791,30 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     return '不为 Agent 设置代理'
   }
 
+  function handleSubmitShortcutChange(value: PanelSubmitShortcut) {
+    setSubmitShortcut(value)
+    savePanelSubmitShortcut(value)
+  }
+
+  function handlePromptKeyDown(event: ReactKeyboardEvent<HTMLTextAreaElement>) {
+    if (event.nativeEvent.isComposing || submitDisabled || submitting) {
+      return
+    }
+
+    if (!panelMatchesSubmitShortcut(event, submitShortcut, macPlatform)) {
+      return
+    }
+
+    event.preventDefault()
+    void onSubmit()
+  }
+
   return (
     <div className="wbx-ai-ins-panel" data-theme={theme}>
       <div className="wbx-ai-ins-header">
         <div className="wbx-ai-ins-heading">
           <p className="wbx-ai-ins-title">AI Ins</p>
-          <div className="wbx-ai-ins-subtitle">Option 选 DOM，提交后可并发跟踪多个任务</div>
+          <div className="wbx-ai-ins-subtitle">Option 选 DOM；左侧任务只切换输出，每次提交仍是新会话</div>
         </div>
         <div className="wbx-ai-ins-header-actions">
           <IconButton label={lightTheme ? '切换到暗色' : '切换到亮色'} onClick={handleThemeToggle}>
@@ -833,6 +910,19 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
               </div>
               <label className="wbx-ai-ins-field">
                 <span className="wbx-ai-ins-label">
+                  <span>发送快捷键</span>
+                  <span className="wbx-ai-ins-label-hint">{submitShortcutLabel}</span>
+                </span>
+                <select className="wbx-ai-ins-select" onChange={(event) => handleSubmitShortcutChange(event.target.value as PanelSubmitShortcut)} value={submitShortcut}>
+                  {submitShortcutOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="wbx-ai-ins-field">
+                <span className="wbx-ai-ins-label">
                   <span>Agent</span>
                   <span className="wbx-ai-ins-label-hint">可切换</span>
                 </span>
@@ -850,13 +940,8 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
             <textarea
               className="wbx-ai-ins-textarea"
               onChange={(event) => handlePromptChange(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter' && event.shiftKey) {
-                  event.preventDefault()
-                  void onSubmit()
-                }
-              }}
-              placeholder="描述你想怎么改这个 DOM / 组件，例如：把这个区域改紧凑一点，保留当前交互逻辑。"
+              onKeyDown={handlePromptKeyDown}
+              placeholder="描述你想怎么改这个 DOM / 组件；新任务默认不带历史记录，如需延续上一轮，请把结论贴进来。"
               value={prompt}
             />
 
@@ -864,7 +949,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
               <div className="wbx-ai-ins-status">{status}</div>
               <div className="wbx-ai-ins-actions">
                 <button className="wbx-ai-ins-button wbx-ai-ins-button-primary" disabled={submitDisabled} type="submit">
-                  {submitting ? '启动中' : `交给 ${provider?.label || 'Agent'}`}
+                  {submitting ? '启动中' : `交给 ${provider?.label || 'Agent'} · ${submitShortcutLabel}`}
                 </button>
               </div>
             </div>
@@ -872,7 +957,9 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
 
           <section className="wbx-ai-ins-detail">
             {!selectedRun ? (
-              <div className="wbx-ai-ins-detail-empty">选择一个任务查看实时输出</div>
+              <div className="wbx-ai-ins-detail-empty">
+                {runs.length ? '点击左侧任务查看输出；提交新任务仍是新会话，不会自动延续它的上下文。' : '还没有任务'}
+              </div>
             ) : (
               <div className="wbx-ai-ins-detail-content">
                 <div className="wbx-ai-ins-detail-head">
