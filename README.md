@@ -6,12 +6,22 @@ AI Ins 是一个本地开发辅助工具，让你在开发web/electron等项目�
 - 不用复制组件路径。
 - 不用描述“xxx模块，xxx按钮...”。
 - 接手陌生项目，直接快速上手修改。不再需要花时间熟悉项目结构、查找相关代码位置。
+- 通过在页面中选取元素，调度 codex cli，claude code cli，copilot cli等等帮你修改，只要你本地任意一个配置好的 cli 工具即可
+
+https://github.com/user-attachments/assets/f909f905-3297-49da-8881-8b48689c015c 
 
 ## 快速接入
+
+你可以直接跟你的 agent 说： “帮我接入 ai-ins” ， 他会自动帮你接入。  
+
+或者你担心 agent 不够智能，可以说：“参考 https://github.com/wangrongding/ai-ins/blob/main/README.md ，帮我接入 ai-ins”
+
+### 命令行快捷接入
 
 单配置的 web 或 electron 项目里，可以直接运行下面的命令。CLI 会自动识别项目内的构建工具（Vite / Webpack / Next.js），安装对应的 `@ai-ins/*` 包，并尝试修改配置文件：
 
 ```bash
+# 只需要一行即可快速接入：
 npx ai-ins
 ```
 
@@ -24,9 +34,9 @@ npx ai-ins --bundler webpack --config build/webpack.dev.js
 
 `--config` 支持相对项目根目录的路径，也支持绝对路径。CLI 在检测到多个候选配置文件时会直接停止，并提示你使用 `--config`，不会再盲猜要改哪个文件。
 
-你只需要：按住 `Option` / `Alt` 点选页面上的 DOM，通过打开的内置 AI Ins 面板，把目标元素和修改要求一起交给本地 CLI Agent 执行，并在页面里持续查看任务输出，任务完成后通过热更新直接看到修改结果即可。
+你只需要：按住 `Option` / `Alt` 点选页面上的 DOM，通过打开的内置 AI Ins 面板，把目标元素和修改要求一起交给本地 CLI Agent 执行，并在页面里持续查看任务输出，任务完成后通过热更新直接看到修改结果即可。 
 
-https://github.com/user-attachments/assets/f909f905-3297-49da-8881-8b48689c015c
+<img width="1600" alt="fcc1e26cb5b83666fe302510205b9d54" src="https://github.com/user-attachments/assets/8a896580-a951-4694-a8c6-9fab977a37eb" />
 
 并且在 macOS 按住 `Option + Cmd`，Windows / Linux 按住 `Ctrl + Alt` 点击页面元素也支持直接打开IDE，并跳转到源码位置，用以查看修改细节或者手动调整。
 
