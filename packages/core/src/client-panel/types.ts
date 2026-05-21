@@ -14,6 +14,7 @@ export type LayerTarget = {
 }
 
 export type AgentRun = {
+  agentPrompt?: string
   completed: boolean
   createdAt: number
   id: string

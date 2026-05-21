@@ -372,7 +372,7 @@
   border: 1px solid var(--wbx-ai-ins-surface-border);
   border-radius: 16px;
   background: var(--wbx-ai-ins-surface-bg);
-  padding: 12px;
+  padding: 12px 12px 0;
 }
 
 .wbx-ai-ins-form-grid {
@@ -406,6 +406,13 @@
   font-weight: 600;
   line-height: 1;
   padding: 2px 6px;
+}
+
+.wbx-ai-ins-field-note {
+  margin-top: 6px;
+  color: var(--wbx-ai-ins-text-subtle);
+  font-size: 10px;
+  line-height: 1.45;
 }
 
 .wbx-ai-ins-proxy-field {
@@ -666,7 +673,7 @@
   margin-left: -12px;
   border-top: 1px solid var(--wbx-ai-ins-border);
   background: var(--wbx-ai-ins-footer-bg);
-  padding: 10px 12px 12px;
+  padding: 10px;
 }
 
 .wbx-ai-ins-status {
@@ -810,15 +817,32 @@
 
 .wbx-ai-ins-prompt {
   margin: 0 0 10px;
+  display: flex;
   flex: 0 1 auto;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
   max-height: 96px;
-  overflow: auto;
+  overflow: hidden;
   border-left: 2px solid rgba(56, 189, 248, 0.5);
   padding-left: 10px;
   color: var(--wbx-ai-ins-text);
   font-size: 12px;
   line-height: 1.5;
+}
+
+.wbx-ai-ins-prompt-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  max-height: 96px;
+  overflow: auto;
   white-space: pre-wrap;
+}
+
+.wbx-ai-ins-prompt .wbx-ai-ins-button {
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 10px;
 }
 
 .wbx-ai-ins-output-wrap {
@@ -1103,6 +1127,45 @@
   margin: 0;
   border-top: 1px solid var(--wbx-ai-ins-hint-border);
   padding: 7px 10px 9px 24px;
+}
+
+.wbx-ai-ins-agent-prompt {
+  border-top: 1px solid var(--wbx-ai-ins-hint-border);
+  padding: 9px 10px 10px;
+}
+
+.wbx-ai-ins-agent-prompt p {
+  margin: 0 0 8px;
+  color: var(--wbx-ai-ins-text-body);
+  line-height: 1.5;
+}
+
+.wbx-ai-ins-agent-prompt .wbx-ai-ins-output-code-block {
+  margin-bottom: 0;
+}
+
+.wbx-ai-ins-agent-prompt-modal-panel {
+  width: min(1120px, 100%);
+}
+
+.wbx-ai-ins-agent-prompt-modal {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 10px;
+  border-top: 0;
+  padding: 14px;
+}
+
+.wbx-ai-ins-agent-prompt-code-block {
+  flex: 1;
+  min-height: 0;
+}
+
+.wbx-ai-ins-agent-prompt-code-block pre {
+  height: 100%;
+  min-height: 0;
 }
 
 .wbx-ai-ins-output-diagnostics li + li {

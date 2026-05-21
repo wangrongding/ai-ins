@@ -146,7 +146,14 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
 
     try {
       const body = await readRequestBody(req)
-      const payload = JSON.parse(body || '{}') as { file?: unknown; layers?: unknown; prompt?: unknown; provider?: unknown; proxy?: unknown; proxyMode?: unknown }
+      const payload = JSON.parse(body || '{}') as {
+        file?: unknown
+        layers?: unknown
+        prompt?: unknown
+        provider?: unknown
+        proxy?: unknown
+        proxyMode?: unknown
+      }
       const rawTarget = typeof payload.file === 'string' ? payload.file : ''
       const rawPrompt = typeof payload.prompt === 'string' ? payload.prompt.trim() : ''
       const providers = resolveAgentProviders(root, options, pluginProxy)
@@ -246,6 +253,7 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
         logStream.write(`[ai-ins] using proxy ${proxy}\n\n`)
       }
       createAiInsRun(runId, logPath, provider, {
+        agentPrompt: prompt,
         fileName,
         lineNumber,
         prompt: rawPrompt,
@@ -406,6 +414,7 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
       res.setHeader('Content-Type', 'application/json')
       res.end(
         JSON.stringify({
+          agentPrompt: prompt,
           fileName,
           lineNumber,
           logPath,

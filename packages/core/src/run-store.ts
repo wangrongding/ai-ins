@@ -57,6 +57,7 @@ export function createAiInsRun(
   logPath: string,
   provider: Pick<ResolvedAiInsAgentProvider, 'id' | 'label'>,
   metadata: {
+    agentPrompt?: string
     fileName: string
     lineNumber: number
     prompt: string
@@ -65,6 +66,7 @@ export function createAiInsRun(
   },
 ) {
   aiInsRuns.set(runId, {
+    agentPrompt: metadata.agentPrompt,
     completed: false,
     createdAt: Date.now(),
     droppedEventCount: 0,
@@ -98,6 +100,7 @@ function getRunOutput(run: AiInsRun, root: string) {
 
 export function getAiInsRunSummary(runId: string, run: AiInsRun, root: string) {
   return {
+    agentPrompt: run.agentPrompt || '',
     code: run.code,
     completed: run.completed,
     createdAt: run.createdAt,

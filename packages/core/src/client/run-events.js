@@ -68,6 +68,7 @@ function upsertRunFromSummary(summary) {
   const provider = getProvider(summary.providerId)
   const isCompleted = Boolean(summary.completed)
   const run = existingRun || {
+    agentPrompt: summary.agentPrompt || '',
     completed: isCompleted,
     createdAt: summary.createdAt || Date.now(),
     id: summary.id,
@@ -85,6 +86,7 @@ function upsertRunFromSummary(summary) {
   run.completed = isCompleted
   run.createdAt = summary.createdAt || run.createdAt
   run.logPath = summary.logPath || run.logPath
+  run.agentPrompt = summary.agentPrompt || run.agentPrompt || ''
   run.prompt = summary.prompt || run.prompt
   run.providerId = summary.providerId || run.providerId
   run.providerLabel = summary.providerLabel || run.providerLabel
@@ -122,6 +124,7 @@ async function hydrateAgentRuns() {
 
 function createRun(result, layer, provider, prompt) {
   const run = {
+    agentPrompt: result.agentPrompt || '',
     completed: false,
     createdAt: Date.now(),
     id: result.runId,

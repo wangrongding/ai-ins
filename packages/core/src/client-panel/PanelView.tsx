@@ -600,6 +600,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     targetTitle,
   } = props
   const [copied, setCopied] = useState(false)
+  const [agentPromptExpanded, setAgentPromptExpanded] = useState(false)
   const [outputDetachedFromBottom, setOutputDetachedFromBottom] = useState(false)
   const [outputExpanded, setOutputExpanded] = useState(false)
   const [outputModalDetachedFromBottom, setOutputModalDetachedFromBottom] = useState(false)
@@ -608,6 +609,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   const promptHydratedRef = useRef(false)
   const outputShouldFollowRef = useRef(true)
   const outputModalShouldFollowRef = useRef(true)
+  const agentPromptModalRef = useRef<HTMLDivElement>(null)
   const outputRef = useRef<HTMLDivElement>(null)
   const outputModalRef = useRef<HTMLDivElement>(null)
   const selectedRun = useMemo(() => {
@@ -618,10 +620,18 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     return runs.find((run) => run.id === selectedRunId)
   }, [runs, selectedRunId])
   const provider = providers.find((candidate) => candidate.id === providerId) || providers.find((candidate) => candidate.enabled) || providers[0]
+  const enabledProviderCount = providers.filter((candidate) => candidate.enabled).length
+  const providerSwitchHint =
+    enabledProviderCount > 1 ? `多 Agent · ${enabledProviderCount}/${providers.length}` : provider?.enabled ? '单 Agent' : '待配置'
+  const providerSwitchTitle = providers.length
+    ? `已接入 ${providers.map((candidate) => `${candidate.label}${candidate.enabled ? '' : '（未配置）'}`).join(' / ')}。切换只影响下一次提交。`
+    : '还没有可用 Agent。'
   const hasTarget = Boolean(targetTitle)
   const customProxyMissing = proxyMode === 'custom' && !proxy.trim()
   const submitDisabled = submitting || !hasTarget || !provider?.enabled || customProxyMissing
   const selectedRunOutput = selectedRun ? selectedRun.output || selectedRun.statusMessage || '等待输出...' : ''
+  const selectedRunLogLabel = selectedRun?.logPath ? getDisplayPath(selectedRun.logPath) : '.ai-ins/<run-id>.log'
+  const selectedRunAgentPrompt = selectedRun?.agentPrompt?.trim() || ''
   const selectedRunScrollId = selectedRun?.id
   const lightTheme = theme === 'light'
   const macPlatform = useMemo(() => panelIsMacPlatform(), [])
@@ -665,9 +675,16 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
 
   useEffect(() => {
     if (!selectedRun) {
+      setAgentPromptExpanded(false)
       setOutputExpanded(false)
     }
   }, [selectedRun])
+
+  useEffect(() => {
+    if (agentPromptExpanded) {
+      agentPromptModalRef.current?.focus()
+    }
+  }, [agentPromptExpanded])
 
   useEffect(() => {
     if (outputExpanded) {
@@ -877,7 +894,6 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                 </IconButton>
               </span>
             </div>
-
             <div className="wbx-ai-ins-form-grid">
               <div className="wbx-ai-ins-field wbx-ai-ins-proxy-field">
                 <span className="wbx-ai-ins-label">
@@ -924,9 +940,16 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
               <label className="wbx-ai-ins-field">
                 <span className="wbx-ai-ins-label">
                   <span>Agent</span>
-                  <span className="wbx-ai-ins-label-hint">可切换</span>
+                  <span className="wbx-ai-ins-label-hint" title={providerSwitchTitle}>
+                    {providerSwitchHint}
+                  </span>
                 </span>
-                <select className="wbx-ai-ins-select" onChange={(event) => onProviderChange(event.target.value)} value={provider?.id || providerId}>
+                <select
+                  className="wbx-ai-ins-select"
+                  onChange={(event) => onProviderChange(event.target.value)}
+                  title={providerSwitchTitle}
+                  value={provider?.id || providerId}
+                >
                   {providers.map((candidate) => (
                     <option disabled={!candidate.enabled} key={candidate.id} value={candidate.id}>
                       {candidate.label}
@@ -965,9 +988,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                 <div className="wbx-ai-ins-detail-head">
                   <div>
                     <p className="wbx-ai-ins-detail-title">{panelGetRunTitle(selectedRun, getDisplayPath)}</p>
-                    <div className="wbx-ai-ins-detail-subtitle">
-                      {selectedRun.providerLabel}
-                    </div>
+                    <div className="wbx-ai-ins-detail-subtitle">{selectedRun.providerLabel}</div>
                   </div>
                   <div className="wbx-ai-ins-detail-actions">
                     <span className="wbx-ai-ins-pill">{panelGetRunStatusLabel(selectedRun.status)}</span>
@@ -976,18 +997,44 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                     </button>
                   </div>
                 </div>
-                <p className="wbx-ai-ins-prompt">{selectedRun.prompt}</p>
+                <div className="wbx-ai-ins-prompt">
+                  <span className="wbx-ai-ins-prompt-text">{selectedRun.prompt}</span>
+                  <button
+                    className="wbx-ai-ins-button"
+                    onClick={() => {
+                      setOutputExpanded(false)
+                      setAgentPromptExpanded(true)
+                    }}
+                    type="button"
+                  >
+                    查看详情
+                  </button>
+                </div>
                 <div className={`wbx-ai-ins-output-wrap wbx-ai-ins-output-wrap-${panelIsRunWorking(selectedRun) ? 'active' : selectedRun.status}`}>
                   <div className="wbx-ai-ins-output-toolbar">
                     <div className="wbx-ai-ins-output-title">
                       <span>Output</span>
                       <span className="wbx-ai-ins-output-format">Markdown</span>
                     </div>
-                    <IconButton label="放大输出" onClick={() => setOutputExpanded(true)}>
+                    <IconButton
+                      label="放大输出"
+                      onClick={() => {
+                        setAgentPromptExpanded(false)
+                        setOutputExpanded(true)
+                      }}
+                    >
                       <Icon paths={maximizeIcon} />
                     </IconButton>
                   </div>
-                  <div className={`wbx-ai-ins-output${selectedRun.status === 'failed' ? ' wbx-ai-ins-output-error' : ''}`} onDoubleClick={() => setOutputExpanded(true)} onScroll={handleOutputScroll} ref={outputRef}>
+                  <div
+                    className={`wbx-ai-ins-output${selectedRun.status === 'failed' ? ' wbx-ai-ins-output-error' : ''}`}
+                    onDoubleClick={() => {
+                      setAgentPromptExpanded(false)
+                      setOutputExpanded(true)
+                    }}
+                    onScroll={handleOutputScroll}
+                    ref={outputRef}
+                  >
                     <PanelOutputViewer value={selectedRunOutput} />
                   </div>
                   {outputDetachedFromBottom ? (
@@ -1007,6 +1054,49 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
           </section>
         </main>
       </div>
+      {selectedRun && agentPromptExpanded ? (
+        <div className="wbx-ai-ins-output-modal" onClick={() => setAgentPromptExpanded(false)}>
+          <div
+            aria-label={`查看发送给 ${selectedRun.providerLabel} 的完整 prompt`}
+            aria-modal="true"
+            className="wbx-ai-ins-output-modal-panel wbx-ai-ins-agent-prompt-modal-panel"
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') {
+                event.stopPropagation()
+                setAgentPromptExpanded(false)
+              }
+            }}
+            ref={agentPromptModalRef}
+            role="dialog"
+            tabIndex={-1}
+          >
+            <div className="wbx-ai-ins-output-modal-head">
+              <div>
+                <p className="wbx-ai-ins-output-modal-title">发送给 {selectedRun.providerLabel} 的完整 prompt</p>
+                <div className="wbx-ai-ins-output-modal-subtitle">{panelGetRunTitle(selectedRun, getDisplayPath)}</div>
+              </div>
+              <div className="wbx-ai-ins-detail-actions">
+                <button className="wbx-ai-ins-button" onClick={() => setAgentPromptExpanded(false)} type="button">
+                  关闭
+                </button>
+              </div>
+            </div>
+            <div className="wbx-ai-ins-agent-prompt wbx-ai-ins-agent-prompt-modal">
+              <p>
+                {selectedRunAgentPrompt
+                  ? `这里是启动这条任务时真正发送给 ${selectedRun.providerLabel} 的完整 prompt，包含源码位置和 DOM source stack。`
+                  : `这条任务创建时还没有记录完整 prompt；请打开日志文件 ${selectedRunLogLabel} 检查启动命令和 prompt 正文。`}
+              </p>
+              <div className="wbx-ai-ins-output-code-block wbx-ai-ins-agent-prompt-code-block">
+                <pre>
+                  <code>{selectedRunAgentPrompt || `日志文件：${selectedRunLogLabel}`}</code>
+                </pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {selectedRun && outputExpanded ? (
         <div className="wbx-ai-ins-output-modal" onClick={() => setOutputExpanded(false)}>
           <div

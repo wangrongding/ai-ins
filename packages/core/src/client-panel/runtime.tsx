@@ -30,7 +30,12 @@ declare const runs: AgentRun[]
 declare function applyDockPosition(): void
 declare function closeAiInsPanel(): void
 declare function createElement(tag: string, className?: string, text?: string): HTMLElement
-declare function createRun(result: { logPath?: string; providerLabel?: string; runId: string }, layer: LayerTarget, provider: AgentProvider, prompt: string): void
+declare function createRun(
+  result: { agentPrompt?: string; logPath?: string; providerLabel?: string; runId: string },
+  layer: LayerTarget,
+  provider: AgentProvider,
+  prompt: string,
+): void
 declare function deleteRun(run: AgentRun): Promise<void>
 declare function deleteAgentRun(runId: string): Promise<unknown>
 declare function getDisplayPath(layerPath: string): string
@@ -47,7 +52,7 @@ declare function runAiInsAgent(
   prompt: string,
   proxyMode: ProxyMode,
   proxy: string,
-): Promise<{ logPath?: string; providerLabel?: string; runId: string }>
+): Promise<{ agentPrompt?: string; logPath?: string; providerLabel?: string; runId: string }>
 declare function saveStoredProviderId(providerId: string): void
 declare function saveStoredProxy(proxy: string): void
 declare function saveStoredProxyMode(proxyMode: ProxyMode): void

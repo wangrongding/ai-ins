@@ -23,6 +23,7 @@ export type AiInsEvent = {
 }
 
 export type AiInsRun = {
+  agentPrompt?: string
   child?: ChildProcess
   code?: number | null
   completed: boolean

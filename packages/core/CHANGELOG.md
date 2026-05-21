@@ -1,5 +1,11 @@
 # @ai-ins/core
 
+## 0.4.2
+
+### Patch Changes
+
+- Improve the AI Ins panel target selection flow and remove automatic history continuation from agent prompts.
+
 ## 0.4.1
 
 ### Patch Changes

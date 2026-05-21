@@ -36,8 +36,15 @@ async function openInEditor(layerPath: string) {
   await readJson(`${base}__open-in-editor?file=${encodeURIComponent(layerPath)}`)
 }
 
-async function runAiInsAgent(layer: LayerTarget, layers: LayerTarget[], providerId: string, prompt: string, proxyMode: ProxyMode, proxy: string) {
-  return readJson<{ logPath?: string; providerLabel?: string; runId: string }>(`${base}__ai-ins-agent`, {
+async function runAiInsAgent(
+  layer: LayerTarget,
+  layers: LayerTarget[],
+  providerId: string,
+  prompt: string,
+  proxyMode: ProxyMode,
+  proxy: string,
+) {
+  return readJson<{ agentPrompt?: string; logPath?: string; providerLabel?: string; runId: string }>(`${base}__ai-ins-agent`, {
     body: JSON.stringify({
       file: layer.path,
       layers,
@@ -173,6 +180,7 @@ function createRunFromSummary(summary: Partial<AgentRun> & { id: string }, provi
   const completed = Boolean(summary.completed)
 
   return {
+    agentPrompt: summary.agentPrompt || '',
     completed,
     createdAt: summary.createdAt || Date.now(),
     id: summary.id,
@@ -343,8 +351,8 @@ function App() {
   }, [])
 
   useLayoutEffect(() => {
-    setDraftTarget(getPanelTarget(shellRef.current))
-  }, [config.root, runs.length, selectedRunId, status])
+    setDraftTarget((currentTarget) => currentTarget || getPanelTarget(shellRef.current))
+  }, [config.root])
 
   const provider = getProvider(config.providers, providerId)
   const targetLabel = draftTarget?.layer ? `${draftTarget.layer.name} · ${getDisplayPath(draftTarget.layer.path)}` : '正在读取 PanelView 源码位置...'
@@ -357,10 +365,11 @@ function App() {
     }
   }
 
-  function selectPreviewTarget(element: HTMLElement, options: { commit?: boolean } = {}) {
+  function highlightPreviewTarget(element: HTMLElement) {
     const sourceElement = getSourceElement(element)
     if (!(sourceElement instanceof HTMLElement)) {
-      return
+      clearPreviewTarget()
+      return undefined
     }
 
     if (previewTargetRef.current !== sourceElement) {
@@ -369,15 +378,22 @@ function App() {
       sourceElement.dataset.aiInsTarget = 'true'
     }
 
+    return sourceElement
+  }
+
+  function selectTarget(element: HTMLElement) {
+    const sourceElement = highlightPreviewTarget(element)
+    if (!(sourceElement instanceof HTMLElement)) {
+      return undefined
+    }
+
     const nextTarget = getTargetForElement(sourceElement)
     if (!nextTarget) {
-      return
+      return undefined
     }
 
     setDraftTarget(nextTarget)
-    if (options.commit) {
-      setStatus(`已选择 ${nextTarget.layer.name}。`)
-    }
+    setStatus(`已选择 ${nextTarget.layer.name}。`)
 
     return nextTarget
   }
@@ -415,6 +431,7 @@ function App() {
     try {
       const result = await runAiInsAgent(draftTarget.layer, draftTarget.layers, provider.id, rawPrompt, proxyMode, customProxy)
       const run = {
+        agentPrompt: result.agentPrompt || '',
         completed: false,
         createdAt: Date.now(),
         id: result.runId,
@@ -452,7 +469,7 @@ function App() {
 
         event.preventDefault()
         event.stopPropagation()
-        const nextTarget = selectPreviewTarget(event.target, { commit: true })
+        const nextTarget = selectTarget(event.target)
 
         if (nextTarget && isOpenSourceShortcut(event.nativeEvent)) {
           void openInEditor(nextTarget.layer.path)
@@ -475,7 +492,7 @@ function App() {
           return
         }
 
-        selectPreviewTarget(event.target)
+        highlightPreviewTarget(event.target)
       }}
       onMouseLeave={clearPreviewTarget}
       ref={shellRef}
