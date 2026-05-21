@@ -307,6 +307,28 @@ export function shouldUseShellForCommand(command: string) {
   return process.platform === 'win32' && /\.(cmd|bat|ps1)$/i.test(command)
 }
 
+function quoteWindowsCmdArgument(value: string) {
+  return `"${value.replace(/"/g, '""')}"`
+}
+
+export function getSpawnCommand(command: string, args: string[]) {
+  if (process.platform === 'win32' && /\.(cmd|bat)$/i.test(command)) {
+    return {
+      args: ['/d', '/c', `call ${[command, ...args].map(quoteWindowsCmdArgument).join(' ')}`],
+      command: process.env.ComSpec || 'cmd.exe',
+      shell: false,
+      windowsVerbatimArguments: true,
+    }
+  }
+
+  return {
+    args,
+    command,
+    shell: shouldUseShellForCommand(command),
+    windowsVerbatimArguments: false,
+  }
+}
+
 export function getEditorArgs(editor: string, fileName: string, lineNumber: number, columnNumber: number) {
   switch (basename(editor).replace(/\.(exe|cmd|bat)$/i, '')) {
     case 'Code':
