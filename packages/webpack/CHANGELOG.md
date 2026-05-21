@@ -1,5 +1,12 @@
 # @ai-ins/webpack
 
+## 0.2.9
+
+### Patch Changes
+
+- Updated dependencies
+  - @ai-ins/core@0.4.3
+
 ## 0.2.8
 
 ### Patch Changes

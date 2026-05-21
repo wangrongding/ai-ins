@@ -1,5 +1,11 @@
 # @ai-ins/core
 
+## 0.4.3
+
+### Patch Changes
+
+- Improve Windows editor launch argument handling.
+
 ## 0.4.2
 
 ### Patch Changes
