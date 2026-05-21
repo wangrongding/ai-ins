@@ -10,6 +10,9 @@
 }
 
 .wbx-ai-ins-dialog {
+  --wbx-ai-ins-dialog-gutter: 44px;
+  --wbx-ai-ins-panel-min-width: 1100px;
+  --wbx-ai-ins-panel-min-height: 700px;
   position: fixed;
   inset: 0;
   z-index: 2147483647;
@@ -88,18 +91,37 @@
   --wbx-ai-ins-modal-border: rgba(255, 255, 255, 0.14);
   --wbx-ai-ins-modal-bg: #020617;
   --wbx-ai-ins-modal-shadow: 0 28px 92px rgba(0, 0, 0, 0.58);
+  position: relative;
   color-scheme: dark;
   display: flex;
   flex-direction: column;
-  width: min(1060px, 100%);
-  height: min(760px, calc(100vh - 44px));
-  min-height: 0;
+  width: min(var(--wbx-ai-ins-panel-min-width), calc(100vw - var(--wbx-ai-ins-dialog-gutter)));
+  min-width: min(var(--wbx-ai-ins-panel-min-width), calc(100vw - var(--wbx-ai-ins-dialog-gutter)));
+  max-width: calc(100vw - var(--wbx-ai-ins-dialog-gutter));
+  height: min(760px, calc(100vh - var(--wbx-ai-ins-dialog-gutter)));
+  min-height: min(var(--wbx-ai-ins-panel-min-height), calc(100vh - var(--wbx-ai-ins-dialog-gutter)));
+  max-height: calc(100vh - var(--wbx-ai-ins-dialog-gutter));
   overflow: hidden;
+  resize: both;
   border: 1px solid var(--wbx-ai-ins-panel-border);
   border-radius: 18px;
   background: var(--wbx-ai-ins-panel-bg);
   box-shadow: var(--wbx-ai-ins-panel-shadow);
   color: var(--wbx-ai-ins-text);
+}
+
+.wbx-ai-ins-panel::after {
+  content: "";
+  position: absolute;
+  right: 7px;
+  bottom: 7px;
+  z-index: 2;
+  width: 14px;
+  height: 14px;
+  border-right: 2px solid var(--wbx-ai-ins-text-faint);
+  border-bottom: 2px solid var(--wbx-ai-ins-text-faint);
+  pointer-events: none;
+  opacity: 0.55;
 }
 
 .wbx-ai-ins-panel[data-theme="light"] {
@@ -1382,6 +1404,7 @@
 
 @media (max-width: 780px) {
   .wbx-ai-ins-dialog {
+    --wbx-ai-ins-dialog-gutter: 24px;
     padding: 12px;
   }
 

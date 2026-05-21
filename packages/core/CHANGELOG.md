@@ -1,5 +1,11 @@
 # @ai-ins/core
 
+## 0.4.4
+
+### Patch Changes
+
+- Allow the AI Ins panel to resize while preserving usable minimum dimensions.
+
 ## 0.4.3
 
 ### Patch Changes

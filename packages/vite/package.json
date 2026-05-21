@@ -1,6 +1,6 @@
 {
   "name": "@ai-ins/vite",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Vite plugin for AI Ins.",
   "author": "Rongding Wang <wangrongding@qq.com> (https://github.com/wangrongding)",
   "repository": {

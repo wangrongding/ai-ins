@@ -330,13 +330,11 @@ function showAiInsPanel(layer?: LayerTarget, layers?: LayerTarget[]) {
   proxyValue = readStoredProxy()
   proxyModeValue = getInitialProxyMode(proxyValue)
   const overlay = createElement('div', 'wbx-ai-ins-dialog')
-  const panel = createElement('div')
-  overlay.append(panel)
   document.body.append(overlay)
 
   aiInsPanel = overlay
   panelRefs = { status: statusRef }
-  panelRoot = createRoot(panel)
+  panelRoot = createRoot(overlay)
 
   overlay.addEventListener('click', (event) => {
     if (event.target === overlay) {
