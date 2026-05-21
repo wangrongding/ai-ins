@@ -1,5 +1,11 @@
 # @ai-ins/core
 
+## 0.4.5
+
+### Patch Changes
+
+- Polish the AI Ins panel branding, clarify built-in CLI provider names, and make backdrop clicks close the panel only after clicking from the backdrop itself.
+
 ## 0.4.4
 
 ### Patch Changes
