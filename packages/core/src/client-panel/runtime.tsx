@@ -336,8 +336,21 @@ function showAiInsPanel(layer?: LayerTarget, layers?: LayerTarget[]) {
   panelRefs = { status: statusRef }
   panelRoot = createRoot(overlay)
 
+  let backdropPointerDown = false
+  overlay.addEventListener(
+    'pointerdown',
+    (event) => {
+      backdropPointerDown = event.target === overlay
+    },
+    true,
+  )
+  overlay.addEventListener('pointercancel', () => {
+    backdropPointerDown = false
+  })
   overlay.addEventListener('click', (event) => {
-    if (event.target === overlay) {
+    const shouldClose = event.target === overlay && (backdropPointerDown || event.detail === 0)
+    backdropPointerDown = false
+    if (shouldClose) {
       closeAiInsPanel()
     }
   })

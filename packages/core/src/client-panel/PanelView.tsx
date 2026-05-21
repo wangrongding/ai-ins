@@ -830,8 +830,16 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     <div className="wbx-ai-ins-panel" data-theme={theme}>
       <div className="wbx-ai-ins-header">
         <div className="wbx-ai-ins-heading">
-          <p className="wbx-ai-ins-title">AI Ins</p>
-          <div className="wbx-ai-ins-subtitle">Option 选 DOM；左侧任务只切换输出，每次提交仍是新会话</div>
+          <span className="wbx-ai-ins-brand-mark" aria-hidden="true">
+            <span className="wbx-ai-ins-brand-spark" />
+          </span>
+          <div className="wbx-ai-ins-heading-copy">
+            <div className="wbx-ai-ins-title-row">
+              <p className="wbx-ai-ins-title">AI Ins</p>
+              <span className="wbx-ai-ins-title-badge">DOM Pilot</span>
+            </div>
+            <div className="wbx-ai-ins-subtitle">Option 选 DOM；左侧任务只切换输出，每次提交仍是新会话</div>
+          </div>
         </div>
         <div className="wbx-ai-ins-header-actions">
           <IconButton label={lightTheme ? '切换到暗色' : '切换到亮色'} onClick={handleThemeToggle}>
