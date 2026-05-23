@@ -1,5 +1,7 @@
 # ai-ins CLI
 
+[简体中文](./README.md) | [English](./README.en.md)
+
 `ai-ins` 是 AI Ins 的项目接入 CLI，用来把 AI Ins 接到 Next.js、Vite 和 Webpack 项目里。
 
 它会做两件事：
@@ -7,7 +9,7 @@
 - 安装对应的 `@ai-ins/*` 包。
 - 尝试改写 bundler 配置，把 AI Ins 接进去。
 
-完整项目文档见仓库根目录 [README](../../README.md)。
+完整项目文档见仓库根目录 [README](../../README.md) / [README.en.md](../../README.en.md)。
 
 ## 安装与使用
 
@@ -89,28 +91,6 @@ CLI 会优先按以下信息判断项目应接入哪个适配包：
 
 如果 CLI 无法安全修改配置，会提示你手动接入。可以参考以下文档：
 
-- [Vite 插件文档](../vite/README.md)
-- [Webpack 插件文档](../webpack/README.md)
-- [Next.js 插件文档](../nextjs/README.md)
-
-## 给 AI / Agent 的规则
-
-如果用户说“帮我接入 ai-ins”，推荐 AI / Agent 按下面的顺序做：
-
-1. 识别项目使用的是 Next.js、Vite 还是 Webpack。
-2. 检查目标 app 目录里是否存在多个配置文件。
-3. 单配置项目：优先运行 `npx ai-ins --bundler <bundler>`。
-4. 多配置项目：必须运行 `npx ai-ins --bundler <bundler> --config <目标配置文件>`。
-5. 如果 CLI 无法安全改写配置，不要猜测要改哪个文件，直接按对应 README 手动接入。
-
-可以直接把这段话交给 AI：
-
-```text
-帮我在这个项目里接入 ai-ins。先判断 bundler；如果有多个配置文件，不要直接跑 npx ai-ins，而是使用 --bundler 和 --config 指定目标配置；如果 CLI 无法安全改写，就按 README 里的对应示例手动接入。
-```
-
-## 行为说明
-
-- CLI 会根据 `packageManager` 字段或 lockfile 选择 `pnpm`、`yarn`、`bun` 或 `npm`。
-- 如果对应依赖已经安装，默认跳过安装；传 `--force` 时会重新安装最新版。
-- 如果配置结构过于特殊，CLI 会提示你手动修改，而不是强行写入。
+- [Vite 插件文档（中文）](../vite/README.md) / [English](../vite/README.en.md)
+- [Webpack 插件文档（中文）](../webpack/README.md) / [English](../webpack/README.en.md)
+- [Next.js 插件文档（中文）](../nextjs/README.md) / [English](../nextjs/README.en.md)
