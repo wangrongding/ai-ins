@@ -1,4 +1,4 @@
-# ai-ins
+# ai-ins CLI
 
 `ai-ins` 是 AI Ins 的项目接入 CLI，用来把 AI Ins 接到 Next.js、Vite 和 Webpack 项目里。
 
@@ -7,15 +7,31 @@
 - 安装对应的 `@ai-ins/*` 包。
 - 尝试改写 bundler 配置，把 AI Ins 接进去。
 
-## 快速接入
+完整项目文档见仓库根目录 [README](../../README.md)。
 
-单配置项目里，直接运行：
+## 安装与使用
+
+无需全局安装，直接运行：
 
 ```bash
 npx ai-ins
 ```
 
-如果你已经知道 bundler，也可以显式指定：
+也可以显式写成：
+
+```bash
+npx ai-ins init
+```
+
+## 典型场景
+
+### 单配置项目
+
+```bash
+npx ai-ins
+```
+
+### 指定 bundler
 
 ```bash
 npx ai-ins --bundler vite
@@ -23,56 +39,69 @@ npx ai-ins --bundler webpack
 npx ai-ins --bundler nextjs
 ```
 
-## 多配置文件项目
-
-如果项目里有多个 Vite / Webpack 配置文件，不要直接运行裸的 `npx ai-ins`。
-
-这种情况下必须显式指定目标配置文件：
+### 指定目标配置文件
 
 ```bash
 npx ai-ins --bundler vite --config apps/web/vite.config.ts
 npx ai-ins --bundler webpack --config build/webpack.dev.js
 ```
 
-`--config` 支持相对项目根目录的路径，也支持绝对路径。
+如果项目里存在多个候选配置文件，CLI 会直接停止，并要求你显式传 `--config`，不会静默修改第一个匹配文件。
 
-当 CLI 检测到多个候选配置文件时，会直接停止并提示你传 `--config`，不会静默修改第一个文件。
-
-## 常用命令
-
-只改配置，不安装依赖：
+## 命令格式
 
 ```bash
-npx ai-ins --no-install
+ai-ins [--bundler nextjs|vite|webpack] [--config <path>] [--no-install] [--force] [--cwd <path>]
+ai-ins init [--bundler nextjs|vite|webpack] [--config <path>] [--no-install] [--force] [--cwd <path>]
 ```
 
-强制安装最新版本：
+## 参数说明
 
-```bash
-npx ai-ins --force
-```
+| 参数 | 说明 |
+| --- | --- |
+| `--bundler <nextjs\|vite\|webpack>` | 显式指定 bundler，跳过自动检测。 |
+| `--config <path>` | 指定要修改的 bundler 配置文件，支持相对路径和绝对路径。 |
+| `--no-install` | 只改配置，不安装依赖。 |
+| `--force` | 即使已安装对应依赖，也重新安装最新的 `@ai-ins/*` 包。 |
+| `--cwd <path>` | 在其他目录中执行初始化逻辑。 |
+| `-h`, `--help` | 查看帮助。 |
 
-在别的目录里执行：
+## 自动检测规则
 
-```bash
-npx ai-ins --cwd ./apps/web
-```
+CLI 会优先按以下信息判断项目应接入哪个适配包：
 
-显式写子命令也可以：
+1. 你显式传入的 `--bundler`。
+2. 你显式传入的 `--config` 文件名。
+3. 项目依赖与配置文件（Next.js / Vite / Webpack）。
 
-```bash
-npx ai-ins init --bundler vite --config vite.config.ts
-```
+如果同时检测到多个可能的 bundler，CLI 会直接报错并要求你手动指定，而不是猜测。
+
+## 多配置文件项目
+
+以下场景建议一开始就带上 `--config`：
+
+- 一个仓库里有多个 Vite app。
+- Electron / SSR 项目同时存在多个 `vite.*.config.*`。
+- Webpack 项目同时存在 `webpack.config.js`、`webpack.dev.js`、`webpack.prod.js`。
+- 你知道 dev server 实际读取的是某个特定配置，而不是默认文件名。
+
+## CLI 无法安全改写时怎么办
+
+如果 CLI 无法安全修改配置，会提示你手动接入。可以参考以下文档：
+
+- [Vite 插件文档](../vite/README.md)
+- [Webpack 插件文档](../webpack/README.md)
+- [Next.js 插件文档](../nextjs/README.md)
 
 ## 给 AI / Agent 的规则
 
-如果用户说“帮我接入 ai-ins”，AI/Agent 应该按下面的顺序做：
+如果用户说“帮我接入 ai-ins”，推荐 AI / Agent 按下面的顺序做：
 
-1. 先识别项目使用的是 Next.js、Vite 还是 Webpack。
-2. 再检查目标 app 目录里是否存在多个配置文件。
+1. 识别项目使用的是 Next.js、Vite 还是 Webpack。
+2. 检查目标 app 目录里是否存在多个配置文件。
 3. 单配置项目：优先运行 `npx ai-ins --bundler <bundler>`。
 4. 多配置项目：必须运行 `npx ai-ins --bundler <bundler> --config <目标配置文件>`。
-5. 如果 CLI 无法安全改写配置，不要猜测要改哪个文件，直接按下面的手动接入方式修改。
+5. 如果 CLI 无法安全改写配置，不要猜测要改哪个文件，直接按对应 README 手动接入。
 
 可以直接把这段话交给 AI：
 
@@ -80,60 +109,8 @@ npx ai-ins init --bundler vite --config vite.config.ts
 帮我在这个项目里接入 ai-ins。先判断 bundler；如果有多个配置文件，不要直接跑 npx ai-ins，而是使用 --bundler 和 --config 指定目标配置；如果 CLI 无法安全改写，就按 README 里的对应示例手动接入。
 ```
 
-## 手动接入
-
-### Vite
-
-```ts
-import react from '@vitejs/plugin-react'
-import { defineConfig } from 'vite'
-import aiIns from '@ai-ins/vite'
-
-export default defineConfig({
-  plugins: [
-    aiIns(),
-    react(),
-  ],
-})
-```
-
-`aiIns()` 需要放在 React / Vue / Svelte 等框架插件前面。
-
-### Webpack
-
-```js
-const { AiInsWebpackPlugin } = require('@ai-ins/webpack')
-
-module.exports = {
-  devServer: {},
-  plugins: [new AiInsWebpackPlugin()],
-}
-```
-
-### Next.js
-
-```ts
-import { withAiIns } from '@ai-ins/nextjs'
-import type { NextConfig } from 'next'
-
-const nextConfig: NextConfig = {}
-
-export default withAiIns(nextConfig)
-```
-
-同时确保项目根目录有：
-
-```ts
-import '@ai-ins/nextjs/client'
-```
-
-通常放在 `instrumentation-client.ts` 或 `instrumentation-client.js`。
-
 ## 行为说明
 
 - CLI 会根据 `packageManager` 字段或 lockfile 选择 `pnpm`、`yarn`、`bun` 或 `npm`。
 - 如果对应依赖已经安装，默认跳过安装；传 `--force` 时会重新安装最新版。
-- 如果检测到多个可能的 bundler，也会要求你显式传 `--bundler`。
 - 如果配置结构过于特殊，CLI 会提示你手动修改，而不是强行写入。
-
-完整文档见仓库根目录 README。

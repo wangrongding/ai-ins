@@ -1,28 +1,37 @@
 # ai-ins
 
-AI Ins 是一个本地开发辅助工具，让你在开发 web/electron 等项目的时候无需离开项目窗口，在项目内编写项目。
+AI Ins 是一个本地开发辅助工具，让你在开发 Web / Electron 等项目时无需离开项目窗口，就能直接选中页面元素、把修改需求交给本地 CLI Agent，并在页面里持续查看任务输出。
 
-有点像 “忒修斯之船”，逐渐迭代自己；
+有点像“忒修斯之船”，逐渐迭代自己。
 
 - 不用来回找文件。
 - 不用复制组件路径。
-- 不用描述“帮我修改xxx模块，xxx按钮...”。
-- 接手陌生项目，直接快速上手修改。不再需要花时间熟悉项目结构、查找相关代码位置。
-- 通过在页面中选取元素，调度 codex cli，claude code cli，copilot cli等等帮你修改，只要你本地任意一个配置好的 cli 工具即可
+- 不用描述“帮我修改 xxx 模块、xxx 按钮...”。
+- 接手陌生项目时，可以直接从页面选中元素，快速定位源码并开始修改。
+- 通过在页面中选取元素，调度 codex cli、claude code cli、copilot cli 等本地 Agent CLI，只要你本地已经配置好任意一个即可。
 
-本地的开发环境下，这里假装自己在开发一个 x 平台，可以参考这个示例操作视频（面板仍在迭代好用的功能）：  
+本地开发环境下，这里假装自己在开发一个 X 平台，可以参考这个示例操作视频（面板仍在持续迭代）：
 
-https://github.com/user-attachments/assets/f909f905-3297-49da-8881-8b48689c015c 
+https://github.com/user-attachments/assets/f909f905-3297-49da-8881-8b48689c015c
+
+## 文档导航
+
+- [仓库总览（当前页）](./README.md)
+- [CLI 文档](./packages/cli/README.md)
+- [Vite 插件文档](./packages/vite/README.md)
+- [Webpack 插件文档](./packages/webpack/README.md)
+- [Next.js 插件文档](./packages/nextjs/README.md)
+- [Core API 文档](./packages/core/README.md)
 
 ## 快速接入
 
-你可以直接跟你的 agent 说： “帮我接入 ai-ins” ， 他会自动帮你接入。  
+你可以直接跟你的 Agent 说：“帮我接入 ai-ins”，它会自动帮你接入。
 
-或者你担心 agent 不够智能，可以说：“参考 https://github.com/wangrongding/ai-ins/blob/main/README.md ，帮我接入 ai-ins”
+如果你担心 Agent 不够智能，也可以说：“参考 https://github.com/wangrongding/ai-ins/blob/main/README.md ，帮我接入 ai-ins”。
 
 ### 命令行快捷接入
 
-单配置的 web 或 electron 项目里，可以直接运行下面的命令。CLI 会自动识别项目内的构建工具（Vite / Webpack / Next.js），安装对应的 `@ai-ins/*` 包，并尝试修改配置文件：
+单配置的 Web 或 Electron 项目里，可以直接运行下面的命令。CLI 会自动识别项目内的构建工具（Vite / Webpack / Next.js），安装对应的 `@ai-ins/*` 包，并尝试修改配置文件：
 
 ```bash
 # 只需要一行即可快速接入：
@@ -38,11 +47,11 @@ npx ai-ins --bundler webpack --config build/webpack.dev.js
 
 `--config` 支持相对项目根目录的路径，也支持绝对路径。CLI 在检测到多个候选配置文件时会直接停止，并提示你使用 `--config`，不会再盲猜要改哪个文件。
 
-你只需要：按住 `Option` / `Alt` 点选页面上的 DOM，通过打开的内置 AI Ins 面板，把目标元素和修改要求一起交给本地 CLI Agent 执行，并在页面里持续查看任务输出，任务完成后通过热更新直接看到修改结果即可。 
+你只需要：按住 `Option` / `Alt` 点选页面上的 DOM，通过打开的内置 AI Ins 面板，把目标元素和修改要求一起交给本地 CLI Agent 执行，并在页面里持续查看任务输出，任务完成后通过热更新直接看到修改结果即可。
 
 <img width="1600" alt="fcc1e26cb5b83666fe302510205b9d54" src="https://github.com/user-attachments/assets/8a896580-a951-4694-a8c6-9fab977a37eb" />
 
-并且在 macOS 按住 `Option + Cmd`，Windows / Linux 按住 `Ctrl + Alt` 点击页面元素也支持直接打开IDE，并跳转到源码位置，用以查看修改细节或者手动调整。
+并且在 macOS 按住 `Option + Cmd`，Windows / Linux 按住 `Ctrl + Alt` 点击页面元素，也支持直接打开 IDE 并跳转到源码位置，用以查看修改细节或者手动调整。
 
 <img width="1600" alt="859d26a9-c362-4ae8-a2ed-62a017dc214c" src="https://github.com/user-attachments/assets/b524667f-ff12-4874-a669-59a2ab97e572" />
 
@@ -53,7 +62,7 @@ npx ai-ins --bundler webpack --config build/webpack.dev.js
 - 在检测到多个候选配置文件或多个可能的 bundler 时，CLI 会直接要求你显式指定，而不是静默修改第一个匹配项。
 - Vite dev server 自动注入 AI Ins 客户端，支持 `Option` / `Alt` 点选 DOM 打开面板。
 - 面板内可以选择 Agent、填写代理、提交修改要求，并并发跟踪多个运行任务。
-- 内置 Codex、Claude 和 Copilot CLI provider。
+- 内置 Codex、Claude、Copilot、Gemini 和 Cursor CLI provider。
 - macOS 下会优先使用正在运行的 VS Code / Zed / WebStorm / Cursor 等编辑器打开源码。
 
 ## 支持状态
@@ -109,7 +118,7 @@ npx ai-ins --force
 
 ## 给 AI / Agent 的接入规则
 
-如果你是 AI agent，用户说“帮我接入 ai-ins”时，优先按下面的顺序执行：
+如果你是 AI Agent，用户说“帮我接入 ai-ins”时，优先按下面的顺序执行：
 
 1. 先识别项目使用的是 Next.js、Vite 还是 Webpack。
 2. 先检查要接入的 app/包目录里是否存在多个 bundler 配置文件。
@@ -155,17 +164,17 @@ npx ai-ins --bundler webpack --config build/webpack.renderer.config.js
 ```ts
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
-import aiIns from '@ai-ins/vite' // <-- 引入插件
+import aiIns from '@ai-ins/vite'
 
 export default defineConfig({
   plugins: [
-    aiIns(), // <-- 使用插件
+    aiIns(),
     react(),
   ],
 })
 ```
 
-`aiIns()` 需要放在 React/Vue/Svelte 等框架插件前面，这样开发态 source 标记会在框架编译 JSX / template 前注入。
+`aiIns()` 需要放在 React / Vue / Svelte 等框架插件前面，这样开发态 source 标记会在框架编译 JSX / template 前注入。
 
 启动 dev server 后：
 
@@ -330,15 +339,17 @@ packages/core      # middleware、Agent provider、客户端 runtime
 packages/vite      # Vite 插件
 packages/webpack   # Webpack devServer 插件
 packages/nextjs    # Next.js 插件，支持 Webpack / Turbopack dev server
+examples/ai-ins-panel-react
 examples/vite-react
 examples/vite-vue3
 examples/vite-solidjs
 examples/vite-svelte
 examples/nextjs-react
+examples/webpack-react
 ```
 
 ## 常见问题
 
-### 如何连接 codex的？
+### 如何连接 Codex？
 
 Codex Exec 是一种轻量级、非交互式的 CLI 模式，专门用于自动化任务、CI/CD 管道和单次脚本执行。它通过命令行直接接收提示，处理任务，生成流式结构化日志并退出。
