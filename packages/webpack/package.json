@@ -1,6 +1,6 @@
 {
   "name": "@ai-ins/webpack",
-  "version": "0.2.11",
+  "version": "0.2.12",
   "description": "Webpack plugin for AI Ins.",
   "author": "Rongding Wang <wangrongding@qq.com> (https://github.com/wangrongding)",
   "repository": {

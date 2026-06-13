@@ -71,6 +71,24 @@ function getMacLaunchEditorCandidateOrder() {
   return [...candidates, ...macLaunchEditorCandidates.filter((candidate) => !candidates.includes(candidate))]
 }
 
+function getCommandForMacLaunchEditorCandidate(candidate: string) {
+  return Object.entries(macLaunchEditorCandidatesByCommand).find(([, candidates]) => candidates.includes(candidate))?.[0] ?? null
+}
+
+function resolveMacLaunchEditorFromCandidate(candidate: string) {
+  const command = getCommandForMacLaunchEditorCandidate(candidate)
+  const resolvedCommand = command ? resolveCommand(command) : null
+
+  return resolvedCommand ?? candidate
+}
+
+function resolveRunningMacLaunchEditor() {
+  const runningProcesses = getRunningProcesses()
+  const preferredEditor = getMacLaunchEditorCandidateOrder().find((candidate) => existsSync(candidate) && runningProcesses.includes(candidate))
+
+  return preferredEditor ? resolveMacLaunchEditorFromCandidate(preferredEditor) : null
+}
+
 function getWindowsPathExtensions() {
   const extensions = (process.env.PATHEXT || '.COM;.EXE;.BAT;.CMD').split(';').filter(Boolean)
 
@@ -250,8 +268,7 @@ export function ensureLaunchEditor(command: string) {
 
   if (process.platform === 'darwin') {
     try {
-      const runningProcesses = getRunningProcesses()
-      const preferredEditor = getMacLaunchEditorCandidateOrder().find((candidate) => existsSync(candidate) && runningProcesses.includes(candidate))
+      const preferredEditor = resolveRunningMacLaunchEditor()
 
       if (preferredEditor) {
         process.env.LAUNCH_EDITOR = preferredEditor
@@ -272,13 +289,13 @@ export function ensureLaunchEditor(command: string) {
 
 export function resolveLaunchEditor() {
   if (process.env.LAUNCH_EDITOR) {
-    return resolveCommand(process.env.LAUNCH_EDITOR) ?? process.env.LAUNCH_EDITOR
+    const resolvedLaunchEditor = resolveCommand(process.env.LAUNCH_EDITOR) ?? process.env.LAUNCH_EDITOR
+    return process.platform === 'darwin' ? resolveMacLaunchEditorFromCandidate(resolvedLaunchEditor) : resolvedLaunchEditor
   }
 
   if (process.platform === 'darwin') {
     try {
-      const runningProcesses = getRunningProcesses()
-      const preferredEditor = getMacLaunchEditorCandidateOrder().find((candidate) => existsSync(candidate) && runningProcesses.includes(candidate))
+      const preferredEditor = resolveRunningMacLaunchEditor()
 
       if (preferredEditor) {
         return preferredEditor

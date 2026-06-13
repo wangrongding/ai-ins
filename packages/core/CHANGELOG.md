@@ -1,5 +1,11 @@
 # @ai-ins/core
 
+## 0.4.6
+
+### Patch Changes
+
+- Prefer editor CLI launchers on macOS when opening source locations so VS Code and Cursor reuse the existing IDE window instead of spawning the app bundle executable directly.
+
 ## 0.4.5
 
 ### Patch Changes
