@@ -1,5 +1,11 @@
 # @ai-ins/core
 
+## 0.4.7
+
+### Patch Changes
+
+- Use macOS editor URL schemes for VS Code-compatible editors when opening source locations, avoiding the transient VS Code CLI helper window in the Dock.
+
 ## 0.4.6
 
 ### Patch Changes

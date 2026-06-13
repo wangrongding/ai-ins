@@ -1,6 +1,7 @@
 import { execFileSync } from 'child_process'
 import { existsSync } from 'fs'
 import { basename, delimiter, extname, isAbsolute, join } from 'path'
+import { pathToFileURL } from 'url'
 
 const macLaunchEditorCandidates = [
   '/Applications/Cursor.app/Contents/MacOS/Cursor',
@@ -346,8 +347,56 @@ export function getSpawnCommand(command: string, args: string[]) {
   }
 }
 
+function getEditorCommandName(editor: string) {
+  return basename(editor).replace(/\.(exe|cmd|bat)$/i, '')
+}
+
+function getMacEditorUrlScheme(editor: string) {
+  const editorName = getEditorCommandName(editor)
+  const normalizedEditor = normalizeEditorHint(editor)
+
+  switch (editorName) {
+    case 'Code':
+    case 'code':
+      return 'vscode'
+    case 'Code - Insiders':
+    case 'code-insiders':
+      return 'vscode-insiders'
+    case 'Cursor':
+    case 'cursor':
+      return 'cursor'
+    case 'VSCodium':
+    case 'codium':
+    case 'vscodium':
+      return 'vscodium'
+    case 'Electron':
+      return normalizedEditor.includes('vscodium') ? 'vscodium' : null
+    default:
+      return null
+  }
+}
+
+function getEditorFileUrl(scheme: string, fileName: string, lineNumber: number, columnNumber: number) {
+  return `${scheme}://file${pathToFileURL(fileName).pathname}:${lineNumber}:${columnNumber}`
+}
+
+export function getOpenInEditorCommand(editor: string, fileName: string, lineNumber: number, columnNumber: number) {
+  const macEditorUrlScheme = process.platform === 'darwin' ? getMacEditorUrlScheme(editor) : null
+
+  if (macEditorUrlScheme) {
+    return {
+      args: [getEditorFileUrl(macEditorUrlScheme, fileName, lineNumber, columnNumber)],
+      command: '/usr/bin/open',
+      shell: false,
+      windowsVerbatimArguments: false,
+    }
+  }
+
+  return getSpawnCommand(editor, getEditorArgs(editor, fileName, lineNumber, columnNumber))
+}
+
 export function getEditorArgs(editor: string, fileName: string, lineNumber: number, columnNumber: number) {
-  switch (basename(editor).replace(/\.(exe|cmd|bat)$/i, '')) {
+  switch (getEditorCommandName(editor)) {
     case 'Code':
     case 'Code - Insiders':
     case 'Cursor':

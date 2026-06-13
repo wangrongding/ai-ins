@@ -1,5 +1,5 @@
 import { formatAgentJsonLine } from './agent-output'
-import { getEditorArgs, getSpawnCommand, resolveCommand, resolveLaunchEditor, shouldUseShellForCommand } from './editor'
+import { getOpenInEditorCommand, resolveCommand, resolveLaunchEditor, shouldUseShellForCommand } from './editor'
 import { getClientAgentProviders, getDefaultAgentProviderId, resolveAgentProviders } from './providers'
 import { getAgentEnv, getConfiguredCodexProxy, normalizeProxy } from './proxy'
 import { appendAiInsEvent, aiInsRuns, createAiInsRun, getAiInsRunSummary, sendAiInsEvent } from './run-store'
@@ -460,7 +460,7 @@ export function openInEditorMiddleware(root: string): AiInsMiddleware {
     }
 
     try {
-      const editorCommand = getSpawnCommand(editor, getEditorArgs(editor, fileName, lineNumber, columnNumber))
+      const editorCommand = getOpenInEditorCommand(editor, fileName, lineNumber, columnNumber)
       const child = spawn(editorCommand.command, editorCommand.args, {
         detached: true,
         shell: editorCommand.shell,
