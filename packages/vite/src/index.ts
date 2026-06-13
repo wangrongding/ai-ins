@@ -80,6 +80,14 @@ function getMiddlewarePaths(base: string, path: string) {
   return [...new Set([path, withBase(basePath, path)])]
 }
 
+function getClientBase(base: string, serverOrigin?: string) {
+  if (!serverOrigin) {
+    return base
+  }
+
+  return withBase(serverOrigin, getBasePath(base))
+}
+
 function isWorkspaceSourceFile(fileName: string) {
   return !fileName.includes('/node_modules/') && !fileName.includes('\\node_modules\\')
 }
@@ -386,6 +394,7 @@ export type { AiInsPluginOptions }
 export function aiIns(options: AiInsPluginOptions = {}): Plugin {
   let aiInsRoot = ''
   let base = '/'
+  let clientBase = '/'
   let isServe = false
   let root = ''
   const pluginProxy = normalizeProxy(options.codex?.proxy ?? options.proxy)
@@ -396,6 +405,7 @@ export function aiIns(options: AiInsPluginOptions = {}): Plugin {
     apply: 'serve',
     configResolved(config) {
       base = config.base
+      clientBase = getClientBase(config.base, config.server.origin)
       isServe = config.command === 'serve'
       root = config.root
       aiInsRoot = options.root || config.root
@@ -404,7 +414,9 @@ export function aiIns(options: AiInsPluginOptions = {}): Plugin {
     configureServer(server: ViteDevServer) {
       aiInsRoot = options.root || server.config.root
       for (const route of createAiInsMiddlewares(aiInsRoot, options)) {
-        server.middlewares.use(route.path, route.middleware)
+        for (const path of getMiddlewarePaths(clientBase, route.path)) {
+          server.middlewares.use(path, route.middleware)
+        }
       }
 
       const clientWatchFiles = new Set<string>(getAiInsClientWatchFiles())
@@ -423,7 +435,7 @@ export function aiIns(options: AiInsPluginOptions = {}): Plugin {
     },
     load(id) {
       if (id !== resolvedClientModuleId || !isServe) return null
-      return getAiInsClientCode({ base, defaultProvider: options.agents?.defaultProvider, options, pluginProxy, root: aiInsRoot || root })
+      return getAiInsClientCode({ base: clientBase, defaultProvider: options.agents?.defaultProvider, options, pluginProxy, root: aiInsRoot || root })
     },
     resolveId(source) {
       if (source === clientModuleId) return resolvedClientModuleId
@@ -445,7 +457,9 @@ export function aiIns(options: AiInsPluginOptions = {}): Plugin {
     },
     transformIndexHtml() {
       if (!isServe) return
-      return [{ attrs: { type: 'module' }, children: `import "${withBase(base, encodedClientModulePath)}";`, tag: 'script' }]
+      // Use a script src instead of inline import so HTML pre-renderers such as WXT
+      // do not wrap the client import in their own virtual inline modules.
+      return [{ attrs: { src: withBase(clientBase, encodedClientModulePath), type: 'module' }, tag: 'script' }]
     },
   }
 }

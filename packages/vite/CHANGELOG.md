@@ -1,5 +1,11 @@
 # @ai-ins/vite
 
+## 0.4.6
+
+### Patch Changes
+
+- Make Vite client injection compatible with WXT and other extension dev pages by using a module script `src`, resolving client middleware calls against `server.origin`, and registering middleware under the configured base path.
+
 ## 0.4.5
 
 ### Patch Changes
