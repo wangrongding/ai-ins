@@ -494,3 +494,16 @@ h1 span::after {
     font-size: 30px;
   }
 }
+
+.portal-badge {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 40;
+  padding: 8px 14px;
+  border: 1px solid rgba(125, 211, 252, 0.35);
+  border-radius: 999px;
+  background: rgba(8, 14, 24, 0.9);
+  color: #bae6fd;
+  font-size: 12px;
+}

@@ -16,6 +16,8 @@
   position: fixed;
   inset: 0;
   z-index: 2147483647;
+  /* 同 dock：不受宿主 body pointer-events 锁影响。 */
+  pointer-events: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1517,6 +1519,8 @@
   right: 18px;
   bottom: 18px;
   z-index: 2147483646;
+  /* Radix 等 modal 浮层会给 body 上 pointer-events: none，别跟着失灵。 */
+  pointer-events: auto;
   display: inline-flex;
   align-items: center;
   gap: 8px;

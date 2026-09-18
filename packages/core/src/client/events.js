@@ -12,13 +12,14 @@ window.addEventListener('mousemove', (event) => {
     return
   }
 
-  if (!(event.target instanceof HTMLElement) || event.target.closest('.wbx-ai-ins-dialog, .wbx-ai-ins-dock')) {
+  // Element 而非 HTMLElement：svg/path 等图形元素也常是事件目标。
+  if (!(event.target instanceof Element) || event.target.closest('.wbx-ai-ins-dialog, .wbx-ai-ins-dock')) {
     clearOverlay()
     return
   }
 
-  const sourceTarget = getSourceElement(event.target)
-  if (!(sourceTarget instanceof HTMLElement)) {
+  const sourceTarget = getPickTarget(event.target)
+  if (!(sourceTarget instanceof Element)) {
     clearOverlay()
     return
   }
@@ -40,12 +41,12 @@ window.addEventListener(
     }
 
     const target = event.target
-    if (!(target instanceof HTMLElement) || target.closest('.wbx-ai-ins-dialog, .wbx-ai-ins-dock')) {
+    if (!(target instanceof Element) || target.closest('.wbx-ai-ins-dialog, .wbx-ai-ins-dock')) {
       return
     }
 
-    const sourceTarget = getSourceElement(target)
-    if (!(sourceTarget instanceof HTMLElement)) {
+    const sourceTarget = getPickTarget(target)
+    if (!(sourceTarget instanceof Element)) {
       cleanUp()
       return
     }

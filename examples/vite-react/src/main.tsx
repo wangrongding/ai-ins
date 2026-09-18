@@ -1,4 +1,5 @@
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { createRoot, hydrateRoot } from 'react-dom/client'
 import readme from '../../../README.md?raw'
 
@@ -123,7 +124,19 @@ function Card({ onOpenDocs }: { onOpenDocs: () => void }) {
       <button className='card-action' onClick={onOpenDocs}>
         快速开始
       </button>
+      <PortalBadge data-testid='portal-badge'>portal 内容也可 Option 点选</PortalBadge>
     </section>
+  )
+}
+
+/* 回归用例：spread 透传 + portal 到 body（Radix/shadcn 浮层的最简形态）。
+ * 组件调用点注入的 data-ai-ins-source 应随 {...props} 落到 portal 出去的 DOM 上。 */
+function PortalBadge({ children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return createPortal(
+    <div className='portal-badge' {...props}>
+      {children}
+    </div>,
+    document.body,
   )
 }
 
