@@ -1,5 +1,16 @@
 # @ai-ins/core
 
+## 0.4.9
+
+### Patch Changes
+
+- 修复 macOS 上「跳转到 IDE」拉不起 Zed。
+
+  - `getEditorArgs` 不再把 Zed 并进 VS Code 家族：Zed CLI 既没有 `-r` 也没有 `-g`，只接受裸位置参数 `path:line:column`，原先发出的 `-r -g <path>:<line>:<col>` 会被 Zed 以 `unexpected argument '-r' found` 直接拒掉。新增的 Zed 判定同时认命令名 `zed` 与 `Zed.app` 下的任意可执行文件，PATH 上的 `zed`、应用二进制、CLI shim 三种写法都能带上行列号。
+  - macOS 上拉起 Zed 时改用 `Zed.app/Contents/MacOS/cli` 而非 GUI 主二进制，复用已经开着的窗口而不是另起一个实例；探活仍然匹配 `MacOS/zed`，因为进程列表里出现的是它。
+  - `getHostEditorPreference` 识别 `TERM_PROGRAM=zed`，且排在 `VSCODE_GIT_ASKPASS_NODE` 判断之前 —— 从 VS Code 终端启动的 Zed 会继承 `VSCODE_*` 残留，不抢先就会被误判成 VS Code。
+  - `/__open-in-editor` 的子进程改为捕获 stderr，非零退出时打印完整命令与错误输出。此前编辑器命令被拒只会静默失败，接口照样返回 200。
+
 ## 0.4.8
 
 ### Patch Changes
