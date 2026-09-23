@@ -23,6 +23,13 @@ const macLaunchEditorCandidatesByCommand: Record<string, string[]> = {
   zed: ['/Applications/Zed.app/Contents/MacOS/zed'],
 }
 
+// Candidates above double as "is this editor running" probes, so they must stay
+// on the GUI binary that shows up in `ps`. Zed only reuses the running instance
+// when the request goes through its CLI shim, so swap the executable at launch.
+const macLaunchEditorExecutables: Record<string, string> = {
+  '/Applications/Zed.app/Contents/MacOS/zed': '/Applications/Zed.app/Contents/MacOS/cli',
+}
+
 function getRunningProcesses() {
   return execFileSync('ps', ['x', '-o', 'comm='], {
     stdio: ['ignore', 'pipe', 'ignore'],
@@ -35,6 +42,12 @@ function normalizeEditorHint(value: string | undefined) {
 
 function getHostEditorPreference() {
   const askpassNode = normalizeEditorHint(process.env.VSCODE_GIT_ASKPASS_NODE)
+
+  // Zed inherits VSCODE_* leftovers when it is launched from a VS Code terminal,
+  // so its own marker has to win before the askpass hints are consulted.
+  if (process.env.TERM_PROGRAM?.toLowerCase() === 'zed') {
+    return 'zed'
+  }
 
   if (askpassNode.includes('/cursor/') || askpassNode.endsWith('/cursor') || askpassNode.endsWith('/cursor.exe') || askpassNode.endsWith('/cursor.cmd')) {
     return 'cursor'
@@ -76,11 +89,17 @@ function getCommandForMacLaunchEditorCandidate(candidate: string) {
   return Object.entries(macLaunchEditorCandidatesByCommand).find(([, candidates]) => candidates.includes(candidate))?.[0] ?? null
 }
 
+function resolveMacLaunchEditorExecutable(candidate: string) {
+  const executable = macLaunchEditorExecutables[candidate]
+
+  return executable && existsSync(executable) ? executable : candidate
+}
+
 function resolveMacLaunchEditorFromCandidate(candidate: string) {
   const command = getCommandForMacLaunchEditorCandidate(candidate)
   const resolvedCommand = command ? resolveCommand(command) : null
 
-  return resolvedCommand ?? candidate
+  return resolvedCommand ?? resolveMacLaunchEditorExecutable(candidate)
 }
 
 function resolveRunningMacLaunchEditor() {
@@ -395,7 +414,16 @@ export function getOpenInEditorCommand(editor: string, fileName: string, lineNum
   return getSpawnCommand(editor, getEditorArgs(editor, fileName, lineNumber, columnNumber))
 }
 
+function isZedEditor(editor: string) {
+  return getEditorCommandName(editor).toLowerCase() === 'zed' || normalizeEditorHint(editor).includes('/zed.app/')
+}
+
 export function getEditorArgs(editor: string, fileName: string, lineNumber: number, columnNumber: number) {
+  // Zed takes a bare `path:line:column` positional and knows neither -r nor -g.
+  if (isZedEditor(editor)) {
+    return [`${fileName}:${lineNumber}:${columnNumber}`]
+  }
+
   switch (getEditorCommandName(editor)) {
     case 'Code':
     case 'Code - Insiders':
@@ -406,8 +434,6 @@ export function getEditorArgs(editor: string, fileName: string, lineNumber: numb
     case 'cursor':
     case 'Electron':
     case 'VSCodium':
-    case 'zed':
-    case 'Zed':
       return ['-r', '-g', `${fileName}:${lineNumber}:${columnNumber}`]
     case 'webstorm':
     case 'webstorm64':

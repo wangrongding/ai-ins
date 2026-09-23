@@ -464,14 +464,33 @@ export function openInEditorMiddleware(root: string): AiInsMiddleware {
       const child = spawn(editorCommand.command, editorCommand.args, {
         detached: true,
         shell: editorCommand.shell,
-        stdio: 'ignore',
+        stdio: ['ignore', 'ignore', 'pipe'],
         windowsVerbatimArguments: editorCommand.windowsVerbatimArguments,
+      })
+
+      let editorStderr = ''
+      child.stderr?.on('data', (chunk) => {
+        editorStderr = `${editorStderr}${chunk}`.slice(0, 4000)
       })
 
       child.on('error', (error) => {
         console.error('[ai-ins] open in editor failed:', error.message)
       })
 
+      // The editor is detached, so a non-zero exit is the only signal that the
+      // spawned command was rejected (e.g. wrong CLI flags for this editor).
+      child.on('exit', (code) => {
+        if (!code) {
+          return
+        }
+
+        const invocation = [editorCommand.command, ...editorCommand.args].join(' ')
+        console.error(`[ai-ins] open in editor exited with code ${code}: ${invocation}${editorStderr.trim() ? `\n${editorStderr.trim()}` : ''}`)
+      })
+
+      // Node types the pipe as Readable, but it is a Socket at runtime; keeping
+      // it referenced would hold the event loop open after the editor exits.
+      ;(child.stderr as { unref?: () => void } | null)?.unref?.()
       child.unref()
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify({ editor, fileName, lineNumber, columnNumber }))
