@@ -1,0 +1,241 @@
+/** Korean panel copy. The key set and order mirror `i18n.zh-CN.ts` (checked by tsc). */
+import type { MessageCatalog } from './i18n.zh-CN'
+
+// Korean has no cardinal plural forms, so every value is a plain string.
+export const ko: MessageCatalog = {
+  // Header / chrome
+  'panel.subtitle': '왼쪽 대화를 선택해 이어서 물어보고, Option / Alt 키로 페이지 요소를 클릭해 새 대화를 시작하세요',
+  'panel.collapse': '접기',
+  'panel.close': '닫기',
+
+  // Sidebar
+  'sidebar.newConversation': '새 대화',
+  'sidebar.newConversationTitle': '새 대화를 시작합니다. Option / Alt 키로 페이지 요소를 클릭할 수도 있습니다',
+  'sidebar.history': '대화 기록',
+  'sidebar.clearFinished': '종료된 대화 삭제',
+  'sidebar.clearFinishedTitle': '종료된 대화 기록을 모두 삭제합니다(로그 파일은 유지됨)',
+  'sidebar.clearFinishedConfirm': '종료된 대화 {count}개를 삭제할까요? 실행 중인 대화는 유지되고 로그 파일은 삭제되지 않습니다.',
+  'sidebar.clearedCount': '종료된 대화 {count}개를 삭제했습니다.',
+  'sidebar.clearedNone': '종료된 대화가 없습니다.',
+  'sidebar.search': '대화 검색',
+  'sidebar.searchPlaceholder': '요청, 컴포넌트, 파일 검색',
+  'sidebar.loading': '기록을 불러오는 중…',
+  'sidebar.noMatch': '일치하는 대화 없음',
+  'sidebar.empty': '아직 대화가 없습니다',
+  'sidebar.turnCount': '{count}턴',
+  'sidebar.cannotContinue': '계속할 수 없음',
+
+  // Day groups and times
+  'time.today': '오늘',
+  'time.yesterday': '어제',
+  'time.last7Days': '지난 7일',
+  'time.earlier': '이전',
+  'time.yesterdayAt': '어제 {time}',
+
+  // Run / turn status
+  'status.starting': '시작 중',
+  'status.running': '실행 중',
+  'status.done': '완료됨',
+  'status.failed': '실패',
+  'status.disconnected': '연결 끊김',
+  'status.waiting': '대기 중',
+  'status.stopped': '중지됨',
+  'status.interrupted': '중단됨',
+  'status.turnInterrupted': '중단됨',
+  'status.stopping': '중지 중…',
+  'status.reconnecting': '진행 상황 연결이 끊겨 다시 연결 중…',
+  'status.runGone': '서버에 이 대화가 없습니다. 전체 출력은 로그 파일을 확인하세요',
+
+  // Why a conversation cannot take another turn (server sends the code)
+  'resume.running': '이 대화는 아직 실행 중입니다. 끝난 후에 계속하세요.',
+  'resume.unsupported': '{provider}은(는) 같은 대화에서의 계속을 지원하지 않습니다. 새 대화를 시작하세요.',
+  'resume.noSession': '{provider}의 세션 ID를 받지 못해 계속할 수 없습니다. 새 대화를 시작하세요.',
+  'resume.notStarted': '{provider}의 첫 턴이 실제로 시작되지 않아 이어갈 대화가 없습니다. 새 대화를 시작하세요.',
+  'resume.gone': '이 대화는 dev 서버에서 사라졌습니다(기록을 저장하지 않은 채 재시작됨). 새 대화를 시작하세요.',
+  'resume.blocked': '이 대화는 계속할 수 없습니다. Option / Alt 키로 페이지 요소를 클릭해 새 대화를 시작하세요.',
+  'resume.singleTurn': '{provider}은(는) 단일 턴만 지원합니다. 이 대화는 종료 후 계속할 수 없습니다.',
+
+  // Chat header
+  'chat.newConversation': '새 대화',
+  'chat.newConversationHint': '{provider} · 보내면 왼쪽 기록에 표시됩니다',
+  'chat.subtitle': '{focus} · {provider} · {turns} · 로그 {log}',
+  'chat.logTitle': '로그 {log}',
+  'chat.expand': '대화 확대',
+  'chat.stop': '중지',
+  'chat.stopTitle': '이 턴을 종료합니다. 대화는 유지되어 계속 물어볼 수 있습니다',
+  'chat.delete': '삭제',
+  'chat.deleteRunningConfirm': '이 대화는 실행 중입니다. 중지하고 삭제할까요?',
+  'chat.followLatest': '최신 보기',
+
+  // Empty states
+  'empty.newTitle': '새 대화',
+  'empty.focus': '포커스:',
+  'empty.newWithTarget': '어떻게 바꿀지 설명하세요. 보내면 이 대화가 왼쪽에 표시되고, 이후 클릭해서 이어서 물어볼 수 있습니다.',
+  'empty.startTitle': '새 대화 시작',
+  'empty.pickHint': 'Option / Alt 키를 누른 채 페이지의 요소를 클릭하면 그 요소가 이 대화의 포커스가 됩니다.',
+  'empty.historyHint': '또는 왼쪽의 대화 기록을 선택해 이전 맥락으로 이어서 물어보세요.',
+  'empty.loadingTranscript': '대화 기록을 불러오는 중…',
+  'empty.transcriptNotLoaded': '대화 기록이 아직 로드되지 않았습니다. 잠시 기다리거나 왼쪽의 대화를 다시 클릭하세요.',
+
+  // Messages / turn cards
+  'turn.focusChanged': '포커스가 {focus}(으)로 변경되었습니다',
+  'turn.fullPrompt': '전체 prompt',
+  'turn.resumed': '재개',
+  'turn.duration': '소요 시간',
+  'turn.index': '턴 {index}',
+  'turn.waitingOutput': '출력 대기 중…',
+  'turn.noOutput': '이 턴에는 출력이 없습니다.',
+  'turn.noDisplayableReply': '표시할 수 있는 응답이 없습니다.',
+  'turn.expandAll': '모두 펼치기 · {count}줄',
+  'turn.collapse': '접기',
+  'turn.stoppedNote': '이 턴을 중지했습니다.',
+  'turn.interruptedNote': '이 턴이 중단되었습니다(dev 서버 재시작).',
+  'turn.failedNote': '이 턴이 실패했습니다.',
+  'turn.retry': '다시 시도',
+  'turn.queued': '대기 중 · 이 턴이 끝나면 자동 전송됩니다',
+  'turn.withdraw': '취소',
+  'turn.diagnostics': '진단 로그 {count}개 접음',
+  'turn.tool': '도구',
+  'turn.log': '로그:',
+
+  // Changed files
+  'files.none': '변경된 파일 없음',
+  'files.changed': '파일 {count}개 변경됨',
+  'files.more': '파일 {count}개 더 있음',
+  'files.collapse': '접기',
+  'files.open': 'IDE에서 {path} 열기',
+  'files.deletedTitle': '{path} (삭제됨)',
+  'files.added': '추가됨',
+  'files.modified': '수정됨',
+  'files.deleted': '삭제됨',
+
+  // Composer
+  'composer.repointQuestion': '이전 대화에서 이 요소 작업을 계속할까요?',
+  'composer.repointAction': '"{title}"에서 계속',
+  'composer.queueingNote': '{provider} 응답 중입니다. 지금 보내는 메시지는 이 턴이 끝난 후 자동으로 이어서 전송됩니다.',
+  'composer.repointedNote': '이 턴은 아래 요소로 포커스를 전환하며, 맥락은 같은 대화에 유지됩니다.',
+  'composer.badgeContinue': '계속 · 턴 {index}',
+  'composer.badgeNew': '새 대화',
+  'composer.keepFocus': '{focus} · 대화 포커스 유지',
+  'composer.pickTarget': 'Option / Alt 키로 페이지 요소를 클릭해 컴포넌트 선택',
+  'composer.copyLocation': '소스 위치 복사',
+  'composer.copied': '복사됨',
+  'composer.openInIde': 'IDE에서 열기',
+  'composer.placeholderContinue': '이전 턴에 이어서 입력하세요. Agent가 지금까지의 맥락과 수정한 코드를 기억합니다',
+  'composer.placeholderNew': '이 요소를 어떻게 바꿀지 설명하세요',
+  'composer.placeholderPick': '먼저 Option / Alt 키로 페이지 요소를 클릭하세요',
+  'composer.send': '{provider}에 전송',
+  'composer.continue': '이어서 질문',
+  'composer.queue': '종료 후 전송',
+  'composer.sending': '전송 중',
+  'composer.sendTitle': '{shortcut} 키로 전송',
+
+  // Composer status line
+  'status.hintContinue': '{shortcut} 키로 전송하면 Agent가 이 대화에서 이어서 답변합니다',
+  'status.hintNew': '{shortcut} 키로 전송합니다. 패널을 닫아도 작업이 중단되지 않습니다',
+  'status.pickFirst': '먼저 Option / Alt 키로 페이지 요소를 클릭하세요',
+  'status.copied': '소스 위치를 복사했습니다.',
+  'status.openedInIde': 'IDE에서 열었습니다.',
+  'status.copyFailed': '복사하지 못했습니다.',
+  'status.writeSomething': '먼저 변경 내용을 입력하세요.',
+  'status.alreadyQueued': '이미 대기 중인 메시지가 있습니다. 취소한 뒤 수정해서 보내세요.',
+  'status.queueReturned': '이 대화는 계속할 수 없어 대기 중이던 메시지를 입력창으로 되돌렸습니다.',
+  'status.agentNotConfigured': '이 Agent는 아직 구성되지 않았습니다.',
+  'status.customProxyMissing': '먼저 설정에서 사용자 지정 프록시 주소를 입력하세요.',
+  'status.startingProvider': '{provider} 시작 중...',
+  'status.continuingProvider': '{provider} 계속 실행 중...',
+
+  // Errors the server reports by key
+  'error.notRunning': '이 대화는 현재 실행 중이 아닙니다.',
+
+  // Agent picker
+  'agent.label': 'Agent',
+  'agent.notConfigured': '미설정',
+  'agent.singleTurn': '단일 턴',
+  'agent.lockedTitle': '이 대화는 {provider}에서 시작되었습니다. 계속하려면 동일 Agent를 사용해야 하며, 바꾸려면 새 대화를 시작하세요.',
+  'agent.availableTitle': '연결됨: {providers}. 전환은 새 대화에만 영향을 줍니다.',
+  'agent.noneAvailable': '사용 가능한 Agent가 아직 없습니다.',
+
+  // Settings
+  'settings.title': '설정',
+  'settings.close': '설정 닫기',
+  'settings.triggerTitle': '설정 · 프록시: {proxy} · 전송: {shortcut}',
+  'settings.proxy': '네트워크 프록시',
+  'settings.proxyOff': '사용 안 함',
+  'settings.proxySystem': '시스템',
+  'settings.proxyCustom': '사용자 지정',
+  'settings.proxyNeedsUrl': 'URL 필요',
+  'settings.proxyDetected': '감지됨',
+  'settings.proxyNotDetected': '감지되지 않음',
+  'settings.proxyAddress': '프록시 주소',
+  'settings.proxySystemMissing': '시스템/기본 프록시가 감지되지 않음',
+  'settings.proxyNone': 'Agent에 프록시 설정 안 함',
+  'settings.proxyNote': '이후에 시작하는 Agent 프로세스에만 적용됩니다.',
+  'settings.shortcut': '전송 단축키',
+  'settings.theme': '테마',
+  'settings.themeDark': '다크',
+  'settings.themeLight': '라이트',
+  'settings.language': '언어',
+  'settings.languageAuto': '브라우저 언어 따르기',
+
+  // Tool permissions
+  'permission.title': '{provider}에서 권한을 요청합니다',
+  'permission.tool': '{tool}을(를) 사용하려고 합니다',
+  'permission.allow': '허용',
+  'permission.always': '이 대화에서 항상 허용',
+  'permission.deny': '거부',
+  'permission.waiting': '승인 대기 중',
+  'permission.waitingNote': '{provider}이(가) 결정을 기다리고 있습니다. 선택하면 계속 진행됩니다.',
+  'permission.recordAllow': '허용됨',
+  'permission.recordAlways': '허용됨(이 대화에서는 다시 묻지 않음)',
+  'permission.recordDeny': '거부됨',
+  'permission.recordCancelled': '권한 요청이 취소되었습니다',
+  'settings.permission': '권한',
+  'settings.permissionAsk': '묻기',
+  'settings.permissionEdit': '자동 편집',
+  'settings.permissionFull': '전체 액세스',
+  'settings.permissionAskNote': '파일 편집은 자동으로 허용되며, 그 외 승인이 필요한 작업은 대화에서 묻습니다.',
+  'settings.permissionEditNote': '파일 편집은 자동으로 허용되며, 그 외 승인이 필요한 작업은 거부됩니다.',
+  'settings.permissionFullNote': '더 이상 묻지 않고 Agent가 모든 명령과 도구를 실행할 수 있습니다. 신뢰하는 프로젝트에서만 사용하세요.',
+  'settings.permissionFallback': '{provider}은(는) "{requested}"을(를) 지원하지 않으므로 "{actual}"(으)로 실행됩니다.',
+  'settings.permissionFixed': '{provider}의 권한은 자체 시작 옵션에 의해 결정되며 여기의 설정은 적용되지 않습니다.',
+  'turn.fullAccess': '전체 액세스',
+  'dock.waitingPermission': '승인 대기 중인 대화 {count}개',
+  'error.permissionGone': '이 권한 요청은 더 이상 유효하지 않습니다(Agent가 종료되었을 수 있습니다).',
+
+  // Prompt / transcript modals
+  'modal.promptAria': '{provider}에 보낸 전체 prompt 보기',
+  'modal.promptTitle': '턴 {index}에서 {provider}에 보낸 전체 prompt',
+  'modal.promptResumed': '재개된 턴은 소스 컨텍스트를 다시 보내지 않습니다. Agent가 이미 같은 대화에 있기 때문입니다. 아래는 이 턴에 실제로 전송된 내용입니다.',
+  'modal.promptFirst': '이 대화를 시작할 때 {provider}에 실제로 보낸 전체 prompt입니다. 소스 위치와 DOM source stack이 포함됩니다.',
+  'modal.promptMissing': '이 턴의 전체 prompt가 기록되지 않았습니다. 로그 파일 {log} 에서 시작 명령과 prompt 본문을 확인하세요.',
+  'modal.logFile': '로그 파일: {log}',
+  'modal.transcriptSubtitle': '{provider} · {turns}',
+
+  // Dock button
+  'dock.running': '실행 중인 대화 {count}개',
+  'dock.total': 'AI Ins 대화 {count}개',
+
+  // Live activity and reasoning
+  'thinking.live': '생각하는 중',
+  'thinking.waiting': '{provider} 응답 대기 중',
+  'thinking.working': '{provider} 작업 중',
+  'thinking.done': '{duration} 동안 생각함',
+  'thinking.title': '생각 과정',
+
+  // Markdown replies
+  'markdown.copyCode': '코드 복사',
+  'markdown.copied': '복사됨',
+  'markdown.openFile': 'IDE에서 {path} 열기',
+
+  // Notices embedded in output by the server or the panel
+  'notice.panelTruncated': '패널 출력이 너무 길어 처음과 최신 부분만 유지했습니다. 전체 출력은 로그 파일에서 확인하세요.',
+  'notice.historyTruncated': '기록에는 이 턴 출력의 처음과 끝만 저장됩니다. 전체 출력은 로그 파일에서 확인하세요.',
+
+  // Built-in diagnostics folding (codex noise)
+  'diagnostic.codexStateDb': 'Codex 상태 인덱스가 일치하지 않아 파일 검색으로 대체했습니다.',
+  'diagnostic.codexPluginSync': 'Codex 플러그인 목록 워밍업 실패: chatgpt.com이 403 / Cloudflare 챌린지를 반환했습니다.',
+  'diagnostic.pluginManifest': '플러그인 manifest 경고: {detail}',
+  'diagnostic.skillLoader': 'Skill 로더 경고: {detail}',
+  'diagnostic.analytics': '분석 이벤트 전송 경고: {detail}',
+}

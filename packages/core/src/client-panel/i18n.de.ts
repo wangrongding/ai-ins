@@ -1,0 +1,246 @@
+/** German panel copy. The key set and order mirror `i18n.zh-CN.ts` (checked by tsc). */
+import type { MessageCatalog } from './i18n.zh-CN'
+
+export const de: MessageCatalog = {
+  // Header / chrome
+  'panel.subtitle': 'Wählen Sie links eine Unterhaltung aus, um weiterzufragen; klicken Sie mit Option / Alt auf ein Seitenelement, um eine neue zu starten',
+  'panel.collapse': 'Einklappen',
+  'panel.close': 'Schließen',
+
+  // Sidebar
+  'sidebar.newConversation': 'Neue Unterhaltung',
+  'sidebar.newConversationTitle': 'Neue Unterhaltung starten; Sie können auch mit Option / Alt auf ein Seitenelement klicken',
+  'sidebar.history': 'Verlauf',
+  'sidebar.clearFinished': 'Abgeschlossene entfernen',
+  'sidebar.clearFinishedTitle': 'Entfernt alle abgeschlossenen Unterhaltungen aus der Liste (Protokolldateien bleiben erhalten)',
+  'sidebar.clearFinishedConfirm': {
+    one: '{count} abgeschlossene Unterhaltung entfernen? Laufende bleiben erhalten, Protokolldateien werden nicht gelöscht.',
+    other: '{count} abgeschlossene Unterhaltungen entfernen? Laufende bleiben erhalten, Protokolldateien werden nicht gelöscht.',
+  },
+  'sidebar.clearedCount': {
+    one: '{count} abgeschlossene Unterhaltung entfernt.',
+    other: '{count} abgeschlossene Unterhaltungen entfernt.',
+  },
+  'sidebar.clearedNone': 'Keine abgeschlossenen Unterhaltungen.',
+  'sidebar.search': 'Unterhaltungen durchsuchen',
+  'sidebar.searchPlaceholder': 'Anforderungen, Komponenten oder Dateien durchsuchen',
+  'sidebar.loading': 'Verlauf wird geladen…',
+  'sidebar.noMatch': 'Keine passenden Unterhaltungen',
+  'sidebar.empty': 'Noch keine Unterhaltungen',
+  'sidebar.turnCount': { one: '{count} Runde', other: '{count} Runden' },
+  'sidebar.cannotContinue': 'Fortsetzen nicht möglich',
+
+  // Day groups and times
+  'time.today': 'Heute',
+  'time.yesterday': 'Gestern',
+  'time.last7Days': 'Letzte 7 Tage',
+  'time.earlier': 'Früher',
+  'time.yesterdayAt': 'Gestern um {time}',
+
+  // Run / turn status
+  'status.starting': 'Wird gestartet',
+  'status.running': 'Wird ausgeführt',
+  'status.done': 'Abgeschlossen',
+  'status.failed': 'Fehlgeschlagen',
+  'status.disconnected': 'Getrennt',
+  'status.waiting': 'Wartet',
+  'status.stopped': 'Angehalten',
+  'status.interrupted': 'Unterbrochen',
+  'status.turnInterrupted': 'Unterbrochen',
+  'status.stopping': 'Wird angehalten…',
+  'status.reconnecting': 'Verbindung zum Fortschrittsstream getrennt, wird wiederhergestellt…',
+  'status.runGone': 'Diese Unterhaltung ist auf dem Server nicht mehr vorhanden; die vollständige Ausgabe finden Sie in der Protokolldatei',
+
+  // Why a conversation cannot take another turn (server sends the code)
+  'resume.running': 'Diese Unterhaltung wird noch ausgeführt; warten Sie, bis sie abgeschlossen ist.',
+  'resume.unsupported': '{provider} unterstützt das Fortsetzen in derselben Unterhaltung nicht; starten Sie eine neue.',
+  'resume.noSession': '{provider} hat keine Sitzungs-ID zurückgegeben, daher kann diese Unterhaltung nicht fortgesetzt werden; starten Sie eine neue.',
+  'resume.notStarted': 'Die erste Runde von {provider} wurde nie wirklich gestartet, daher gibt es keine Sitzung zum Fortsetzen; starten Sie eine neue.',
+  'resume.gone': 'Diese Unterhaltung ist aus dem dev-Server verschwunden (Neustart ohne gespeicherten Verlauf); starten Sie eine neue.',
+  'resume.blocked': 'Diese Unterhaltung kann nicht fortgesetzt werden; klicken Sie mit Option / Alt auf ein Seitenelement, um eine neue zu starten.',
+  'resume.singleTurn': '{provider} unterstützt nur eine einzelne Runde; diese Unterhaltung kann danach nicht fortgesetzt werden.',
+
+  // Chat header
+  'chat.newConversation': 'Neue Unterhaltung',
+  'chat.newConversationHint': '{provider} · erscheint nach dem Senden im Verlauf links',
+  'chat.subtitle': '{focus} · {provider} · {turns} · Protokoll {log}',
+  'chat.logTitle': 'Protokoll {log}',
+  'chat.expand': 'Unterhaltung vergrößern',
+  'chat.stop': 'Beenden',
+  'chat.stopTitle': 'Beendet diese Runde; die Unterhaltung bleibt erhalten, damit Sie weiterfragen können',
+  'chat.delete': 'Löschen',
+  'chat.deleteRunningConfirm': 'Diese Unterhaltung wird noch ausgeführt. Beenden und löschen?',
+  'chat.followLatest': 'Zum Neuesten springen',
+
+  // Empty states
+  'empty.newTitle': 'Neue Unterhaltung',
+  'empty.focus': 'Fokus:',
+  'empty.newWithTarget': 'Beschreiben Sie die gewünschte Änderung. Nach dem Senden erscheint die Unterhaltung links, damit Sie sie später fortsetzen können.',
+  'empty.startTitle': 'Neue Unterhaltung starten',
+  'empty.pickHint': 'Halten Sie Option / Alt gedrückt und klicken Sie auf ein Seitenelement, um es zum Fokus dieser Unterhaltung zu machen.',
+  'empty.historyHint': 'Oder wählen Sie links eine Unterhaltung, um mit dem bisherigen Kontext weiterzufragen.',
+  'empty.loadingTranscript': 'Transkript wird geladen…',
+  'empty.transcriptNotLoaded': 'Das Transkript wurde noch nicht geladen; warten Sie einen Moment oder klicken Sie links erneut auf die Unterhaltung.',
+
+  // Messages / turn cards
+  'turn.focusChanged': 'Fokus gewechselt zu {focus}',
+  'turn.fullPrompt': 'Vollständiger Prompt',
+  'turn.resumed': 'Fortgesetzt',
+  'turn.duration': 'Dauer',
+  'turn.index': 'Runde {index}',
+  'turn.waitingOutput': 'Warten auf Ausgabe…',
+  'turn.noOutput': 'Diese Runde hat keine Ausgabe erzeugt.',
+  'turn.noDisplayableReply': 'Keine anzeigbare Antwort.',
+  'turn.expandAll': { one: 'Alle ausklappen · {count} Zeile', other: 'Alle ausklappen · {count} Zeilen' },
+  'turn.collapse': 'Einklappen',
+  'turn.stoppedNote': 'Sie haben diese Runde beendet.',
+  'turn.interruptedNote': 'Diese Runde wurde unterbrochen (der dev-Server wurde neu gestartet).',
+  'turn.failedNote': 'Diese Runde ist fehlgeschlagen.',
+  'turn.retry': 'Erneut versuchen',
+  'turn.queued': 'In Warteschlange · wird automatisch gesendet, wenn diese Runde endet',
+  'turn.withdraw': 'Abbrechen',
+  'turn.diagnostics': { one: '{count} Diagnoseeintrag eingeklappt', other: '{count} Diagnoseeinträge eingeklappt' },
+  'turn.tool': 'Tool',
+  'turn.log': 'Protokoll:',
+
+  // Changed files
+  'files.none': 'Keine Dateien geändert',
+  'files.changed': { one: '{count} Datei geändert', other: '{count} Dateien geändert' },
+  'files.more': { one: '{count} weitere Datei', other: '{count} weitere Dateien' },
+  'files.collapse': 'Einklappen',
+  'files.open': '{path} in der IDE öffnen',
+  'files.deletedTitle': '{path} (gelöscht)',
+  'files.added': 'Hinzugefügt',
+  'files.modified': 'Geändert',
+  'files.deleted': 'Gelöscht',
+
+  // Composer
+  'composer.repointQuestion': 'Die vorherige Unterhaltung mit diesem Element fortsetzen?',
+  'composer.repointAction': 'Stattdessen in „{title}“ fortsetzen',
+  'composer.queueingNote': '{provider} antwortet. Jetzt gesendete Nachrichten werden in die Warteschlange gestellt und automatisch gesendet, wenn diese Runde endet.',
+  'composer.repointedNote': 'Diese Runde verschiebt den Fokus auf das untenstehende Element; der Kontext bleibt in derselben Unterhaltung.',
+  'composer.badgeContinue': 'Fortsetzen · Runde {index}',
+  'composer.badgeNew': 'Neue Unterhaltung',
+  'composer.keepFocus': '{focus} · Fokus der Unterhaltung bleibt erhalten',
+  'composer.pickTarget': 'Klicken Sie mit Option / Alt auf ein Seitenelement, um eine Komponente auszuwählen',
+  'composer.copyLocation': 'Quellposition kopieren',
+  'composer.copied': 'Kopiert',
+  'composer.openInIde': 'In IDE öffnen',
+  'composer.placeholderContinue': 'Fahren Sie mit der letzten Runde fort; der Agent kennt den Kontext und den geänderten Code',
+  'composer.placeholderNew': 'Beschreiben Sie die gewünschte Änderung an diesem Element',
+  'composer.placeholderPick': 'Klicken Sie zuerst mit Option / Alt auf ein Seitenelement',
+  'composer.send': 'An {provider} senden',
+  'composer.continue': 'Weiterfragen',
+  'composer.queue': 'Nach Ende senden',
+  'composer.sending': 'Wird gesendet',
+  'composer.sendTitle': 'Mit {shortcut} senden',
+
+  // Composer status line
+  'status.hintContinue': '{shortcut} zum Senden; der Agent antwortet in dieser Unterhaltung',
+  'status.hintNew': '{shortcut} zum Senden; das Schließen des Panels unterbricht die Aufgabe nicht',
+  'status.pickFirst': 'Klicken Sie zuerst mit Option / Alt auf ein Seitenelement',
+  'status.copied': 'Quellposition kopiert.',
+  'status.openedInIde': 'In der IDE geöffnet.',
+  'status.copyFailed': 'Kopieren fehlgeschlagen.',
+  'status.writeSomething': 'Beschreiben Sie zuerst die Änderung.',
+  'status.alreadyQueued': 'Es ist bereits eine Nachricht in der Warteschlange; ziehen Sie sie zurück, um sie zu bearbeiten und erneut zu senden.',
+  'status.queueReturned': 'Diese Unterhaltung kann nicht fortgesetzt werden; die Nachricht aus der Warteschlange ist zurück im Eingabefeld.',
+  'status.agentNotConfigured': 'Dieser Agent ist noch nicht konfiguriert.',
+  'status.customProxyMissing': 'Geben Sie zuerst eine benutzerdefinierte Proxy-Adresse in den Einstellungen ein.',
+  'status.startingProvider': '{provider} wird gestartet...',
+  'status.continuingProvider': '{provider} wird fortgesetzt...',
+
+  // Errors the server reports by key
+  'error.notRunning': 'Diese Unterhaltung wird derzeit nicht ausgeführt.',
+
+  // Agent picker
+  'agent.label': 'Agent',
+  'agent.notConfigured': 'Nicht konfiguriert',
+  'agent.singleTurn': 'Einzelrunde',
+  'agent.lockedTitle': 'Diese Unterhaltung wurde mit {provider} gestartet; damit muss sie fortgesetzt werden. Starten Sie eine neue Unterhaltung, um den Agent zu wechseln.',
+  'agent.availableTitle': 'Verbunden: {providers}. Das Umschalten wirkt sich nur auf neue Unterhaltungen aus.',
+  'agent.noneAvailable': 'Noch kein Agent verfügbar.',
+
+  // Settings
+  'settings.title': 'Einstellungen',
+  'settings.close': 'Einstellungen schließen',
+  'settings.triggerTitle': 'Einstellungen · Proxy: {proxy} · Senden: {shortcut}',
+  'settings.proxy': 'Netzwerkproxy',
+  'settings.proxyOff': 'Aus',
+  'settings.proxySystem': 'System',
+  'settings.proxyCustom': 'Benutzerdefiniert',
+  'settings.proxyNeedsUrl': 'URL erforderlich',
+  'settings.proxyDetected': 'Erkannt',
+  'settings.proxyNotDetected': 'Nicht erkannt',
+  'settings.proxyAddress': 'Proxy-Adresse',
+  'settings.proxySystemMissing': 'Kein System- oder Standardproxy erkannt',
+  'settings.proxyNone': 'Kein Proxy für den Agent',
+  'settings.proxyNote': 'Betrifft nur Agent-Prozesse, die später gestartet werden.',
+  'settings.shortcut': 'Tastenkürzel zum Senden',
+  'settings.theme': 'Design',
+  'settings.themeDark': 'Dunkel',
+  'settings.themeLight': 'Hell',
+  'settings.language': 'Sprache',
+  'settings.languageAuto': 'Browsersprache',
+
+  // Tool permissions
+  'permission.title': '{provider} fordert eine Berechtigung an',
+  'permission.tool': 'Möchte {tool} verwenden',
+  'permission.allow': 'Zulassen',
+  'permission.always': 'In dieser Unterhaltung immer zulassen',
+  'permission.deny': 'Ablehnen',
+  'permission.waiting': 'Genehmigung erforderlich',
+  'permission.waitingNote': '{provider} wartet auf Ihre Entscheidung und fährt fort, sobald Sie gewählt haben.',
+  'permission.recordAllow': 'Zugelassen',
+  'permission.recordAlways': 'Zugelassen (wird in dieser Unterhaltung nicht erneut gefragt)',
+  'permission.recordDeny': 'Abgelehnt',
+  'permission.recordCancelled': 'Berechtigungsanfrage abgebrochen',
+  'settings.permission': 'Berechtigungen',
+  'settings.permissionAsk': 'Mich fragen',
+  'settings.permissionEdit': 'Automatisches Bearbeiten',
+  'settings.permissionFull': 'Vollzugriff',
+  'settings.permissionAskNote': 'Dateibearbeitungen werden automatisch ausgeführt; alles andere, was eine Genehmigung erfordert, wird in der Unterhaltung gefragt.',
+  'settings.permissionEditNote': 'Dateibearbeitungen werden automatisch ausgeführt; alles andere, was eine Genehmigung erfordert, wird abgelehnt.',
+  'settings.permissionFullNote': 'Es wird nichts gefragt: Der Agent kann beliebige Befehle und Tools ausführen. Nur in Projekten verwenden, denen Sie vertrauen.',
+  'settings.permissionFallback': '{provider} unterstützt „{requested}“ nicht; es wird als „{actual}“ ausgeführt.',
+  'settings.permissionFixed': 'Die Berechtigungen von {provider} werden über eigene Startparameter festgelegt; diese Einstellung gilt dort nicht.',
+  'turn.fullAccess': 'Vollzugriff',
+  'dock.waitingPermission': { one: '{count} Unterhaltung wartet auf Genehmigung', other: '{count} Unterhaltungen warten auf Genehmigung' },
+  'error.permissionGone': 'Diese Berechtigungsanfrage ist nicht mehr gültig (der Agent ist möglicherweise bereits abgeschlossen).',
+
+  // Prompt / transcript modals
+  'modal.promptAria': 'Vollständigen Prompt anzeigen, der an {provider} gesendet wurde',
+  'modal.promptTitle': 'Vollständiger Prompt, der in Runde {index} an {provider} gesendet wurde',
+  'modal.promptResumed': 'Fortgesetzte Runden senden den Quellkontext nicht erneut — der Agent ist bereits in derselben Unterhaltung. Unten steht genau das, was in dieser Runde gesendet wurde.',
+  'modal.promptFirst': 'Der vollständige Prompt, der beim Start dieser Unterhaltung an {provider} gesendet wurde, einschließlich Quellpositionen und DOM source stack.',
+  'modal.promptMissing': 'Für diese Runde wurde kein vollständiger Prompt aufgezeichnet; öffnen Sie die Protokolldatei {log}, um Startbefehl und Prompt-Text zu prüfen.',
+  'modal.logFile': 'Protokolldatei: {log}',
+  'modal.transcriptSubtitle': '{provider} · {turns}',
+
+  // Dock button
+  'dock.running': { one: '{count} Unterhaltung wird ausgeführt', other: '{count} Unterhaltungen werden ausgeführt' },
+  'dock.total': { one: '{count} AI Ins-Unterhaltung', other: '{count} AI Ins-Unterhaltungen' },
+
+  // Live activity and reasoning
+  'thinking.live': 'Denkt nach',
+  'thinking.waiting': 'Warte auf {provider}',
+  'thinking.working': '{provider} arbeitet',
+  'thinking.done': '{duration} nachgedacht',
+  'thinking.title': 'Gedankengang',
+
+  // Markdown replies
+  'markdown.copyCode': 'Code kopieren',
+  'markdown.copied': 'Kopiert',
+  'markdown.openFile': '{path} in der IDE öffnen',
+
+  // Notices embedded in output by the server or the panel
+  'notice.panelTruncated': 'Die Panelausgabe war zu lang; Anfang und neuester Teil bleiben erhalten. Die vollständige Ausgabe finden Sie in der Protokolldatei.',
+  'notice.historyTruncated': 'Der Verlauf behält nur Anfang und Ende der Ausgabe dieser Runde. Die vollständige Ausgabe finden Sie in der Protokolldatei.',
+
+  // Built-in diagnostics folding (codex noise)
+  'diagnostic.codexStateDb': 'Der Codex-Statusindex war inkonsistent; es wird die Dateisuche verwendet.',
+  'diagnostic.codexPluginSync': 'Aufwärmen der Codex-Pluginliste fehlgeschlagen: chatgpt.com gab 403 / eine Cloudflare-Challenge zurück.',
+  'diagnostic.pluginManifest': 'Plugin-Manifest-Warnung: {detail}',
+  'diagnostic.skillLoader': 'Warnung beim Laden eines Skills: {detail}',
+  'diagnostic.analytics': 'Warnung beim Melden von Analyseereignissen: {detail}',
+}

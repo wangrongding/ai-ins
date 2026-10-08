@@ -1,0 +1,246 @@
+/** Spanish panel copy. The key set and order mirror `i18n.zh-CN.ts` (checked by tsc). */
+import type { MessageCatalog } from './i18n.zh-CN'
+
+export const es: MessageCatalog = {
+  // Header / chrome
+  'panel.subtitle': 'Elige una conversación a la izquierda para seguir preguntando; haz Option / Alt-clic en un elemento de la página para iniciar una nueva',
+  'panel.collapse': 'Contraer',
+  'panel.close': 'Cerrar',
+
+  // Sidebar
+  'sidebar.newConversation': 'Nueva conversación',
+  'sidebar.newConversationTitle': 'Inicia una nueva conversación; también puedes hacer Option / Alt-clic en un elemento de la página',
+  'sidebar.history': 'Historial',
+  'sidebar.clearFinished': 'Borrar finalizadas',
+  'sidebar.clearFinishedTitle': 'Quita todas las conversaciones finalizadas de la lista (los archivos de registro se conservan)',
+  'sidebar.clearFinishedConfirm': {
+    one: '¿Borrar {count} conversación finalizada? Las que están en ejecución se conservan y no se elimina ningún archivo de registro.',
+    other: '¿Borrar {count} conversaciones finalizadas? Las que están en ejecución se conservan y no se elimina ningún archivo de registro.',
+  },
+  'sidebar.clearedCount': {
+    one: 'Se borró {count} conversación finalizada.',
+    other: 'Se borraron {count} conversaciones finalizadas.',
+  },
+  'sidebar.clearedNone': 'No hay conversaciones finalizadas.',
+  'sidebar.search': 'Buscar conversaciones',
+  'sidebar.searchPlaceholder': 'Buscar solicitudes, componentes o archivos',
+  'sidebar.loading': 'Cargando el historial…',
+  'sidebar.noMatch': 'No hay conversaciones que coincidan',
+  'sidebar.empty': 'Aún no hay conversaciones',
+  'sidebar.turnCount': { one: '{count} ronda', other: '{count} rondas' },
+  'sidebar.cannotContinue': 'No se puede continuar',
+
+  // Day groups and times
+  'time.today': 'Hoy',
+  'time.yesterday': 'Ayer',
+  'time.last7Days': 'Últimos 7 días',
+  'time.earlier': 'Anteriores',
+  'time.yesterdayAt': 'Ayer a las {time}',
+
+  // Run / turn status
+  'status.starting': 'Iniciando',
+  'status.running': 'En ejecución',
+  'status.done': 'Completado',
+  'status.failed': 'Error',
+  'status.disconnected': 'Desconectado',
+  'status.waiting': 'En espera',
+  'status.stopped': 'Detenido',
+  'status.interrupted': 'Interrumpido',
+  'status.turnInterrupted': 'Interrumpido',
+  'status.stopping': 'Deteniendo…',
+  'status.reconnecting': 'El flujo de progreso se desconectó, reconectando…',
+  'status.runGone': 'El servidor ya no tiene esta conversación; consulta el archivo de registro para ver la salida completa',
+
+  // Why a conversation cannot take another turn (server sends the code)
+  'resume.running': 'Esta conversación sigue en ejecución; espera a que termine antes de continuar.',
+  'resume.unsupported': '{provider} no permite continuar en la misma conversación; inicia una nueva.',
+  'resume.noSession': '{provider} no devolvió ningún id de sesión, así que esta conversación no puede continuar; inicia una nueva.',
+  'resume.notStarted': 'La primera ronda de {provider} nunca llegó a ejecutarse y no hay sesión que continuar; inicia una nueva.',
+  'resume.gone': 'Esta conversación ya no está en el servidor dev (se reinició sin guardar el historial); inicia una nueva.',
+  'resume.blocked': 'Esta conversación no puede continuar; haz Option / Alt-clic en un elemento de la página para iniciar una nueva.',
+  'resume.singleTurn': '{provider} solo admite una ronda; esta conversación no puede continuar al terminar.',
+
+  // Chat header
+  'chat.newConversation': 'Nueva conversación',
+  'chat.newConversationHint': '{provider} · aparece en el historial de la izquierda al enviar',
+  'chat.subtitle': '{focus} · {provider} · {turns} · registro {log}',
+  'chat.logTitle': 'Registro {log}',
+  'chat.expand': 'Ampliar conversación',
+  'chat.stop': 'Detener',
+  'chat.stopTitle': 'Termina esta ronda; la conversación se conserva para seguir preguntando',
+  'chat.delete': 'Eliminar',
+  'chat.deleteRunningConfirm': 'Esta conversación sigue en ejecución. ¿Detenerla y eliminarla?',
+  'chat.followLatest': 'Ir al final',
+
+  // Empty states
+  'empty.newTitle': 'Nueva conversación',
+  'empty.focus': 'Foco:',
+  'empty.newWithTarget': 'Describe cómo quieres cambiarlo. Al enviar, la conversación aparece a la izquierda para retomarla más tarde.',
+  'empty.startTitle': 'Iniciar una nueva conversación',
+  'empty.pickHint': 'Mantén pulsado Option / Alt y haz clic en un elemento de la página para que sea el foco de esta conversación.',
+  'empty.historyHint': 'O elige una conversación a la izquierda para seguir preguntando con su contexto anterior.',
+  'empty.loadingTranscript': 'Cargando la transcripción…',
+  'empty.transcriptNotLoaded': 'La transcripción aún no se ha cargado; espera un momento o vuelve a hacer clic en la conversación de la izquierda.',
+
+  // Messages / turn cards
+  'turn.focusChanged': 'Foco cambiado a {focus}',
+  'turn.fullPrompt': 'Prompt completo',
+  'turn.resumed': 'Reanudado',
+  'turn.duration': 'Duración',
+  'turn.index': 'Ronda {index}',
+  'turn.waitingOutput': 'Esperando la salida…',
+  'turn.noOutput': 'Esta ronda no produjo ninguna salida.',
+  'turn.noDisplayableReply': 'No hay respuesta que mostrar.',
+  'turn.expandAll': { one: 'Expandir todo · {count} línea', other: 'Expandir todo · {count} líneas' },
+  'turn.collapse': 'Contraer',
+  'turn.stoppedNote': 'Detuviste esta ronda.',
+  'turn.interruptedNote': 'Esta ronda se interrumpió (el servidor dev se reinició).',
+  'turn.failedNote': 'Esta ronda falló.',
+  'turn.retry': 'Reintentar',
+  'turn.queued': 'En cola · se envía automáticamente al terminar esta ronda',
+  'turn.withdraw': 'Cancelar',
+  'turn.diagnostics': { one: '{count} entrada de diagnóstico contraída', other: '{count} entradas de diagnóstico contraídas' },
+  'turn.tool': 'Herramienta',
+  'turn.log': 'Registro:',
+
+  // Changed files
+  'files.none': 'Sin archivos modificados',
+  'files.changed': { one: '{count} archivo modificado', other: '{count} archivos modificados' },
+  'files.more': { one: '{count} archivo más', other: '{count} archivos más' },
+  'files.collapse': 'Contraer',
+  'files.open': 'Abrir {path} en el IDE',
+  'files.deletedTitle': '{path} (eliminado)',
+  'files.added': 'Añadido',
+  'files.modified': 'Modificado',
+  'files.deleted': 'Eliminado',
+
+  // Composer
+  'composer.repointQuestion': '¿Continuar la conversación anterior sobre este elemento?',
+  'composer.repointAction': 'Continuar en «{title}»',
+  'composer.queueingNote': '{provider} está respondiendo. Los mensajes que envíes ahora quedan en cola y se envían automáticamente al terminar esta ronda.',
+  'composer.repointedNote': 'Esta ronda cambia el foco al elemento de abajo; el contexto permanece en la misma conversación.',
+  'composer.badgeContinue': 'Continuar · ronda {index}',
+  'composer.badgeNew': 'Nueva conversación',
+  'composer.keepFocus': '{focus} · se mantiene el foco de la conversación',
+  'composer.pickTarget': 'Haz Option / Alt-clic en un elemento de la página para elegir un componente',
+  'composer.copyLocation': 'Copiar ubicación del código fuente',
+  'composer.copied': 'Copiado',
+  'composer.openInIde': 'Abrir en el IDE',
+  'composer.placeholderContinue': 'Retoma la última ronda; el Agent recuerda el contexto y el código que modificó',
+  'composer.placeholderNew': 'Describe cómo quieres cambiar este elemento',
+  'composer.placeholderPick': 'Primero haz Option / Alt-clic en un elemento de la página',
+  'composer.send': 'Enviar a {provider}',
+  'composer.continue': 'Continuar',
+  'composer.queue': 'Enviar al terminar',
+  'composer.sending': 'Enviando',
+  'composer.sendTitle': 'Enviar con {shortcut}',
+
+  // Composer status line
+  'status.hintContinue': '{shortcut} para enviar; el Agent responderá en esta conversación',
+  'status.hintNew': '{shortcut} para enviar; cerrar el panel no interrumpe la tarea',
+  'status.pickFirst': 'Primero haz Option / Alt-clic en un elemento de la página',
+  'status.copied': 'Ubicación del código fuente copiada.',
+  'status.openedInIde': 'Abierto en el IDE.',
+  'status.copyFailed': 'No se pudo copiar.',
+  'status.writeSomething': 'Describe primero el cambio.',
+  'status.alreadyQueued': 'Ya hay un mensaje en cola; retíralo para editarlo y volver a enviarlo.',
+  'status.queueReturned': 'Esta conversación no puede continuar; el mensaje en cola volvió al cuadro de texto.',
+  'status.agentNotConfigured': 'Este Agent aún no está configurado.',
+  'status.customProxyMissing': 'Introduce antes una dirección de proxy personalizada en la configuración.',
+  'status.startingProvider': 'Iniciando {provider}...',
+  'status.continuingProvider': 'Continuando {provider}...',
+
+  // Errors the server reports by key
+  'error.notRunning': 'Esta conversación no está en ejecución.',
+
+  // Agent picker
+  'agent.label': 'Agent',
+  'agent.notConfigured': 'Sin configurar',
+  'agent.singleTurn': 'Ronda única',
+  'agent.lockedTitle': 'Esta conversación se inició con {provider}; debes usarlo para continuar. Inicia una nueva conversación para cambiar de Agent.',
+  'agent.availableTitle': 'Conectado: {providers}. El cambio solo afecta a las conversaciones nuevas.',
+  'agent.noneAvailable': 'Aún no hay ningún Agent disponible.',
+
+  // Settings
+  'settings.title': 'Configuración',
+  'settings.close': 'Cerrar configuración',
+  'settings.triggerTitle': 'Configuración · proxy: {proxy} · envío: {shortcut}',
+  'settings.proxy': 'Proxy de red',
+  'settings.proxyOff': 'Desactivado',
+  'settings.proxySystem': 'Sistema',
+  'settings.proxyCustom': 'Personalizado',
+  'settings.proxyNeedsUrl': 'URL requerida',
+  'settings.proxyDetected': 'Detectado',
+  'settings.proxyNotDetected': 'No detectado',
+  'settings.proxyAddress': 'Dirección del proxy',
+  'settings.proxySystemMissing': 'No se detectó ningún proxy del sistema o predeterminado',
+  'settings.proxyNone': 'Sin proxy para el Agent',
+  'settings.proxyNote': 'Solo afecta a los procesos del Agent que se inicien después.',
+  'settings.shortcut': 'Atajo de envío',
+  'settings.theme': 'Tema',
+  'settings.themeDark': 'Oscuro',
+  'settings.themeLight': 'Claro',
+  'settings.language': 'Idioma',
+  'settings.languageAuto': 'Idioma del navegador',
+
+  // Tool permissions
+  'permission.title': '{provider} solicita permiso',
+  'permission.tool': 'Quiere usar {tool}',
+  'permission.allow': 'Permitir',
+  'permission.always': 'Permitir siempre en esta conversación',
+  'permission.deny': 'Denegar',
+  'permission.waiting': 'Requiere aprobación',
+  'permission.waitingNote': '{provider} espera tu decisión y continúa cuando elijas.',
+  'permission.recordAllow': 'Permitido',
+  'permission.recordAlways': 'Permitido (no se volverá a preguntar en esta conversación)',
+  'permission.recordDeny': 'Denegado',
+  'permission.recordCancelled': 'Solicitud de permiso cancelada',
+  'settings.permission': 'Permisos',
+  'settings.permissionAsk': 'Preguntarme',
+  'settings.permissionEdit': 'Edición automática',
+  'settings.permissionFull': 'Acceso total',
+  'settings.permissionAskNote': 'Las ediciones de archivos se ejecutan automáticamente; cualquier otra acción que requiera aprobación se pregunta en la conversación.',
+  'settings.permissionEditNote': 'Las ediciones de archivos se ejecutan automáticamente; cualquier otra acción que requiera aprobación se deniega.',
+  'settings.permissionFullNote': 'No se pregunta nada: el Agent puede ejecutar cualquier comando o herramienta. Úsalo solo en proyectos de confianza.',
+  'settings.permissionFallback': '{provider} no admite «{requested}»; se ejecutará como «{actual}».',
+  'settings.permissionFixed': 'Los permisos de {provider} se definen en sus propios parámetros de inicio; este ajuste no le afecta.',
+  'turn.fullAccess': 'Acceso total',
+  'dock.waitingPermission': { one: '{count} conversación esperando aprobación', other: '{count} conversaciones esperando aprobación' },
+  'error.permissionGone': 'Esta solicitud de permiso ya no es válida (el Agent puede haber terminado).',
+
+  // Prompt / transcript modals
+  'modal.promptAria': 'Ver el prompt completo enviado a {provider}',
+  'modal.promptTitle': 'Prompt completo enviado a {provider} en la ronda {index}',
+  'modal.promptResumed': 'Las rondas reanudadas no reenvían el contexto del código fuente: el Agent ya está en la misma conversación. Abajo está exactamente lo que se envió en esta ronda.',
+  'modal.promptFirst': 'El prompt completo enviado a {provider} al iniciar esta conversación, con las ubicaciones del código fuente y el DOM source stack.',
+  'modal.promptMissing': 'No se registró el prompt completo de esta ronda; abre el archivo de registro {log} para revisar el comando de inicio y el texto del prompt.',
+  'modal.logFile': 'Archivo de registro: {log}',
+  'modal.transcriptSubtitle': '{provider} · {turns}',
+
+  // Dock button
+  'dock.running': { one: '{count} conversación en ejecución', other: '{count} conversaciones en ejecución' },
+  'dock.total': { one: '{count} conversación de AI Ins', other: '{count} conversaciones de AI Ins' },
+
+  // Live activity and reasoning
+  'thinking.live': 'Pensando',
+  'thinking.waiting': 'Esperando a {provider}',
+  'thinking.working': '{provider} está trabajando',
+  'thinking.done': 'Pensó durante {duration}',
+  'thinking.title': 'Razonamiento',
+
+  // Markdown replies
+  'markdown.copyCode': 'Copiar código',
+  'markdown.copied': 'Copiado',
+  'markdown.openFile': 'Abrir {path} en el IDE',
+
+  // Notices embedded in output by the server or the panel
+  'notice.panelTruncated': 'La salida del panel era demasiado larga; se conservaron el inicio y la parte más reciente. Abre el archivo de registro para verla completa.',
+  'notice.historyTruncated': 'El historial conserva solo el inicio y el final de la salida de esta ronda. Abre el archivo de registro para verla completa.',
+
+  // Built-in diagnostics folding (codex noise)
+  'diagnostic.codexStateDb': 'El índice de estado de Codex era incoherente; se recurrió a la búsqueda en archivos.',
+  'diagnostic.codexPluginSync': 'Falló la preparación de la lista de plugins de Codex: chatgpt.com devolvió 403 / un desafío de Cloudflare.',
+  'diagnostic.pluginManifest': 'Advertencia de manifest del plugin: {detail}',
+  'diagnostic.skillLoader': 'Advertencia al cargar un Skill: {detail}',
+  'diagnostic.analytics': 'Advertencia al reportar eventos de analítica: {detail}',
+}

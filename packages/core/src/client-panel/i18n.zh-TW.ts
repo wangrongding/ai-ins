@@ -1,0 +1,241 @@
+/** Traditional Chinese (Taiwan) panel copy. The key set and order mirror `i18n.zh-CN.ts` (checked by tsc). */
+import type { MessageCatalog } from './i18n.zh-CN'
+
+// zh-TW has no cardinal plural forms, so every value is a plain string.
+export const zhTW: MessageCatalog = {
+  // Header / chrome
+  'panel.subtitle': '點選左側對話繼續追問；按住 Option / Alt 點選頁面元素可開新對話',
+  'panel.collapse': '收合',
+  'panel.close': '關閉',
+
+  // Sidebar
+  'sidebar.newConversation': '新對話',
+  'sidebar.newConversationTitle': '開一個新對話；也可以直接按住 Option / Alt 點選頁面元素',
+  'sidebar.history': '歷史對話',
+  'sidebar.clearFinished': '清除已結束',
+  'sidebar.clearFinishedTitle': '刪除所有已結束的對話記錄（記錄檔保留）',
+  'sidebar.clearFinishedConfirm': '要清除 {count} 條已結束的對話嗎？執行中的對話會保留，記錄檔不會刪除。',
+  'sidebar.clearedCount': '已清除 {count} 條已結束的對話。',
+  'sidebar.clearedNone': '沒有已結束的對話。',
+  'sidebar.search': '搜尋對話',
+  'sidebar.searchPlaceholder': '搜尋需求、元件或檔案',
+  'sidebar.loading': '正在載入歷史對話…',
+  'sidebar.noMatch': '沒有符合的對話',
+  'sidebar.empty': '還沒有對話',
+  'sidebar.turnCount': '{count} 回合',
+  'sidebar.cannotContinue': '無法繼續',
+
+  // Day groups and times
+  'time.today': '今天',
+  'time.yesterday': '昨天',
+  'time.last7Days': '最近 7 天',
+  'time.earlier': '更早',
+  'time.yesterdayAt': '昨天 {time}',
+
+  // Run / turn status
+  'status.starting': '啟動中',
+  'status.running': '執行中',
+  'status.done': '已完成',
+  'status.failed': '失敗',
+  'status.disconnected': '連線中斷',
+  'status.waiting': '等待',
+  'status.stopped': '已停止',
+  'status.interrupted': '已中斷',
+  'status.turnInterrupted': '被中斷',
+  'status.stopping': '正在停止…',
+  'status.reconnecting': '進度連線中斷，正在重新連線…',
+  'status.runGone': '伺服器找不到這個對話，完整輸出請看記錄檔',
+
+  // Why a conversation cannot take another turn (server sends the code)
+  'resume.running': '這個對話還在執行中，請等它結束後再繼續。',
+  'resume.unsupported': '{provider} 不支援在同一個對話中繼續，只能開新對話。',
+  'resume.noSession': '沒有取得 {provider} 的 session ID，無法繼續；請開一個新對話。',
+  'resume.notStarted': '{provider} 的第一回合實際上沒有啟動，沒有可以接續的對話；請開一個新對話。',
+  'resume.gone': '這個對話已從 dev 伺服器消失（重啟後未保存歷史），只能開新對話。',
+  'resume.blocked': '這個對話無法繼續；按住 Option / Alt 點選頁面元素開一個新對話。',
+  'resume.singleTurn': '{provider} 只支援單回合，這個對話結束後無法繼續。',
+
+  // Chat header
+  'chat.newConversation': '新對話',
+  'chat.newConversationHint': '{provider} · 傳送後會出現在左側歷史中',
+  'chat.subtitle': '{focus} · {provider} · {turns} · 記錄 {log}',
+  'chat.logTitle': '記錄 {log}',
+  'chat.expand': '放大對話',
+  'chat.stop': '停止',
+  'chat.stopTitle': '結束這一回合，對話會保留，可以繼續追問',
+  'chat.delete': '刪除',
+  'chat.deleteRunningConfirm': '這個對話還在執行中，要停止並刪除嗎？',
+  'chat.followLatest': '查看最新',
+
+  // Empty states
+  'empty.newTitle': '新對話',
+  'empty.focus': '焦點：',
+  'empty.newWithTarget': '描述你想怎麼修改它。傳送後這個對話會出現在左側，之後點選它就能繼續追問。',
+  'empty.startTitle': '開始一個新對話',
+  'empty.pickHint': '按住 Option / Alt 點擊頁面元素，把它作為這次對話的焦點。',
+  'empty.historyHint': '或點選左側的歷史對話，接續先前的上下文繼續追問。',
+  'empty.loadingTranscript': '正在載入對話記錄…',
+  'empty.transcriptNotLoaded': '對話記錄尚未載入，請稍候或重新點選左側對話。',
+
+  // Messages / turn cards
+  'turn.focusChanged': '焦點切換到 {focus}',
+  'turn.fullPrompt': '完整 prompt',
+  'turn.resumed': '接續執行',
+  'turn.duration': '耗時',
+  'turn.index': '第 {index} 回合',
+  'turn.waitingOutput': '等待輸出…',
+  'turn.noOutput': '這一回合沒有輸出。',
+  'turn.noDisplayableReply': '沒有可顯示的回覆。',
+  'turn.expandAll': '全部展開 · {count} 行',
+  'turn.collapse': '收合',
+  'turn.stoppedNote': '你停止了這一回合。',
+  'turn.interruptedNote': '這一回合被中斷了（dev 伺服器重啟）。',
+  'turn.failedNote': '這一回合未成功。',
+  'turn.retry': '重試',
+  'turn.queued': '排隊中 · 這一回合結束後自動傳送',
+  'turn.withdraw': '收回',
+  'turn.diagnostics': '已摺疊 {count} 條診斷記錄',
+  'turn.tool': '工具',
+  'turn.log': '記錄：',
+
+  // Changed files
+  'files.none': '沒有改動檔案',
+  'files.changed': '變更了 {count} 個檔案',
+  'files.more': '還有 {count} 個檔案',
+  'files.collapse': '收合',
+  'files.open': '在 IDE 開啟 {path}',
+  'files.deletedTitle': '{path}（已刪除）',
+  'files.added': '新增',
+  'files.modified': '修改',
+  'files.deleted': '刪除',
+
+  // Composer
+  'composer.repointQuestion': '要讓上一個對話接著修改這個元素嗎？',
+  'composer.repointAction': '改為在「{title}」中繼續',
+  'composer.queueingNote': '{provider} 正在回覆。現在傳送的訊息會在這一回合結束後自動接上。',
+  'composer.repointedNote': '這一回合會把焦點切到下面的元素，上下文仍在同一個對話中。',
+  'composer.badgeContinue': '繼續 · 第 {index} 回合',
+  'composer.badgeNew': '新對話',
+  'composer.keepFocus': '{focus} · 沿用對話焦點',
+  'composer.pickTarget': '按住 Option / Alt 點擊頁面元素以選擇元件',
+  'composer.copyLocation': '複製原始碼位置',
+  'composer.copied': '已複製',
+  'composer.openInIde': '在 IDE 開啟',
+  'composer.placeholderContinue': '接續上一回合；Agent 記得先前的上下文與它改過的程式碼',
+  'composer.placeholderNew': '描述你想怎麼修改這個元素',
+  'composer.placeholderPick': '先按住 Option / Alt 點擊頁面元素',
+  'composer.send': '傳送給 {provider}',
+  'composer.continue': '繼續追問',
+  'composer.queue': '結束後傳送',
+  'composer.sending': '傳送中',
+  'composer.sendTitle': '按 {shortcut} 傳送',
+
+  // Composer status line
+  'status.hintContinue': '按 {shortcut} 傳送，Agent 會接續這個對話回答',
+  'status.hintNew': '按 {shortcut} 傳送，關閉面板不會中斷任務',
+  'status.pickFirst': '先按住 Option / Alt 點擊頁面元素',
+  'status.copied': '已複製原始碼位置。',
+  'status.openedInIde': '已在 IDE 開啟。',
+  'status.copyFailed': '複製失敗。',
+  'status.writeSomething': '先輸入你想怎麼改。',
+  'status.alreadyQueued': '已有一則訊息在排隊，收回後可修改再傳送。',
+  'status.queueReturned': '這個對話無法繼續，排隊的訊息已放回輸入框。',
+  'status.agentNotConfigured': '這個 Agent 還沒有設定。',
+  'status.customProxyMissing': '請先在設定中填寫自訂代理位址。',
+  'status.startingProvider': '正在啟動 {provider}...',
+  'status.continuingProvider': '正在繼續 {provider}...',
+
+  // Errors the server reports by key
+  'error.notRunning': '這個對話目前沒有在執行。',
+
+  // Agent picker
+  'agent.label': 'Agent',
+  'agent.notConfigured': '未設定',
+  'agent.singleTurn': '單回合',
+  'agent.lockedTitle': '這個對話由 {provider} 開始，繼續時只能使用它；更換 Agent 請開新對話。',
+  'agent.availableTitle': '已接入 {providers}。切換只會影響新對話。',
+  'agent.noneAvailable': '還沒有可用的 Agent。',
+
+  // Settings
+  'settings.title': '設定',
+  'settings.close': '關閉設定',
+  'settings.triggerTitle': '設定 · 代理：{proxy} · 傳送：{shortcut}',
+  'settings.proxy': '網路代理',
+  'settings.proxyOff': '關閉',
+  'settings.proxySystem': '系統',
+  'settings.proxyCustom': '自訂',
+  'settings.proxyNeedsUrl': '需填入網址',
+  'settings.proxyDetected': '已偵測',
+  'settings.proxyNotDetected': '未偵測',
+  'settings.proxyAddress': '代理位址',
+  'settings.proxySystemMissing': '未偵測到系統/預設代理',
+  'settings.proxyNone': '不為 Agent 設定代理',
+  'settings.proxyNote': '只會影響之後啟動的 Agent 處理程序。',
+  'settings.shortcut': '傳送快速鍵',
+  'settings.theme': '主題',
+  'settings.themeDark': '深色',
+  'settings.themeLight': '淺色',
+  'settings.language': '語言',
+  'settings.languageAuto': '跟隨瀏覽器語言',
+
+  // Tool permissions
+  'permission.title': '{provider} 要求授權',
+  'permission.tool': '想要使用 {tool}',
+  'permission.allow': '允許',
+  'permission.always': '此對話內一律允許',
+  'permission.deny': '拒絕',
+  'permission.waiting': '待授權',
+  'permission.waitingNote': '{provider} 正在等你決定，選擇後會繼續往下執行。',
+  'permission.recordAllow': '已允許',
+  'permission.recordAlways': '已允許（此對話內不再詢問）',
+  'permission.recordDeny': '已拒絕',
+  'permission.recordCancelled': '授權要求已取消',
+  'settings.permission': '權限',
+  'settings.permissionAsk': '詢問我',
+  'settings.permissionEdit': '自動編輯',
+  'settings.permissionFull': '完整存取',
+  'settings.permissionAskNote': '自動允許編輯檔案；其他需要授權的操作會在對話中詢問你。',
+  'settings.permissionEditNote': '自動允許編輯檔案；其他需要授權的操作直接拒絕。',
+  'settings.permissionFullNote': '不再詢問，Agent 可以執行任何命令與工具。只在你信任的專案裡使用。',
+  'settings.permissionFallback': '{provider} 不支援「{requested}」，會以「{actual}」執行。',
+  'settings.permissionFixed': '{provider} 的權限由它自己的啟動參數決定，這裡的設定對它無效。',
+  'turn.fullAccess': '完整存取',
+  'dock.waitingPermission': '{count} 個對話等待授權',
+  'error.permissionGone': '這個授權要求已經失效了（Agent 可能已經結束）。',
+
+  // Prompt / transcript modals
+  'modal.promptAria': '檢視傳送給 {provider} 的完整 prompt',
+  'modal.promptTitle': '第 {index} 回合傳送給 {provider} 的完整 prompt',
+  'modal.promptResumed': '接續的回合不會重送原始碼上下文——Agent 已在同一個對話中，以下就是這一回合實際傳送的內容。',
+  'modal.promptFirst': '這是啟動這個對話時實際傳送給 {provider} 的完整 prompt，包含原始碼位置與 DOM source stack。',
+  'modal.promptMissing': '這一回合還沒有記錄完整 prompt；請開啟記錄檔 {log} 檢查啟動命令與 prompt 內文。',
+  'modal.logFile': '記錄檔：{log}',
+  'modal.transcriptSubtitle': '{provider} · {turns}',
+
+  // Dock button
+  'dock.running': '{count} 個對話執行中',
+  'dock.total': '{count} 個 AI Ins 對話',
+
+  // Live activity and reasoning
+  'thinking.live': '思考中',
+  'thinking.waiting': '等待 {provider} 回應',
+  'thinking.working': '{provider} 處理中',
+  'thinking.done': '已思考 {duration}',
+  'thinking.title': '思考過程',
+
+  // Markdown replies
+  'markdown.copyCode': '複製程式碼',
+  'markdown.copied': '已複製',
+  'markdown.openFile': '在 IDE 開啟 {path}',
+
+  // Notices embedded in output by the server or the panel
+  'notice.panelTruncated': '面板輸出過長，已保留開頭與最新部分；完整輸出請開啟記錄檔。',
+  'notice.historyTruncated': '歷史記錄只保留這一回合輸出的開頭與結尾；完整輸出請開啟記錄檔。',
+
+  // Built-in diagnostics folding (codex noise)
+  'diagnostic.codexStateDb': 'Codex 狀態索引不一致，已回退為檔案查找。',
+  'diagnostic.codexPluginSync': 'Codex 外掛清單預熱失敗：chatgpt.com 回應 403 / Cloudflare 驗證。',
+  'diagnostic.pluginManifest': '外掛 manifest 警告：{detail}',
+  'diagnostic.skillLoader': 'Skill 載入警告：{detail}',
+  'diagnostic.analytics': '分析事件回報警告：{detail}',
+}

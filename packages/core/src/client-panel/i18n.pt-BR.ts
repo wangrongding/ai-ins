@@ -1,0 +1,246 @@
+/** Brazilian Portuguese panel copy. The key set and order mirror `i18n.zh-CN.ts` (checked by tsc). */
+import type { MessageCatalog } from './i18n.zh-CN'
+
+export const ptBR: MessageCatalog = {
+  // Header / chrome
+  'panel.subtitle': 'Escolha uma conversa à esquerda para continuar perguntando; clique com Option / Alt em um elemento da página para iniciar uma nova',
+  'panel.collapse': 'Recolher',
+  'panel.close': 'Fechar',
+
+  // Sidebar
+  'sidebar.newConversation': 'Nova conversa',
+  'sidebar.newConversationTitle': 'Inicie uma nova conversa; também é possível clicar com Option / Alt em um elemento da página',
+  'sidebar.history': 'Histórico',
+  'sidebar.clearFinished': 'Limpar concluídas',
+  'sidebar.clearFinishedTitle': 'Remove todas as conversas concluídas da lista (os arquivos de log são mantidos)',
+  'sidebar.clearFinishedConfirm': {
+    one: 'Limpar {count} conversa concluída? As que estão em execução são mantidas e os arquivos de log não são excluídos.',
+    other: 'Limpar {count} conversas concluídas? As que estão em execução são mantidas e os arquivos de log não são excluídos.',
+  },
+  'sidebar.clearedCount': {
+    one: 'Removida {count} conversa concluída.',
+    other: 'Removidas {count} conversas concluídas.',
+  },
+  'sidebar.clearedNone': 'Nenhuma conversa concluída.',
+  'sidebar.search': 'Pesquisar conversas',
+  'sidebar.searchPlaceholder': 'Pesquisar solicitações, componentes ou arquivos',
+  'sidebar.loading': 'Carregando histórico…',
+  'sidebar.noMatch': 'Nenhuma conversa correspondente',
+  'sidebar.empty': 'Nenhuma conversa ainda',
+  'sidebar.turnCount': { one: '{count} rodada', other: '{count} rodadas' },
+  'sidebar.cannotContinue': 'Não é possível continuar',
+
+  // Day groups and times
+  'time.today': 'Hoje',
+  'time.yesterday': 'Ontem',
+  'time.last7Days': 'Últimos 7 dias',
+  'time.earlier': 'Mais antigos',
+  'time.yesterdayAt': 'Ontem às {time}',
+
+  // Run / turn status
+  'status.starting': 'Iniciando',
+  'status.running': 'Em execução',
+  'status.done': 'Concluído',
+  'status.failed': 'Falhou',
+  'status.disconnected': 'Desconectado',
+  'status.waiting': 'Aguardando',
+  'status.stopped': 'Parado',
+  'status.interrupted': 'Interrompido',
+  'status.turnInterrupted': 'Interrompido',
+  'status.stopping': 'Parando…',
+  'status.reconnecting': 'Conexão de progresso perdida, reconectando…',
+  'status.runGone': 'O servidor não tem mais essa conversa; veja o arquivo de log para a saída completa',
+
+  // Why a conversation cannot take another turn (server sends the code)
+  'resume.running': 'Essa conversa ainda está em execução; aguarde terminar para continuar.',
+  'resume.unsupported': '{provider} não permite continuar na mesma conversa; inicie uma nova.',
+  'resume.noSession': '{provider} não retornou um id de sessão, então não há como continuar; inicie uma nova conversa.',
+  'resume.notStarted': '{provider} nunca chegou a iniciar a primeira rodada, então não há sessão para continuar; inicie uma nova conversa.',
+  'resume.gone': 'Essa conversa sumiu do servidor dev (ele foi reiniciado sem histórico salvo); só é possível iniciar uma nova.',
+  'resume.blocked': 'Não é possível continuar essa conversa; clique com Option / Alt em um elemento da página para iniciar uma nova.',
+  'resume.singleTurn': '{provider} aceita apenas uma rodada; a conversa não pode continuar depois que ela terminar.',
+
+  // Chat header
+  'chat.newConversation': 'Nova conversa',
+  'chat.newConversationHint': '{provider} · aparece no histórico à esquerda depois do envio',
+  'chat.subtitle': '{focus} · {provider} · {turns} · log {log}',
+  'chat.logTitle': 'Log {log}',
+  'chat.expand': 'Expandir conversa',
+  'chat.stop': 'Parar',
+  'chat.stopTitle': 'Encerra esta rodada; a conversa é mantida para você continuar perguntando',
+  'chat.delete': 'Excluir',
+  'chat.deleteRunningConfirm': 'Essa conversa ainda está em execução. Parar e excluir?',
+  'chat.followLatest': 'Ir para o mais recente',
+
+  // Empty states
+  'empty.newTitle': 'Nova conversa',
+  'empty.focus': 'Foco:',
+  'empty.newWithTarget': 'Descreva como quer alterá-lo. Depois de enviar, a conversa aparece à esquerda para você retomar depois.',
+  'empty.startTitle': 'Iniciar uma nova conversa',
+  'empty.pickHint': 'Segure Option / Alt e clique em um elemento da página para torná-lo o foco desta conversa.',
+  'empty.historyHint': 'Ou escolha uma conversa à esquerda para continuar com o contexto anterior.',
+  'empty.loadingTranscript': 'Carregando transcrição…',
+  'empty.transcriptNotLoaded': 'A transcrição ainda não carregou; aguarde um momento ou clique novamente na conversa à esquerda.',
+
+  // Messages / turn cards
+  'turn.focusChanged': 'Foco alterado para {focus}',
+  'turn.fullPrompt': 'Prompt completo',
+  'turn.resumed': 'Retomado',
+  'turn.duration': 'Duração',
+  'turn.index': 'Rodada {index}',
+  'turn.waitingOutput': 'Aguardando a saída…',
+  'turn.noOutput': 'Esta rodada não produziu saída.',
+  'turn.noDisplayableReply': 'Nenhuma resposta para exibir.',
+  'turn.expandAll': { one: 'Expandir tudo · {count} linha', other: 'Expandir tudo · {count} linhas' },
+  'turn.collapse': 'Recolher',
+  'turn.stoppedNote': 'Você parou esta rodada.',
+  'turn.interruptedNote': 'Esta rodada foi interrompida (o servidor dev reiniciou).',
+  'turn.failedNote': 'Esta rodada falhou.',
+  'turn.retry': 'Tentar novamente',
+  'turn.queued': 'Na fila · envia automaticamente quando esta rodada terminar',
+  'turn.withdraw': 'Cancelar',
+  'turn.diagnostics': { one: 'Recolhida {count} entrada de diagnóstico', other: 'Recolhidas {count} entradas de diagnóstico' },
+  'turn.tool': 'Ferramenta',
+  'turn.log': 'Log:',
+
+  // Changed files
+  'files.none': 'Nenhum arquivo alterado',
+  'files.changed': { one: '{count} arquivo alterado', other: '{count} arquivos alterados' },
+  'files.more': { one: 'Mais {count} arquivo', other: 'Mais {count} arquivos' },
+  'files.collapse': 'Recolher',
+  'files.open': 'Abrir {path} no IDE',
+  'files.deletedTitle': '{path} (excluído)',
+  'files.added': 'Adicionado',
+  'files.modified': 'Modificado',
+  'files.deleted': 'Excluído',
+
+  // Composer
+  'composer.repointQuestion': 'Continuar a conversa anterior neste elemento?',
+  'composer.repointAction': 'Continuar em “{title}”',
+  'composer.queueingNote': '{provider} está respondendo. Mensagens enviadas agora entram na fila e são enviadas automaticamente quando esta rodada terminar.',
+  'composer.repointedNote': 'Esta rodada muda o foco para o elemento abaixo; o contexto continua na mesma conversa.',
+  'composer.badgeContinue': 'Continuação · rodada {index}',
+  'composer.badgeNew': 'Nova conversa',
+  'composer.keepFocus': '{focus} · mantendo o foco da conversa',
+  'composer.pickTarget': 'Clique com Option / Alt em um elemento da página para escolher um componente',
+  'composer.copyLocation': 'Copiar local no código-fonte',
+  'composer.copied': 'Copiado',
+  'composer.openInIde': 'Abrir no IDE',
+  'composer.placeholderContinue': 'Continue da rodada anterior; o Agent lembra do contexto e do código que ele alterou',
+  'composer.placeholderNew': 'Descreva como quer alterar este elemento',
+  'composer.placeholderPick': 'Primeiro clique com Option / Alt em um elemento da página',
+  'composer.send': 'Enviar para {provider}',
+  'composer.continue': 'Continuar',
+  'composer.queue': 'Enviar ao terminar',
+  'composer.sending': 'Enviando',
+  'composer.sendTitle': 'Enviar com {shortcut}',
+
+  // Composer status line
+  'status.hintContinue': '{shortcut} para enviar; o Agent responderá nesta conversa',
+  'status.hintNew': '{shortcut} para enviar; fechar o painel não interrompe a tarefa',
+  'status.pickFirst': 'Primeiro clique com Option / Alt em um elemento da página',
+  'status.copied': 'Local no código-fonte copiado.',
+  'status.openedInIde': 'Aberto no IDE.',
+  'status.copyFailed': 'Falha ao copiar.',
+  'status.writeSomething': 'Descreva a alteração primeiro.',
+  'status.alreadyQueued': 'Já há uma mensagem na fila; cancele-a para editar e enviar novamente.',
+  'status.queueReturned': 'Não é possível continuar essa conversa; a mensagem da fila voltou para o campo de texto.',
+  'status.agentNotConfigured': 'Este Agent ainda não está configurado.',
+  'status.customProxyMissing': 'Primeiro informe um endereço de proxy personalizado nas configurações.',
+  'status.startingProvider': 'Iniciando {provider}...',
+  'status.continuingProvider': 'Continuando {provider}...',
+
+  // Errors the server reports by key
+  'error.notRunning': 'Essa conversa não está em execução no momento.',
+
+  // Agent picker
+  'agent.label': 'Agent',
+  'agent.notConfigured': 'Não configurado',
+  'agent.singleTurn': 'Rodada única',
+  'agent.lockedTitle': 'Esta conversa foi iniciada com {provider}; é preciso usá-lo para continuar. Inicie uma nova conversa para trocar de Agent.',
+  'agent.availableTitle': 'Conectado: {providers}. A troca afeta apenas novas conversas.',
+  'agent.noneAvailable': 'Nenhum Agent disponível ainda.',
+
+  // Settings
+  'settings.title': 'Configurações',
+  'settings.close': 'Fechar configurações',
+  'settings.triggerTitle': 'Configurações · proxy: {proxy} · envio: {shortcut}',
+  'settings.proxy': 'Proxy de rede',
+  'settings.proxyOff': 'Desativado',
+  'settings.proxySystem': 'Sistema',
+  'settings.proxyCustom': 'Personalizado',
+  'settings.proxyNeedsUrl': 'URL obrigatória',
+  'settings.proxyDetected': 'Detectado',
+  'settings.proxyNotDetected': 'Não detectado',
+  'settings.proxyAddress': 'Endereço do proxy',
+  'settings.proxySystemMissing': 'Nenhum proxy do sistema/padrão detectado',
+  'settings.proxyNone': 'Sem proxy para os Agents',
+  'settings.proxyNote': 'Afeta apenas os processos de Agent iniciados depois.',
+  'settings.shortcut': 'Atalho de envio',
+  'settings.theme': 'Tema',
+  'settings.themeDark': 'Escuro',
+  'settings.themeLight': 'Claro',
+  'settings.language': 'Idioma',
+  'settings.languageAuto': 'Seguir o navegador',
+
+  // Tool permissions
+  'permission.title': '{provider} está solicitando permissão',
+  'permission.tool': 'Quer usar {tool}',
+  'permission.allow': 'Permitir',
+  'permission.always': 'Sempre permitir nesta conversa',
+  'permission.deny': 'Negar',
+  'permission.waiting': 'Aprovação necessária',
+  'permission.waitingNote': '{provider} está aguardando sua decisão e continua depois que você escolher.',
+  'permission.recordAllow': 'Permitido',
+  'permission.recordAlways': 'Permitido (não será perguntado novamente nesta conversa)',
+  'permission.recordDeny': 'Negado',
+  'permission.recordCancelled': 'Solicitação de permissão cancelada',
+  'settings.permission': 'Permissões',
+  'settings.permissionAsk': 'Perguntar',
+  'settings.permissionEdit': 'Edição automática',
+  'settings.permissionFull': 'Acesso total',
+  'settings.permissionAskNote': 'As edições de arquivos são executadas automaticamente; qualquer outra ação que precise de aprovação será perguntada na conversa.',
+  'settings.permissionEditNote': 'As edições de arquivos são executadas automaticamente; qualquer outra ação que precise de aprovação será negada.',
+  'settings.permissionFullNote': 'Nada é perguntado: o Agent pode executar qualquer comando ou ferramenta. Use apenas em projetos em que confia.',
+  'settings.permissionFallback': '{provider} não suporta “{requested}”; será executado como “{actual}”.',
+  'settings.permissionFixed': 'As permissões de {provider} são definidas pelos próprios parâmetros de inicialização dele; esta configuração não se aplica a ele.',
+  'turn.fullAccess': 'Acesso total',
+  'dock.waitingPermission': { one: '{count} conversa aguardando aprovação', other: '{count} conversas aguardando aprovação' },
+  'error.permissionGone': 'Esta solicitação de permissão não é mais válida (o Agent pode ter terminado).',
+
+  // Prompt / transcript modals
+  'modal.promptAria': 'Ver o prompt completo enviado para {provider}',
+  'modal.promptTitle': 'Prompt completo enviado para {provider} na rodada {index}',
+  'modal.promptResumed': 'Rodadas retomadas não reenviam o contexto do código-fonte — o Agent já está na mesma conversa. Abaixo está exatamente o que foi enviado nesta rodada.',
+  'modal.promptFirst': 'O prompt completo enviado para {provider} quando esta conversa começou, incluindo locais no código-fonte e o DOM source stack.',
+  'modal.promptMissing': 'Nenhum prompt completo foi registrado nesta rodada; abra o arquivo de log {log} para conferir o comando de início e o texto do prompt.',
+  'modal.logFile': 'Arquivo de log: {log}',
+  'modal.transcriptSubtitle': '{provider} · {turns}',
+
+  // Dock button
+  'dock.running': { one: '{count} conversa em execução', other: '{count} conversas em execução' },
+  'dock.total': { one: '{count} conversa do AI Ins', other: '{count} conversas do AI Ins' },
+
+  // Live activity and reasoning
+  'thinking.live': 'Pensando',
+  'thinking.waiting': 'Aguardando {provider}',
+  'thinking.working': '{provider} está trabalhando',
+  'thinking.done': 'Pensou por {duration}',
+  'thinking.title': 'Raciocínio',
+
+  // Markdown replies
+  'markdown.copyCode': 'Copiar código',
+  'markdown.copied': 'Copiado',
+  'markdown.openFile': 'Abrir {path} no IDE',
+
+  // Notices embedded in output by the server or the panel
+  'notice.panelTruncated': 'A saída do painel ficou longa demais; o início e a parte mais recente foram mantidos. Abra o arquivo de log para ver a saída completa.',
+  'notice.historyTruncated': 'O histórico mantém apenas o início e o fim da saída desta rodada. Abra o arquivo de log para ver a saída completa.',
+
+  // Built-in diagnostics folding (codex noise)
+  'diagnostic.codexStateDb': 'O índice de estado do Codex estava inconsistente; voltou para a busca por arquivos.',
+  'diagnostic.codexPluginSync': 'Falha ao pré-aquecer a lista de plugins do Codex: chatgpt.com retornou 403 / desafio do Cloudflare.',
+  'diagnostic.pluginManifest': 'Aviso de manifest do plugin: {detail}',
+  'diagnostic.skillLoader': 'Aviso do carregador de Skill: {detail}',
+  'diagnostic.analytics': 'Aviso ao reportar eventos de análise: {detail}',
+}

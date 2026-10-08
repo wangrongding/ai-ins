@@ -1,0 +1,241 @@
+/** Japanese panel copy. The key set and order mirror `i18n.zh-CN.ts` (checked by tsc). */
+import type { MessageCatalog } from './i18n.zh-CN'
+
+// Japanese has no cardinal plural forms, so every value is a plain string.
+export const ja: MessageCatalog = {
+  // Header / chrome
+  'panel.subtitle': '左側の会話を選択して質問を続けたり、Option / Alt を押しながらページ要素をクリックして新しい会話を開始できます',
+  'panel.collapse': '折りたたむ',
+  'panel.close': '閉じる',
+
+  // Sidebar
+  'sidebar.newConversation': '新しい会話',
+  'sidebar.newConversationTitle': '新しい会話を開始します。Option / Alt を押しながらページ要素をクリックすることもできます',
+  'sidebar.history': '会話履歴',
+  'sidebar.clearFinished': '終了済みを削除',
+  'sidebar.clearFinishedTitle': '終了した会話の記録をすべて削除します（ログファイルは残ります）',
+  'sidebar.clearFinishedConfirm': '終了した会話 {count} 件を削除しますか？実行中の会話は残り、ログファイルは削除されません。',
+  'sidebar.clearedCount': '終了した会話 {count} 件を削除しました。',
+  'sidebar.clearedNone': '終了した会話はありません。',
+  'sidebar.search': '会話を検索',
+  'sidebar.searchPlaceholder': '要求やコンポーネント、ファイルを検索',
+  'sidebar.loading': '履歴を読み込んでいます…',
+  'sidebar.noMatch': '一致する会話はありません',
+  'sidebar.empty': 'まだ会話はありません',
+  'sidebar.turnCount': '{count} ターン',
+  'sidebar.cannotContinue': '続行できません',
+
+  // Day groups and times
+  'time.today': '今日',
+  'time.yesterday': '昨日',
+  'time.last7Days': '過去 7 日間',
+  'time.earlier': 'それ以前',
+  'time.yesterdayAt': '昨日 {time}',
+
+  // Run / turn status
+  'status.starting': '起動中',
+  'status.running': '実行中',
+  'status.done': '完了',
+  'status.failed': '失敗',
+  'status.disconnected': '切断されました',
+  'status.waiting': '待機中',
+  'status.stopped': '停止しました',
+  'status.interrupted': '中断されました',
+  'status.turnInterrupted': '中断されました',
+  'status.stopping': '停止しています…',
+  'status.reconnecting': '進捗の接続が切断されたため、再接続中…',
+  'status.runGone': 'サーバーにこの会話が見つかりません。完全な出力はログファイルを確認してください',
+
+  // Why a conversation cannot take another turn (server sends the code)
+  'resume.running': 'この会話はまだ実行中です。終わってから続けてください。',
+  'resume.unsupported': '{provider} は同じ会話での続行に対応していません。新しい会話を開始してください。',
+  'resume.noSession': '{provider} のセッション ID を取得できず、続行できません。新しい会話を開始してください。',
+  'resume.notStarted': '{provider} は最初のターンを実際には開始しておらず、続行できる会話がありません。新しい会話を開始してください。',
+  'resume.gone': 'この会話は dev サーバー上に存在しません（履歴を保存せずに再起動されたため）。新しい会話を開始してください。',
+  'resume.blocked': 'この会話は続行できません。Option / Alt を押しながらページ要素をクリックして新しい会話を開始してください。',
+  'resume.singleTurn': '{provider} はシングルターンのみ対応です。この会話は終了後に続行できません。',
+
+  // Chat header
+  'chat.newConversation': '新しい会話',
+  'chat.newConversationHint': '{provider} · 送信すると左側の履歴に表示されます',
+  'chat.subtitle': '{focus} · {provider} · {turns} · ログ {log}',
+  'chat.logTitle': 'ログ {log}',
+  'chat.expand': '会話を拡大',
+  'chat.stop': '停止',
+  'chat.stopTitle': 'このターンを終了します。会話は残るため、そのまま質問を続けられます',
+  'chat.delete': '削除',
+  'chat.deleteRunningConfirm': 'この会話は実行中です。停止して削除しますか？',
+  'chat.followLatest': '最新を表示',
+
+  // Empty states
+  'empty.newTitle': '新しい会話',
+  'empty.focus': 'フォーカス:',
+  'empty.newWithTarget': '変更内容を説明してください。送信するとこの会話が左側に表示され、以後は選択して続きを質問できます。',
+  'empty.startTitle': '新しい会話を開始',
+  'empty.pickHint': 'Option / Alt を押しながらページ上の要素をクリックすると、その要素がこの会話のフォーカスになります。',
+  'empty.historyHint': 'または左側の会話履歴を選択して、前のコンテキストのまま質問を続けられます。',
+  'empty.loadingTranscript': '会話の記録を読み込んでいます…',
+  'empty.transcriptNotLoaded': '会話の記録はまだ読み込まれていません。少し待つか、左側の会話をもう一度クリックしてください。',
+
+  // Messages / turn cards
+  'turn.focusChanged': 'フォーカスを {focus} に切り替えました',
+  'turn.fullPrompt': '完全な prompt',
+  'turn.resumed': '再開',
+  'turn.duration': '所要時間',
+  'turn.index': 'ターン {index}',
+  'turn.waitingOutput': '出力を待っています…',
+  'turn.noOutput': 'このターンには出力がありません。',
+  'turn.noDisplayableReply': '表示できる返信はありません。',
+  'turn.expandAll': 'すべて展開 · {count} 行',
+  'turn.collapse': '折りたたむ',
+  'turn.stoppedNote': 'このターンを停止しました。',
+  'turn.interruptedNote': 'このターンは中断されました（dev サーバーの再起動）。',
+  'turn.failedNote': 'このターンは失敗しました。',
+  'turn.retry': '再試行',
+  'turn.queued': 'キューに追加済み · このターンの終了後に自動送信されます',
+  'turn.withdraw': '取り消す',
+  'turn.diagnostics': '診断ログ {count} 件を折りたたみました',
+  'turn.tool': 'ツール',
+  'turn.log': 'ログ:',
+
+  // Changed files
+  'files.none': '変更されたファイルはありません',
+  'files.changed': '{count} 個のファイルが変更されました',
+  'files.more': '他 {count} 個のファイル',
+  'files.collapse': '折りたたむ',
+  'files.open': '{path} を IDE で開く',
+  'files.deletedTitle': '{path}（削除済み）',
+  'files.added': '追加',
+  'files.modified': '変更',
+  'files.deleted': '削除',
+
+  // Composer
+  'composer.repointQuestion': '前の会話でこの要素の変更を続けますか？',
+  'composer.repointAction': '「{title}」で続行',
+  'composer.queueingNote': '{provider} が返信しています。今送信すると、このターンの終了後に自動的に送信されます。',
+  'composer.repointedNote': 'このターンではフォーカスが下の要素に切り替わります。コンテキストは同じ会話内に保たれます。',
+  'composer.badgeContinue': '続行 · ターン {index}',
+  'composer.badgeNew': '新しい会話',
+  'composer.keepFocus': '{focus} · 会話のフォーカスを維持',
+  'composer.pickTarget': 'Option / Alt を押しながらページ要素をクリックしてコンポーネントを選択',
+  'composer.copyLocation': 'ソース位置をコピー',
+  'composer.copied': 'コピーしました',
+  'composer.openInIde': 'IDE で開く',
+  'composer.placeholderContinue': '前のターンの続きを入力してください。Agent はこれまでの経緯と変更したコードを覚えています',
+  'composer.placeholderNew': 'この要素の変更内容を説明してください',
+  'composer.placeholderPick': 'まず Option / Alt を押しながらページ要素をクリック',
+  'composer.send': '{provider} に送信',
+  'composer.continue': '続きを質問',
+  'composer.queue': '終了後に送信',
+  'composer.sending': '送信中',
+  'composer.sendTitle': '{shortcut} で送信',
+
+  // Composer status line
+  'status.hintContinue': '{shortcut} で送信。Agent がこの会話に続けて回答します',
+  'status.hintNew': '{shortcut} で送信。パネルを閉じてもタスクは中断されません',
+  'status.pickFirst': '先に Option / Alt を押しながらページ要素をクリックしてください',
+  'status.copied': 'ソース位置をコピーしました。',
+  'status.openedInIde': 'IDE で開きました。',
+  'status.copyFailed': 'コピーに失敗しました。',
+  'status.writeSomething': 'まず変更内容を入力してください。',
+  'status.alreadyQueued': 'すでに 1 件キューにあります。取り消してから編集し、送信してください。',
+  'status.queueReturned': 'この会話は続行できないため、キューのメッセージを入力欄に戻しました。',
+  'status.agentNotConfigured': 'この Agent はまだ設定されていません。',
+  'status.customProxyMissing': '先に設定でカスタムプロキシのアドレスを入力してください。',
+  'status.startingProvider': '{provider} を起動中...',
+  'status.continuingProvider': '{provider} で続行中...',
+
+  // Errors the server reports by key
+  'error.notRunning': 'この会話は現在実行されていません。',
+
+  // Agent picker
+  'agent.label': 'Agent',
+  'agent.notConfigured': '未設定',
+  'agent.singleTurn': 'シングルターン',
+  'agent.lockedTitle': 'この会話は {provider} で開始されました。続行には同じ Agent を使う必要があり、切り替えるには新しい会話を開始してください。',
+  'agent.availableTitle': '{providers} を利用できます。切り替えは新しい会話にのみ影響します。',
+  'agent.noneAvailable': '利用できる Agent はまだありません。',
+
+  // Settings
+  'settings.title': '設定',
+  'settings.close': '設定を閉じる',
+  'settings.triggerTitle': '設定 · プロキシ:{proxy} · 送信:{shortcut}',
+  'settings.proxy': 'ネットワークプロキシ',
+  'settings.proxyOff': 'オフ',
+  'settings.proxySystem': 'システム',
+  'settings.proxyCustom': 'カスタム',
+  'settings.proxyNeedsUrl': 'URL 必須',
+  'settings.proxyDetected': '検出済み',
+  'settings.proxyNotDetected': '未検出',
+  'settings.proxyAddress': 'プロキシアドレス',
+  'settings.proxySystemMissing': 'システム/既定のプロキシが検出されません',
+  'settings.proxyNone': 'Agent にプロキシを設定しない',
+  'settings.proxyNote': '以後に起動する Agent プロセスにのみ適用されます。',
+  'settings.shortcut': '送信ショートカット',
+  'settings.theme': 'テーマ',
+  'settings.themeDark': 'ダーク',
+  'settings.themeLight': 'ライト',
+  'settings.language': '言語',
+  'settings.languageAuto': 'ブラウザーの言語に合わせる',
+
+  // Tool permissions
+  'permission.title': '{provider} が権限を要求しています',
+  'permission.tool': '{tool} を使用しようとしています',
+  'permission.allow': '許可',
+  'permission.always': 'この会話では常に許可',
+  'permission.deny': '拒否',
+  'permission.waiting': '承認待ち',
+  'permission.waitingNote': '{provider} が決定を待っています。選択すると処理を続行します。',
+  'permission.recordAllow': '許可済み',
+  'permission.recordAlways': '許可済み（この会話では再度確認しません）',
+  'permission.recordDeny': '拒否済み',
+  'permission.recordCancelled': '権限リクエストはキャンセルされました',
+  'settings.permission': '権限',
+  'settings.permissionAsk': '確認する',
+  'settings.permissionEdit': '自動編集',
+  'settings.permissionFull': 'フルアクセス',
+  'settings.permissionAskNote': 'ファイルの編集は自動で許可されます。それ以外の承認が必要な操作は会話内で確認します。',
+  'settings.permissionEditNote': 'ファイルの編集は自動で許可されます。それ以外の承認が必要な操作は拒否されます。',
+  'settings.permissionFullNote': '確認は行われず、Agent は任意のコマンドやツールを実行できます。信頼できるプロジェクトでのみ使用してください。',
+  'settings.permissionFallback': '{provider} は「{requested}」に対応していないため、「{actual}」として実行されます。',
+  'settings.permissionFixed': '{provider} の権限は独自の起動オプションで決まるため、ここでの設定は適用されません。',
+  'turn.fullAccess': 'フルアクセス',
+  'dock.waitingPermission': '{count} 件の会話が承認待ち',
+  'error.permissionGone': 'この権限リクエストは無効になりました（Agent は終了した可能性があります）。',
+
+  // Prompt / transcript modals
+  'modal.promptAria': '{provider} に送信した完全な prompt を表示',
+  'modal.promptTitle': 'ターン {index} で {provider} に送信した完全な prompt',
+  'modal.promptResumed': '再開したターンではソースのコンテキストを再送しません——Agent は同じ会話にいるためです。以下はこのターンで実際に送信された内容です。',
+  'modal.promptFirst': 'これはこの会話の開始時に {provider} に実際に送信された完全な prompt です。ソース位置と DOM source stack を含みます。',
+  'modal.promptMissing': 'このターンの完全な prompt は記録されていません。ログファイル {log} を開いて、起動コマンドと prompt の本文を確認してください。',
+  'modal.logFile': 'ログファイル:{log}',
+  'modal.transcriptSubtitle': '{provider} · {turns}',
+
+  // Dock button
+  'dock.running': '{count} 件の会話が実行中',
+  'dock.total': 'AI Ins 会話 {count} 件',
+
+  // Live activity and reasoning
+  'thinking.live': '考え中',
+  'thinking.waiting': '{provider} の応答を待っています',
+  'thinking.working': '{provider} が作業中',
+  'thinking.done': '{duration} 考えました',
+  'thinking.title': '思考プロセス',
+
+  // Markdown replies
+  'markdown.copyCode': 'コードをコピー',
+  'markdown.copied': 'コピーしました',
+  'markdown.openFile': '{path} を IDE で開く',
+
+  // Notices embedded in output by the server or the panel
+  'notice.panelTruncated': 'パネルの出力が長すぎるため、先頭と最新部分のみ表示しています。完全な出力はログファイルを開いて確認してください。',
+  'notice.historyTruncated': '履歴にはこのターンの出力の先頭と末尾のみ保存されています。完全な出力はログファイルを開いて確認してください。',
+
+  // Built-in diagnostics folding (codex noise)
+  'diagnostic.codexStateDb': 'Codex の状態インデックスに不整合があるため、ファイル検索にフォールバックしました。',
+  'diagnostic.codexPluginSync': 'Codex のプラグイン一覧のウォームアップに失敗:chatgpt.com が 403 / Cloudflare チャレンジを返しました。',
+  'diagnostic.pluginManifest': 'プラグイン manifest の警告:{detail}',
+  'diagnostic.skillLoader': 'Skill ローダーの警告:{detail}',
+  'diagnostic.analytics': 'アナリティクスイベント送信の警告:{detail}',
+}
