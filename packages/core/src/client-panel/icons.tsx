@@ -22,7 +22,7 @@ export function IconButton({ children, disabled, label, success, onClick }: Icon
   return (
     <button
       aria-label={label}
-      className={`wbx-ai-ins-icon-button${success ? ' wbx-ai-ins-icon-button-success' : ''}`}
+      className={`ai-ins-icon-button${success ? ' ai-ins-icon-button-success' : ''}`}
       disabled={disabled}
       onClick={onClick}
       title={label}
@@ -66,3 +66,11 @@ export const folderIcon = [
   'M3 7h5l2 2h11v9a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2Z',
   'M3 7V5a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v2',
 ]
+
+export const plusIcon = ['M12 5v14', 'M5 12h14']
+
+export const slidersIcon = ['M4 6h10', 'M18 6h2', 'M16 4v4', 'M4 12h4', 'M12 12h8', 'M10 10v4', 'M4 18h12', 'M20 18h0', 'M18 16v4']
+
+export const chevronDownIcon = ['m6 9 6 6 6-6']
+
+export const closeIcon = ['M18 6 6 18', 'm6 6 12 12']

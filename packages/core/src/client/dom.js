@@ -1,7 +1,7 @@
 const style = document.createElement('style')
 style.setAttribute('type', 'text/css')
 style.setAttribute('data-vite-dev-id', 'ai-ins')
-style.textContent = __WBX_CLIENT_STYLE__.replaceAll('__WBX_TARGET_ATTRIBUTE__', targetAttribute)
+style.textContent = __AI_INS_CLIENT_STYLE__.replaceAll('__AI_INS_TARGET_ATTRIBUTE__', targetAttribute)
 document.head.appendChild(style)
 
 function createElement(tag, className, text) {
@@ -60,7 +60,7 @@ function setIconButtonIcon(button, label, paths) {
 function createLoadingSpinner() {
   const spinner = createSvgElement('svg', {
     'aria-hidden': 'true',
-    class: 'wbx-ai-ins-output-state-spinner',
+    class: 'ai-ins-output-state-spinner',
     fill: 'none',
     viewBox: '0 0 24 24',
   })

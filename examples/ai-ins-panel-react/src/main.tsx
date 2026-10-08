@@ -161,7 +161,7 @@ function getSourceElement(element: HTMLElement) {
 }
 
 function getPanelTarget(container: HTMLElement | null): DraftTarget | undefined {
-  const panel = container?.querySelector('.wbx-ai-ins-panel')
+  const panel = container?.querySelector('.ai-ins-panel')
   if (!(panel instanceof HTMLElement)) {
     return undefined
   }
@@ -461,7 +461,7 @@ function App() {
 
   return (
     <div
-      className="panel-playground-shell wbx-ai-ins-dialog"
+      className="panel-playground-shell ai-ins-dialog"
       onClickCapture={(event) => {
         if (!event.altKey || !(event.target instanceof HTMLElement)) {
           return

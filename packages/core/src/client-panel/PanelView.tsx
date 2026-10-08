@@ -1,37 +1,37 @@
-import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode, useEffect, useMemo, useRef, useState } from 'react'
-import { arrowDownIcon, checkIcon, codeIcon, copyIcon, Icon, IconButton, maximizeIcon, minimizeIcon, moonIcon, sunIcon } from './icons'
-import type { AgentProvider, AgentRun, ProxyMode } from './types'
+import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  arrowDownIcon,
+  checkIcon,
+  chevronDownIcon,
+  closeIcon,
+  codeIcon,
+  copyIcon,
+  Icon,
+  IconButton,
+  maximizeIcon,
+  minimizeIcon,
+  plusIcon,
+  slidersIcon,
+} from './icons'
+import { detectBrowserLocale, getLocale, isMessageKey, type Locale, type LocalePreference, localeNames, locales, t } from './i18n'
+import { MarkdownView } from './markdown'
+import { PanelSelect, usePanelDismiss } from './PanelSelect'
+import type {
+  AgentProvider,
+  AgentRun,
+  AgentRunTurn,
+  ChangedFile,
+  PermissionDecision,
+  PermissionMode,
+  PermissionRequest,
+  ProxyMode,
+} from './types'
 
-const promptDraftStorageKey = 'ai-ins-panel-prompt-draft'
 const panelThemeStorageKey = 'ai-ins-panel-theme'
 const panelSubmitShortcutStorageKey = 'ai-ins-panel-submit-shortcut'
 const outputAutoScrollThreshold = 32
 type PanelTheme = 'dark' | 'light'
 type PanelSubmitShortcut = 'enter' | 'modifier-enter'
-
-function readPanelPromptDraft() {
-  try {
-    return window.sessionStorage.getItem(promptDraftStorageKey) || ''
-  } catch {
-    return ''
-  }
-}
-
-function savePanelPromptDraft(value: string) {
-  try {
-    if (value) {
-      window.sessionStorage.setItem(promptDraftStorageKey, value)
-    } else {
-      window.sessionStorage.removeItem(promptDraftStorageKey)
-    }
-  } catch {
-    // Ignore storage restrictions in embedded browsers.
-  }
-}
-
-export function clearPanelPromptDraft() {
-  savePanelPromptDraft('')
-}
 
 function readPanelStoredTheme() {
   try {
@@ -127,50 +127,79 @@ function panelMatchesSubmitShortcut(
 
 type PanelViewProps = {
   defaultProxy: string
+  /** Resolved UI language; passed in so memoized labels re-render on a switch. */
+  locale: Locale
+  localePreference: LocalePreference
   providers: AgentProvider[]
   providerId: string
   proxy: string
   proxyMode: ProxyMode
+  /** Permission level the next turn asks for (the provider may narrow it). */
+  permissionMode: PermissionMode
   prompt: string
+  /** A follow-up waiting for the open conversation's current turn to end. */
+  queuedPrompt?: string
+  /**
+   * The conversation that was open before an Option / Alt pick started a new
+   * one; offered as "continue it with this element instead".
+   */
+  repointRun?: AgentRun
+  /** True when the open conversation's next turn focuses a freshly picked element. */
+  repointed: boolean
   runCount: number
   runs: AgentRun[]
+  /** True until the first history fetch settles. */
+  runsLoading: boolean
+  /** The open conversation; the next submit continues it. Undefined means a new conversation. */
   selectedRunId?: string
   status: string
   submitting: boolean
   targetLabel: string
   targetTitle: string
+  onClearFinishedRuns: () => void
+  onCancelQueued: () => void
   onClose: () => void
+  onContinueWithTarget: () => void
   onCopyTarget: () => Promise<void>
+  onAnswerPermission: (run: AgentRun, request: PermissionRequest, decision: PermissionDecision) => void
   onDeleteRun: (run: AgentRun) => void
+  onLocaleChange: (value: LocalePreference) => void
+  onNewConversation: () => void
+  onPermissionModeChange: (value: PermissionMode) => void
+  onOpenFile: (path: string) => void
   onOpenInEditor: () => Promise<void>
   onPromptChange: (value: string) => void
   onProviderChange: (value: string) => void
   onProxyChange: (value: string) => void
   onProxyModeChange: (value: ProxyMode) => void
+  onRetryTurn: (run: AgentRun, turn: AgentRunTurn) => void
   onSelectRun: (runId: string) => void
-  onSubmit: () => Promise<void>
+  onStopRun: (run: AgentRun) => void
+  onSubmit: () => void
 }
 
-const proxyModeOptions: Array<{ label: string; value: ProxyMode }> = [
-  { label: '关闭', value: 'off' },
-  { label: '系统', value: 'system' },
-  { label: '自定义', value: 'custom' },
-]
+function panelGetProxyModeOptions(): Array<{ label: string; value: ProxyMode }> {
+  return [
+    { label: t('settings.proxyOff'), value: 'off' },
+    { label: t('settings.proxySystem'), value: 'system' },
+    { label: t('settings.proxyCustom'), value: 'custom' },
+  ]
+}
 
 function panelGetRunStatusLabel(status: string) {
   switch (status) {
     case 'starting':
-      return '启动中'
+      return t('status.starting')
     case 'running':
-      return '运行中'
+      return t('status.running')
     case 'done':
-      return '已完成'
+      return t('status.done')
     case 'failed':
-      return '失败'
+      return t('status.failed')
     case 'disconnected':
-      return '连接断开'
+      return t('status.disconnected')
     default:
-      return '等待'
+      return t('status.waiting')
   }
 }
 
@@ -178,25 +207,115 @@ function panelIsRunWorking(run: AgentRun) {
   return run.status === 'starting' || run.status === 'running'
 }
 
-function panelGetRunWorkStatus(run: AgentRun) {
-  if (run.status === 'starting') return `${run.providerLabel} 正在启动，马上开始处理这块代码`
-  if (run.status === 'running') return run.statusMessage || `${run.providerLabel} 正在分析代码和整理改动`
-  if (run.status === 'done') return `${run.providerLabel} 已完成`
-  if (run.status === 'failed') return run.statusMessage || `${run.providerLabel} 执行失败`
-  if (run.status === 'disconnected') return '进度连接断开，可以继续查看日志或刷新重连'
-  return '等待任务输出'
-}
-
-function panelGetRunTitle(run: AgentRun, getDisplayPath: (path: string) => string) {
+/** The element a conversation is about. */
+function panelGetRunFocusLabel(run: AgentRun, getDisplayPath: (path: string) => string) {
   return run.sourceName || getDisplayPath(run.sourcePath || '')
 }
 
+/**
+ * Conversations are named by what was asked, not by the element: picking the
+ * same element twice is common, asking the same thing twice is not.
+ */
+function panelGetRunTitle(run: AgentRun, getDisplayPath: (path: string) => string) {
+  const firstLine = (run.turns[0]?.prompt || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .find(Boolean)
+  return firstLine || panelGetRunFocusLabel(run, getDisplayPath)
+}
+
+function panelTruncate(value: string, maxLength: number) {
+  return value.length > maxLength ? `${value.slice(0, maxLength)}…` : value
+}
+
+function panelFormatDuration(milliseconds: number) {
+  const seconds = Math.max(0, Math.round(milliseconds / 1000))
+  if (seconds < 60) return `${seconds}s`
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m ${String(seconds % 60).padStart(2, '0')}s`
+  return `${Math.floor(minutes / 60)}h ${String(minutes % 60).padStart(2, '0')}m`
+}
+
+function panelGetTurnStatusLabel(turn: AgentRunTurn) {
+  if (turn.stopped) return t('status.stopped')
+  if (turn.interrupted) return t('status.turnInterrupted')
+  return panelGetRunStatusLabel(turn.status)
+}
+
+const panelChangeStatusLabels: Record<ChangedFile['status'], string> = { added: 'A', deleted: 'D', modified: 'M' }
+const panelChangeStatusTitleKeys = { added: 'files.added', deleted: 'files.deleted', modified: 'files.modified' } as const
+// Long change lists fold after this many files.
+const panelVisibleChangedFiles = 8
+
 function panelFormatRunTime(timestamp: number) {
-  return new Date(timestamp).toLocaleTimeString([], {
+  return new Date(timestamp).toLocaleTimeString(getLocale(), {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
   })
+}
+
+const panelDayMs = 24 * 60 * 60 * 1000
+
+function panelGetStartOfDay(timestamp: number) {
+  const date = new Date(timestamp)
+  date.setHours(0, 0, 0, 0)
+  return date.getTime()
+}
+
+/** Matches the runtime's ordering key: the last turn start moves when a task is continued. */
+function panelGetRunActivityAt(run: AgentRun) {
+  return Math.max(run.turns[run.turns.length - 1]?.createdAt || 0, run.createdAt || 0)
+}
+
+function panelGetRunDayGroup(timestamp: number, now: number) {
+  const dayDiff = Math.round((panelGetStartOfDay(now) - panelGetStartOfDay(timestamp)) / panelDayMs)
+  if (dayDiff <= 0) return t('time.today')
+  if (dayDiff === 1) return t('time.yesterday')
+  if (dayDiff < 7) return t('time.last7Days')
+  return t('time.earlier')
+}
+
+/** History outlives the day it was made in, so anything older than today carries its date. */
+function panelFormatRunListTime(timestamp: number, now: number) {
+  const date = new Date(timestamp)
+  const time = date.toLocaleTimeString(getLocale(), { hour: '2-digit', minute: '2-digit' })
+  const dayDiff = Math.round((panelGetStartOfDay(now) - panelGetStartOfDay(timestamp)) / panelDayMs)
+  if (dayDiff <= 0) return time
+  if (dayDiff === 1) return t('time.yesterdayAt', { time })
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return date.getFullYear() === new Date(now).getFullYear() ? `${month}-${day} ${time}` : `${date.getFullYear()}-${month}-${day} ${time}`
+}
+
+function panelRunMatchesQuery(run: AgentRun, query: string, getDisplayPath: (path: string) => string) {
+  if (!query) return true
+  const haystack = [
+    run.sourceName,
+    getDisplayPath(run.sourcePath || ''),
+    run.providerLabel,
+    ...run.turns.flatMap((turn) => [turn.prompt, turn.sourceName, getDisplayPath(turn.sourcePath || '')]),
+  ]
+    .join('\n')
+    .toLowerCase()
+  return query
+    .toLowerCase()
+    .split(/\s+/u)
+    .filter(Boolean)
+    .every((word) => haystack.includes(word))
+}
+
+/** Client-made turns carry `file:line:col`, server-made ones the bare file; compare the file. */
+function panelStripSourcePosition(sourcePath: string) {
+  return (sourcePath || '').replace(/(?::\d+){1,2}$/u, '')
+}
+
+/**
+ * Continuing is the default, so the list only calls out the exception: a
+ * settled conversation that cannot take another turn (the reason is in the tooltip).
+ */
+function panelIsRunStuck(run: AgentRun) {
+  return run.completed && !run.canResume
 }
 
 function panelIsOutputNearBottom(output: HTMLElement) {
@@ -207,21 +326,9 @@ function panelScrollOutputToBottom(output: HTMLElement) {
   output.scrollTop = output.scrollHeight
 }
 
-type PanelOutputBlock =
-  | { type: 'code'; content: string; language: string }
-  | { type: 'heading'; level: number; text: string }
-  | { type: 'hr' }
-  | { type: 'list'; ordered: boolean; items: string[] }
-  | { type: 'paragraph'; lines: string[] }
-  | { type: 'quote'; lines: string[] }
-
 type PanelOutputDiagnostic = {
   count: number
   message: string
-}
-
-function panelIsOutputBlockStart(line: string) {
-  return /^```/.test(line) || /^(#{1,3})\s+/.test(line) || /^>\s?/.test(line) || /^\s*(?:[-*+]|\d+[.)])\s+/.test(line) || /^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)
 }
 
 function panelTrimDiagnosticLine(value: string) {
@@ -239,14 +346,14 @@ function panelDescribeDiagnostic(value: string) {
   if (/state db discrepancy during find_thread_path_by_id_str_in_subdir/iu.test(message)) {
     return {
       key: 'codex-state-db-fallback',
-      message: 'Codex 状态索引不一致，已回退到文件查找。',
+      message: t('diagnostic.codexStateDb'),
     }
   }
 
   if (/failed to warm featured plugin ids cache|backend-api\/plugins\/featured|__cf_chl|Cloudflare|403 Forbidden/iu.test(message)) {
     return {
       key: 'codex-plugin-sync-403',
-      message: 'Codex 插件列表预热失败：chatgpt.com 返回 403 / Cloudflare challenge。',
+      message: t('diagnostic.codexPluginSync'),
     }
   }
 
@@ -254,7 +361,7 @@ function panelDescribeDiagnostic(value: string) {
   if (manifestWarning) {
     return {
       key: `plugin-manifest-${manifestWarning[1]}`,
-      message: `插件 manifest 警告：${manifestWarning[1]}`,
+      message: t('diagnostic.pluginManifest', { detail: manifestWarning[1] }),
     }
   }
 
@@ -262,7 +369,7 @@ function panelDescribeDiagnostic(value: string) {
   if (skillWarning) {
     return {
       key: `skill-loader-${skillWarning[1]}`,
-      message: `Skill 加载警告：${skillWarning[1]}`,
+      message: t('diagnostic.skillLoader', { detail: skillWarning[1] }),
     }
   }
 
@@ -270,7 +377,7 @@ function panelDescribeDiagnostic(value: string) {
   if (analyticsWarning) {
     return {
       key: `analytics-${analyticsWarning[1]}`,
-      message: `分析事件上报警告：${analyticsWarning[1]}`,
+      message: t('diagnostic.analytics', { detail: analyticsWarning[1] }),
     }
   }
 
@@ -351,208 +458,66 @@ function panelFormatOutputForDisplay(value: string) {
     }
 
     if (line.startsWith('日志：')) {
-      visibleLines.push(`日志：\`${line.slice('日志：'.length).trim()}\``)
+      visibleLines.push(`${t('turn.log')}\`${line.slice('日志：'.length).trim()}\``)
+      continue
+    }
+
+    // Permission decisions are recorded as tokens too, so history reads in the current language.
+    const permissionMatch = line.match(/^\[ai-ins:permission:(allow|always|deny|cancelled)\] (\S+)(?: (.+))?$/u)
+    if (permissionMatch) {
+      const recordKeys = { allow: 'permission.recordAllow', always: 'permission.recordAlways', cancelled: 'permission.recordCancelled', deny: 'permission.recordDeny' } as const
+      const detail = permissionMatch[3] ? ` \`${permissionMatch[3].replace(/`/gu, "'")}\`` : ''
+      visibleLines.push(`> ${t(recordKeys[permissionMatch[1] as keyof typeof recordKeys])} · **${panelFormatToolName(permissionMatch[2])}**${detail}`)
+      continue
+    }
+
+    // Notices are tokens (`[ai-ins:notice:<name>]`) so they read in the panel's language.
+    const noticeMatch = line.match(/^\[ai-ins:notice:(\w+)\]$/u)
+    if (noticeMatch) {
+      const key = `notice.${noticeMatch[1]}`
+      visibleLines.push(`> ${isMessageKey(key) ? t(key) : line}`)
+      continue
+    }
+
+    // Agent bookkeeping (CLI started, retries) is not part of the reply.
+    if (line.startsWith('[system] ')) {
+      panelAddDiagnostic(diagnostics, line.slice('[system] '.length))
+      continue
+    }
+
+    // Tool calls render as a compact activity trail between reply paragraphs.
+    const toolMatch = line.match(/^\[tool\]\s+(\S+)(?:\s+(.+))?$/u)
+    if (toolMatch) {
+      visibleLines.push(`> ${t('turn.tool')} · **${toolMatch[1]}**${toolMatch[2] ? ` \`${toolMatch[2].replace(/`/gu, "'")}\`` : ''}`)
       continue
     }
 
     visibleLines.push(line)
   }
 
-  const markdown = visibleLines.join('\n').trim() || (diagnostics.size ? '暂无可展示的回复，已折叠启动诊断日志。' : '等待输出...')
-  return { diagnostics: Array.from(diagnostics.values()), markdown }
+  const reply = visibleLines.join('\n').trim()
+  const markdown = reply || (diagnostics.size ? t('turn.noDisplayableReply') : t('turn.waitingOutput'))
+  return { diagnostics: Array.from(diagnostics.values()), hasReply: Boolean(reply), markdown }
 }
 
-function panelParseOutputBlocks(value: string): PanelOutputBlock[] {
-  const lines = value.replace(/\r\n?/g, '\n').split('\n')
-  const blocks: PanelOutputBlock[] = []
-  let index = 0
-
-  while (index < lines.length) {
-    const line = lines[index]
-
-    if (!line.trim()) {
-      index += 1
-      continue
-    }
-
-    const fenceMatch = line.match(/^```(\S*)\s*$/)
-    if (fenceMatch) {
-      const codeLines: string[] = []
-      index += 1
-      while (index < lines.length && !/^```\s*$/.test(lines[index])) {
-        codeLines.push(lines[index])
-        index += 1
-      }
-      if (index < lines.length) index += 1
-      blocks.push({ type: 'code', content: codeLines.join('\n'), language: fenceMatch[1] || '' })
-      continue
-    }
-
-    const headingMatch = line.match(/^(#{1,3})\s+(.+)$/)
-    if (headingMatch) {
-      blocks.push({ type: 'heading', level: headingMatch[1].length, text: headingMatch[2] })
-      index += 1
-      continue
-    }
-
-    if (/^\s*(?:-{3,}|\*{3,}|_{3,})\s*$/.test(line)) {
-      blocks.push({ type: 'hr' })
-      index += 1
-      continue
-    }
-
-    if (/^>\s?/.test(line)) {
-      const quoteLines: string[] = []
-      while (index < lines.length && /^>\s?/.test(lines[index])) {
-        quoteLines.push(lines[index].replace(/^>\s?/, ''))
-        index += 1
-      }
-      blocks.push({ type: 'quote', lines: quoteLines })
-      continue
-    }
-
-    const listMatch = line.match(/^\s*((?:[-*+])|(?:\d+[.)]))\s+(.+)$/)
-    if (listMatch) {
-      const ordered = /\d/.test(listMatch[1])
-      const items: string[] = []
-      while (index < lines.length) {
-        const itemMatch = lines[index].match(/^\s*((?:[-*+])|(?:\d+[.)]))\s+(.+)$/)
-        if (!itemMatch || /\d/.test(itemMatch[1]) !== ordered) break
-        items.push(itemMatch[2])
-        index += 1
-      }
-      blocks.push({ type: 'list', ordered, items })
-      continue
-    }
-
-    const paragraphLines: string[] = []
-    while (index < lines.length && lines[index].trim() && !panelIsOutputBlockStart(lines[index])) {
-      paragraphLines.push(lines[index])
-      index += 1
-    }
-    blocks.push({ type: 'paragraph', lines: paragraphLines.length ? paragraphLines : [line] })
-    if (!paragraphLines.length) index += 1
-  }
-
-  return blocks.length ? blocks : [{ type: 'paragraph', lines: ['等待输出...'] }]
-}
-
-function panelRenderInline(value: string): ReactNode[] {
-  const nodes: ReactNode[] = []
-  const pattern = /(\[[^\]]+\]\(https?:\/\/[^)\s]+\)|`[^`]+`|\*\*[^*]+\*\*)/g
-  let lastIndex = 0
-  let match: RegExpExecArray | null
-
-  while ((match = pattern.exec(value))) {
-    if (match.index > lastIndex) {
-      nodes.push(value.slice(lastIndex, match.index))
-    }
-
-    const token = match[0]
-    if (token.startsWith('`')) {
-      nodes.push(<code key={`${match.index}-code`}>{token.slice(1, -1)}</code>)
-    } else if (token.startsWith('**')) {
-      nodes.push(<strong key={`${match.index}-strong`}>{token.slice(2, -2)}</strong>)
-    } else {
-      const linkMatch = token.match(/^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/)
-      if (linkMatch) {
-        nodes.push(
-          <a href={linkMatch[2]} key={`${match.index}-link`} rel="noreferrer" target="_blank">
-            {linkMatch[1]}
-          </a>,
-        )
-      } else {
-        nodes.push(token)
-      }
-    }
-
-    lastIndex = pattern.lastIndex
-  }
-
-  if (lastIndex < value.length) {
-    nodes.push(value.slice(lastIndex))
-  }
-
-  return nodes
-}
-
-function PanelOutputMarkdown({ value }: { value: string }) {
-  const blocks = useMemo(() => panelParseOutputBlocks(value), [value])
-
-  return (
-    <div className="wbx-ai-ins-output-markdown">
-      {blocks.map((block, index) => {
-        if (block.type === 'code') {
-          return (
-            <div className="wbx-ai-ins-output-code-block" key={index}>
-              {block.language ? <div className="wbx-ai-ins-output-code-language">{block.language}</div> : null}
-              <pre>
-                <code>{block.content || ' '}</code>
-              </pre>
-            </div>
-          )
-        }
-
-        if (block.type === 'heading') {
-          const Heading = `h${Math.min(block.level + 2, 5)}` as 'h3' | 'h4' | 'h5'
-          return <Heading key={index}>{panelRenderInline(block.text)}</Heading>
-        }
-
-        if (block.type === 'hr') {
-          return <hr key={index} />
-        }
-
-        if (block.type === 'list') {
-          const List = block.ordered ? 'ol' : 'ul'
-          return (
-            <List key={index}>
-              {block.items.map((item, itemIndex) => (
-                <li key={itemIndex}>{panelRenderInline(item)}</li>
-              ))}
-            </List>
-          )
-        }
-
-        if (block.type === 'quote') {
-          return (
-            <blockquote key={index}>
-              {block.lines.map((quoteLine, quoteIndex) => (
-                <p key={quoteIndex}>{panelRenderInline(quoteLine)}</p>
-              ))}
-            </blockquote>
-          )
-        }
-
-        return (
-          <p key={index}>
-            {block.lines.map((paragraphLine, lineIndex) => (
-              <span key={lineIndex}>
-                {lineIndex ? <br /> : null}
-                {panelRenderInline(paragraphLine)}
-              </span>
-            ))}
-          </p>
-        )
-      })}
-    </div>
-  )
-}
-
-function PanelOutputViewer({ value }: { value: string }) {
-  const displayOutput = useMemo(() => panelFormatOutputForDisplay(value), [value])
+function PanelOutputViewer({ live, onOpenFile, value }: { live: boolean; onOpenFile: (path: string) => void; value: string }) {
+  const locale = getLocale()
+  // Re-format on a language switch: tool labels and diagnostics are translated.
+  const displayOutput = useMemo(() => panelFormatOutputForDisplay(value), [value, locale])
   const hiddenLogCount = displayOutput.diagnostics.reduce((total, diagnostic) => total + diagnostic.count, 0)
 
   return (
     <>
-      <PanelOutputMarkdown value={displayOutput.markdown} />
+      {/* A running turn with only startup lines has nothing to say yet; the live line covers it. */}
+      {live && !displayOutput.hasReply ? null : <MarkdownView onOpenFile={onOpenFile} value={displayOutput.markdown} />}
       {displayOutput.diagnostics.length ? (
-        <details className="wbx-ai-ins-output-diagnostics">
-          <summary>已折叠 {hiddenLogCount} 条诊断日志</summary>
+        <details className="ai-ins-output-diagnostics">
+          <summary>{t('turn.diagnostics', { count: hiddenLogCount })}</summary>
           <ul>
             {displayOutput.diagnostics.map((diagnostic, index) => (
               <li key={index}>
                 <span>{diagnostic.message}</span>
-                {diagnostic.count > 1 ? <span className="wbx-ai-ins-output-diagnostic-count">×{diagnostic.count}</span> : null}
+                {diagnostic.count > 1 ? <span className="ai-ins-output-diagnostic-count">×{diagnostic.count}</span> : null}
               </li>
             ))}
           </ul>
@@ -564,7 +529,7 @@ function PanelOutputViewer({ value }: { value: string }) {
 
 function PanelLoadingSpinner() {
   return (
-    <svg aria-hidden="true" className="wbx-ai-ins-output-state-spinner" fill="none" viewBox="0 0 24 24">
+    <svg aria-hidden="true" className="ai-ins-output-state-spinner" fill="none" viewBox="0 0 24 24">
       <circle cx="12" cy="12" opacity="0.22" r="8.5" stroke="currentColor" strokeWidth="3" />
       <path d="M20.5 12a8.5 8.5 0 0 0-8.5-8.5" stroke="currentColor" strokeLinecap="round" strokeWidth="3.2" />
       <path d="M17.4 5.9a8.5 8.5 0 0 1 2.7 4.1" opacity="0.62" stroke="#bfdbfe" strokeLinecap="round" strokeWidth="3.2" />
@@ -572,27 +537,130 @@ function PanelLoadingSpinner() {
   )
 }
 
+function panelGetRunFirstPrompt(run: AgentRun) {
+  return run.turns[0]?.prompt || ''
+}
+
+function panelGetTurnStatusTone(turn: AgentRunTurn) {
+  if (turn.status === 'starting' || turn.status === 'running') {
+    return 'active'
+  }
+
+  return turn.status
+}
+
+/** Long settled replies collapse behind a toggle so earlier turns stay scannable. */
+const panelCollapsibleOutputLength = 1600
+const panelCollapsibleOutputLines = 28
+
+function panelCountLines(value: string) {
+  let count = 1
+  for (let index = value.indexOf('\n'); index !== -1; index = value.indexOf('\n', index + 1)) {
+    count += 1
+  }
+  return count
+}
+
+function panelGetRunTone(run: AgentRun) {
+  if (run.pendingPermissions?.length) return 'waiting'
+  if (panelIsRunWorking(run)) return 'active'
+  if (run.turns[run.turns.length - 1]?.stopped) return 'stopped'
+  if (run.interrupted) return 'interrupted'
+  return run.status
+}
+
+const panelPermissionModeKeys = {
+  ask: 'settings.permissionAsk',
+  edit: 'settings.permissionEdit',
+  full: 'settings.permissionFull',
+} as const
+
+const panelPermissionNoteKeys = {
+  ask: 'settings.permissionAskNote',
+  edit: 'settings.permissionEditNote',
+  full: 'settings.permissionFullNote',
+} as const
+
+// Mirrors the server: an unsupported level falls back to a stricter one.
+const panelPermissionFallbacks: Record<PermissionMode, PermissionMode[]> = {
+  ask: ['ask', 'edit'],
+  edit: ['edit', 'ask'],
+  full: ['full', 'edit', 'ask'],
+}
+
+function panelResolvePermissionMode(provider: AgentProvider | undefined, requested: PermissionMode) {
+  const supported = provider?.permissionModes ?? []
+  return panelPermissionFallbacks[requested].find((mode) => supported.includes(mode))
+}
+
+/** `mcp__plugin_figma_figma__get_design_context` reads better as `get_design_context (MCP · plugin_figma_figma)`. */
+function panelFormatToolName(toolName: string) {
+  const parts = toolName.split('__')
+  return parts[0] === 'mcp' && parts.length >= 3 ? `${parts.slice(2).join('__')} (MCP · ${parts[1]})` : toolName
+}
+
+/** What the tool call would do: the command or path when there is one, else its input. */
+function panelDescribePermissionInput(input: unknown) {
+  if (!input || typeof input !== 'object') return ''
+  const record = input as Record<string, unknown>
+  for (const key of ['command', 'file_path', 'path', 'url']) {
+    if (typeof record[key] === 'string' && record[key]) return record[key] as string
+  }
+  const json = JSON.stringify(input, null, 2)
+  if (!json || json === '{}') return ''
+  return json.length > 800 ? `${json.slice(0, 800)}…` : json
+}
+
+function panelGetResumeBlockedMessage(run: AgentRun) {
+  return isMessageKey(run.resumeBlockedCode) ? t(run.resumeBlockedCode, { provider: run.providerLabel }) : t('resume.blocked')
+}
+
+function panelGetRunStateLabel(run: AgentRun) {
+  if (run.pendingPermissions?.length) return t('permission.waiting')
+  const lastTurn = run.turns[run.turns.length - 1]
+  if (!panelIsRunWorking(run) && lastTurn?.stopped) return t('status.stopped')
+  if (run.interrupted) return t('status.interrupted')
+  return panelGetRunStatusLabel(run.status)
+}
+
 export function PanelView(props: PanelViewProps & { getDisplayPath: (path: string) => string }) {
   const {
     defaultProxy,
     getDisplayPath,
+    locale,
+    localePreference,
+    onCancelQueued,
+    onClearFinishedRuns,
     onClose,
+    onContinueWithTarget,
     onCopyTarget,
+    onAnswerPermission,
     onDeleteRun,
+    onLocaleChange,
+    onNewConversation,
+    onOpenFile,
+    onPermissionModeChange,
     onOpenInEditor,
     onPromptChange,
     onProviderChange,
     onProxyChange,
     onProxyModeChange,
+    onRetryTurn,
     onSelectRun,
+    onStopRun,
     onSubmit,
     prompt,
     providerId,
     providers,
     proxy,
+    permissionMode,
     proxyMode,
+    queuedPrompt,
+    repointRun,
+    repointed,
     runCount,
     runs,
+    runsLoading,
     selectedRunId,
     status,
     submitting,
@@ -600,13 +668,20 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     targetTitle,
   } = props
   const [copied, setCopied] = useState(false)
-  const [agentPromptExpanded, setAgentPromptExpanded] = useState(false)
+  const [runQuery, setRunQuery] = useState('')
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [expandedTurns, setExpandedTurns] = useState<Set<string>>(() => new Set())
+  const [agentPromptTurnIndex, setAgentPromptTurnIndex] = useState<number | undefined>(undefined)
   const [outputDetachedFromBottom, setOutputDetachedFromBottom] = useState(false)
   const [outputExpanded, setOutputExpanded] = useState(false)
   const [outputModalDetachedFromBottom, setOutputModalDetachedFromBottom] = useState(false)
   const [theme, setTheme] = useState<PanelTheme>(() => readPanelTheme())
   const [submitShortcut, setSubmitShortcut] = useState<PanelSubmitShortcut>(() => readPanelSubmitShortcut())
-  const promptHydratedRef = useRef(false)
+  const [, setClockTick] = useState(0)
+  const settingsRef = useRef<HTMLDivElement>(null)
+  const settingsTriggerRef = useRef<HTMLButtonElement>(null)
+  const closeSettings = useCallback(() => setSettingsOpen(false), [])
+  usePanelDismiss(settingsOpen, settingsRef, closeSettings)
   const outputShouldFollowRef = useRef(true)
   const outputModalShouldFollowRef = useRef(true)
   const agentPromptModalRef = useRef<HTMLDivElement>(null)
@@ -619,21 +694,86 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
 
     return runs.find((run) => run.id === selectedRunId)
   }, [runs, selectedRunId])
-  const provider = providers.find((candidate) => candidate.id === providerId) || providers.find((candidate) => candidate.enabled) || providers[0]
-  const enabledProviderCount = providers.filter((candidate) => candidate.enabled).length
-  const providerSwitchHint =
-    enabledProviderCount > 1 ? `多 Agent · ${enabledProviderCount}/${providers.length}` : provider?.enabled ? '单 Agent' : '待配置'
-  const providerSwitchTitle = providers.length
-    ? `已接入 ${providers.map((candidate) => `${candidate.label}${candidate.enabled ? '' : '（未配置）'}`).join(' / ')}。切换只影响下一次提交。`
-    : '还没有可用 Agent。'
-  const hasTarget = Boolean(targetTitle)
+  const trimmedRunQuery = runQuery.trim()
+  const runGroups = useMemo(() => {
+    const now = Date.now()
+    const groups: Array<{ label: string; runs: AgentRun[] }> = []
+    for (const run of runs) {
+      if (!panelRunMatchesQuery(run, trimmedRunQuery, getDisplayPath)) continue
+      const label = panelGetRunDayGroup(panelGetRunActivityAt(run), now)
+      const group = groups[groups.length - 1]
+      if (group?.label === label) {
+        group.runs.push(run)
+      } else {
+        groups.push({ label, runs: [run] })
+      }
+    }
+    return groups
+    // `locale`: day-group labels are translated text.
+  }, [getDisplayPath, locale, runs, trimmedRunQuery])
+  const finishedRunCount = runs.filter((run) => run.completed).length
+  // An open conversation is always the one the next submit continues.
+  const continuing = Boolean(selectedRun)
+  // A follow-up turn always runs on the session's own agent, so the picker is
+  // pinned rather than merely ignored.
+  const provider = selectedRun
+    ? providers.find((candidate) => candidate.id === selectedRun.providerId)
+    : providers.find((candidate) => candidate.id === providerId) || providers.find((candidate) => candidate.enabled) || providers[0]
+  const providerSwitchTitle = selectedRun
+    ? t('agent.lockedTitle', { provider: selectedRun.providerLabel })
+    : providers.length
+      ? t('agent.availableTitle', {
+          providers: providers.map((candidate) => `${candidate.label}${candidate.enabled ? '' : ` (${t('agent.notConfigured')})`}`).join(' / '),
+        })
+      : t('agent.noneAvailable')
+  const providerOptions = useMemo(
+    () =>
+      providers.map((candidate) => ({
+        disabled: !candidate.enabled,
+        // Disabled options explain themselves; single-turn agents say so up front,
+        // since picking one means the conversation cannot be continued later.
+        hint: !candidate.enabled ? t('agent.notConfigured') : candidate.sessionMode === 'none' ? t('agent.singleTurn') : undefined,
+        label: candidate.label,
+        value: candidate.id,
+      })),
+    [locale, providers],
+  )
+  const hasTarget = Boolean(targetTitle) || continuing
   const customProxyMissing = proxyMode === 'custom' && !proxy.trim()
-  const submitDisabled = submitting || !hasTarget || !provider?.enabled || customProxyMissing
-  const selectedRunOutput = selectedRun ? selectedRun.output || selectedRun.statusMessage || '等待输出...' : ''
-  const selectedRunLogLabel = selectedRun?.logPath ? getDisplayPath(selectedRun.logPath) : '.ai-ins/<run-id>.log'
-  const selectedRunAgentPrompt = selectedRun?.agentPrompt?.trim() || ''
+  const selectedRunWorking = Boolean(selectedRun && panelIsRunWorking(selectedRun))
+  // While the agent answers, a follow-up can be typed and queued; it goes out
+  // when the turn ends. Single-turn agents have nothing to queue into.
+  const queueing = Boolean(selectedRun && selectedRunWorking && selectedRun.sessionMode !== 'none')
+  const continueBlocked = Boolean(selectedRun && !selectedRun.canResume && !queueing)
+
+  // Elapsed times on a running turn tick every second, not only when output arrives.
+  useEffect(() => {
+    if (!selectedRunWorking) return
+    const timer = window.setInterval(() => setClockTick((tick) => tick + 1), 1000)
+    return () => window.clearInterval(timer)
+  }, [selectedRunWorking])
+  const continueBlockedReason = !selectedRun
+    ? ''
+    : selectedRunWorking
+      ? t('resume.singleTurn', { provider: selectedRun.providerLabel })
+      : panelGetResumeBlockedMessage(selectedRun)
+  const submitDisabled =
+    submitting ||
+    !hasTarget ||
+    !provider?.enabled ||
+    customProxyMissing ||
+    continueBlocked ||
+    (queueing && (Boolean(queuedPrompt) || !prompt.trim()))
+  const selectedRunTurns = selectedRun?.turns ?? []
   const selectedRunScrollId = selectedRun?.id
-  const lightTheme = theme === 'light'
+  // Cheap change signature: enough to drive follow-the-bottom without diffing
+  // the whole transcript on every streamed chunk.
+  const selectedRunOutputSignature = `${selectedRunScrollId}:${selectedRun?.outputLoaded}:${queuedPrompt?.length ?? 0}:${selectedRunTurns
+    .map((turn) => `${turn.output.length}/${turn.changedFiles?.length ?? '-'}`)
+    .join('|')}`
+  const agentPromptTurn = selectedRunTurns.find((turn) => turn.index === agentPromptTurnIndex)
+  const selectedRunLogLabel = selectedRun?.logDisplayPath || selectedRun?.logPath || '.ai-ins/<run-id>.log'
+  const selectedRunAgentPrompt = agentPromptTurn?.agentPrompt?.trim() || ''
   const macPlatform = useMemo(() => panelIsMacPlatform(), [])
   const modifierSubmitShortcutLabel = useMemo(() => panelGetModifierSubmitShortcutLabel(macPlatform), [macPlatform])
   const submitShortcutOptions = useMemo<Array<{ label: string; value: PanelSubmitShortcut }>>(
@@ -643,8 +783,14 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     ],
     [modifierSubmitShortcutLabel],
   )
-  const submitShortcutLabel =
-    submitShortcut === 'modifier-enter' ? modifierSubmitShortcutLabel : panelGetEnterShortcutLabel()
+  const submitShortcutLabel = submitShortcut === 'modifier-enter' ? modifierSubmitShortcutLabel : panelGetEnterShortcutLabel()
+  const submitLabel = submitting
+    ? t('composer.sending')
+    : queueing
+      ? t('composer.queue')
+      : continuing
+        ? t('composer.continue')
+        : t('composer.send', { provider: provider?.label || 'Agent' })
 
   useEffect(() => {
     outputShouldFollowRef.current = true
@@ -671,20 +817,20 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     }
 
     setOutputDetachedFromBottom(!panelIsOutputNearBottom(output))
-  }, [selectedRunOutput])
+  }, [selectedRunOutputSignature])
 
   useEffect(() => {
     if (!selectedRun) {
-      setAgentPromptExpanded(false)
+      setAgentPromptTurnIndex(undefined)
       setOutputExpanded(false)
     }
   }, [selectedRun])
 
   useEffect(() => {
-    if (agentPromptExpanded) {
+    if (agentPromptTurn) {
       agentPromptModalRef.current?.focus()
     }
-  }, [agentPromptExpanded])
+  }, [agentPromptTurn])
 
   useEffect(() => {
     if (outputExpanded) {
@@ -719,24 +865,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     }
 
     setOutputModalDetachedFromBottom(!panelIsOutputNearBottom(output))
-  }, [outputExpanded, selectedRunOutput])
-
-  useEffect(() => {
-    if (promptHydratedRef.current) {
-      return
-    }
-
-    promptHydratedRef.current = true
-    if (prompt) {
-      savePanelPromptDraft(prompt)
-      return
-    }
-
-    const draftPrompt = readPanelPromptDraft()
-    if (draftPrompt) {
-      onPromptChange(draftPrompt)
-    }
-  }, [onPromptChange, prompt])
+  }, [outputExpanded, selectedRunOutputSignature])
 
   async function handleCopyTarget() {
     await onCopyTarget()
@@ -745,16 +874,12 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   }
 
   function handlePromptChange(value: string) {
-    savePanelPromptDraft(value)
     onPromptChange(value)
   }
 
-  function handleThemeToggle() {
-    setTheme((current) => {
-      const next = current === 'dark' ? 'light' : 'dark'
-      savePanelTheme(next)
-      return next
-    })
+  function handleThemeChange(next: PanelTheme) {
+    setTheme(next)
+    savePanelTheme(next)
   }
 
   function handleOutputScroll() {
@@ -791,9 +916,9 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   }
 
   function getProxyModeHint() {
-    if (proxyMode === 'custom') return proxy.trim() ? '自定义' : '需填写'
-    if (proxyMode === 'system') return defaultProxy ? '已检测' : '未检测'
-    return '关闭'
+    if (proxyMode === 'custom') return proxy.trim() ? t('settings.proxyCustom') : t('settings.proxyNeedsUrl')
+    if (proxyMode === 'system') return defaultProxy ? t('settings.proxyDetected') : t('settings.proxyNotDetected')
+    return t('settings.proxyOff')
   }
 
   function getProxyInputValue() {
@@ -804,8 +929,8 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
 
   function getProxyInputPlaceholder() {
     if (proxyMode === 'custom') return 'http://127.0.0.1:7890'
-    if (proxyMode === 'system') return '未检测到系统/默认代理'
-    return '不为 Agent 设置代理'
+    if (proxyMode === 'system') return t('settings.proxySystemMissing')
+    return t('settings.proxyNone')
   }
 
   function handleSubmitShortcutChange(value: PanelSubmitShortcut) {
@@ -826,104 +951,141 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     void onSubmit()
   }
 
-  return (
-    <div className="wbx-ai-ins-panel" data-theme={theme}>
-      <div className="wbx-ai-ins-header">
-        <div className="wbx-ai-ins-heading">
-          <span className="wbx-ai-ins-brand-mark" aria-hidden="true">
-            <span className="wbx-ai-ins-brand-spark" />
-          </span>
-          <div className="wbx-ai-ins-heading-copy">
-            <div className="wbx-ai-ins-title-row">
-              <p className="wbx-ai-ins-title">AI Ins</p>
-              <span className="wbx-ai-ins-title-badge">DOM Pilot</span>
-            </div>
-            <div className="wbx-ai-ins-subtitle">Option 选 DOM；左侧任务只切换输出，每次提交仍是新会话</div>
-          </div>
-        </div>
-        <div className="wbx-ai-ins-header-actions">
-          <IconButton label={lightTheme ? '切换到暗色' : '切换到亮色'} onClick={handleThemeToggle}>
-            <Icon paths={lightTheme ? moonIcon : sunIcon} />
-          </IconButton>
-          <button className="wbx-ai-ins-button" onClick={onClose} type="button">
-            收起
-          </button>
-        </div>
+  function renderSegmented<T extends string>(name: string, label: string, options: Array<{ label: string; value: T }>, value: T, onChange: (next: T) => void) {
+    return (
+      <div aria-label={label} className="ai-ins-segmented" role="radiogroup">
+        {options.map((option) => (
+          <label className="ai-ins-segmented-option" key={option.value}>
+            <input checked={value === option.value} name={`ai-ins-${name}`} onChange={() => onChange(option.value)} type="radio" value={option.value} />
+            <span>{option.label}</span>
+          </label>
+        ))}
       </div>
+    )
+  }
 
-      <div className="wbx-ai-ins-body">
-        <aside className="wbx-ai-ins-sidebar">
-          <div className="wbx-ai-ins-sidebar-top">
-            <p className="wbx-ai-ins-section-label">任务列表</p>
-            <span className="wbx-ai-ins-count">{runCount}</span>
-          </div>
-          <div className="wbx-ai-ins-list">
-            {runs.length ? (
-              runs.map((run) => (
-                <button
-                  className={`wbx-ai-ins-run${selectedRun?.id === run.id ? ' wbx-ai-ins-run-active' : ''}`}
-                  key={run.id}
-                  onClick={() => onSelectRun(run.id)}
-                  type="button"
-                >
-                  <div className="wbx-ai-ins-run-top">
-                    <span className={`wbx-ai-ins-dot wbx-ai-ins-dot-${run.status}`} />
-                    <span className="wbx-ai-ins-run-title">{panelGetRunTitle(run, getDisplayPath)}</span>
-                    <span className="wbx-ai-ins-run-provider">{run.providerLabel}</span>
-                  </div>
-                  <div className="wbx-ai-ins-run-prompt">{run.prompt}</div>
-                  <div className="wbx-ai-ins-run-meta">
-                    {panelGetRunStatusLabel(run.status)} · {panelFormatRunTime(run.createdAt)}
-                  </div>
-                </button>
-              ))
-            ) : (
-              <div className="wbx-ai-ins-detail-empty">还没有任务</div>
-            )}
-          </div>
-        </aside>
+  /** Say so when the agent the next turn goes to cannot honor the chosen level. */
+  function renderPermissionProviderNote() {
+    if (!provider) return null
+    if (!provider.permissionModes?.length) {
+      return <p className="ai-ins-settings-note">{t('settings.permissionFixed', { provider: provider.label })}</p>
+    }
 
-        <main className="wbx-ai-ins-main">
-          <form
-            className="wbx-ai-ins-composer"
-            onSubmit={(event) => {
-              event.preventDefault()
-              void onSubmit()
-            }}
-          >
-            <div className="wbx-ai-ins-target" title={targetTitle}>
-              <span className="wbx-ai-ins-target-text">{targetLabel}</span>
-              <span className="wbx-ai-ins-target-actions">
-                <IconButton disabled={!hasTarget} label={copied ? '已复制' : '复制源码位置'} onClick={() => void handleCopyTarget()} success={copied}>
-                  <Icon paths={copied ? checkIcon : copyIcon} />
-                </IconButton>
-                <IconButton disabled={!hasTarget} label="IDE 打开" onClick={() => void onOpenInEditor()}>
-                  <Icon paths={codeIcon} />
-                </IconButton>
-              </span>
+    const actual = panelResolvePermissionMode(provider, permissionMode)
+    if (!actual || actual === permissionMode) return null
+    return (
+      <p className="ai-ins-settings-note">
+        {t('settings.permissionFallback', {
+          actual: t(panelPermissionModeKeys[actual]),
+          provider: provider.label,
+          requested: t(panelPermissionModeKeys[permissionMode]),
+        })}
+      </p>
+    )
+  }
+
+  /**
+   * Proxy and submit shortcut are set once and rarely touched, so they live in
+   * a small popover behind one icon instead of crowding the composer. The dot
+   * on the icon keeps a non-default proxy (or a missing custom URL) visible.
+   */
+  function renderSettings() {
+    const settingsBadge = customProxyMissing ? 'warn' : proxyMode !== 'off' ? 'on' : ''
+    const settingsTitle = t('settings.triggerTitle', { proxy: getProxyModeHint(), shortcut: submitShortcutLabel })
+
+    return (
+      <div
+        className="ai-ins-settings"
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' && settingsOpen) {
+            // Keep the overlay from closing the whole panel; see the search box.
+            event.nativeEvent.stopImmediatePropagation()
+            setSettingsOpen(false)
+            settingsTriggerRef.current?.focus()
+          }
+        }}
+        ref={settingsRef}
+      >
+        <button
+          aria-expanded={settingsOpen}
+          aria-haspopup="dialog"
+          aria-label={settingsTitle}
+          className={`ai-ins-icon-button ai-ins-settings-trigger${settingsOpen ? ' ai-ins-settings-trigger-open' : ''}`}
+          onClick={() => setSettingsOpen((open) => !open)}
+          ref={settingsTriggerRef}
+          title={settingsTitle}
+          type="button"
+        >
+          <Icon paths={slidersIcon} />
+          {settingsBadge ? <span className={`ai-ins-settings-dot ai-ins-settings-dot-${settingsBadge}`} /> : null}
+        </button>
+        {settingsOpen ? (
+          <div aria-label={t('settings.title')} className="ai-ins-settings-popover" role="dialog">
+            <div className="ai-ins-settings-head">
+              <span>{t('settings.title')}</span>
+              <IconButton label={t('settings.close')} onClick={closeSettings}>
+                <Icon paths={closeIcon} />
+              </IconButton>
             </div>
-            <div className="wbx-ai-ins-form-grid">
-              <div className="wbx-ai-ins-field wbx-ai-ins-proxy-field">
-                <span className="wbx-ai-ins-label">
-                  <span>Network Proxy</span>
-                  <span className="wbx-ai-ins-label-hint">{getProxyModeHint()}</span>
-                </span>
-                <div className="wbx-ai-ins-proxy-mode" role="radiogroup" aria-label="Network Proxy">
-                  {proxyModeOptions.map((option) => (
-                    <label className="wbx-ai-ins-proxy-option" key={option.value}>
-                      <input
-                        checked={proxyMode === option.value}
-                        name="wbx-ai-ins-proxy-mode"
-                        onChange={() => onProxyModeChange(option.value)}
-                        type="radio"
-                        value={option.value}
-                      />
-                      <span>{option.label}</span>
-                    </label>
-                  ))}
-                </div>
+            <section className="ai-ins-settings-section">
+              <div className="ai-ins-settings-label">
+                <span>{t('settings.theme')}</span>
+              </div>
+              {renderSegmented<PanelTheme>(
+                'theme',
+                t('settings.theme'),
+                [
+                  { label: t('settings.themeDark'), value: 'dark' },
+                  { label: t('settings.themeLight'), value: 'light' },
+                ],
+                theme,
+                handleThemeChange,
+              )}
+            </section>
+            <section className="ai-ins-settings-section">
+              <div className="ai-ins-settings-label">
+                <span>{t('settings.language')}</span>
+                {locale === 'en' ? null : <span className="ai-ins-label-hint">Language</span>}
+              </div>
+              <PanelSelect
+                ariaLabel={t('settings.language')}
+                block
+                placement="bottom"
+                onChange={(next) => onLocaleChange(next as LocalePreference)}
+                options={[
+                  // Say which language "follow browser" resolves to right now.
+                  { hint: localeNames[detectBrowserLocale()], label: t('settings.languageAuto'), value: 'auto' },
+                  ...locales.map((value) => ({ label: localeNames[value], value })),
+                ]}
+                value={localePreference}
+              />
+            </section>
+            <section className="ai-ins-settings-section">
+              <div className="ai-ins-settings-label">
+                <span>{t('settings.permission')}</span>
+              </div>
+              {renderSegmented<PermissionMode>(
+                'permission',
+                t('settings.permission'),
+                (['ask', 'edit', 'full'] as const).map((value) => ({ label: t(panelPermissionModeKeys[value]), value })),
+                permissionMode,
+                onPermissionModeChange,
+              )}
+              <p className={`ai-ins-settings-note${permissionMode === 'full' ? ' ai-ins-settings-note-warn' : ''}`}>
+                {t(panelPermissionNoteKeys[permissionMode])}
+              </p>
+              {renderPermissionProviderNote()}
+            </section>
+            <section className="ai-ins-settings-section">
+              <div className="ai-ins-settings-label">
+                <span>{t('settings.proxy')}</span>
+                <span className="ai-ins-label-hint">{getProxyModeHint()}</span>
+              </div>
+              {renderSegmented('proxy', t('settings.proxy'), panelGetProxyModeOptions(), proxyMode, onProxyModeChange)}
+              {proxyMode !== 'off' ? (
                 <input
-                  className="wbx-ai-ins-input wbx-ai-ins-proxy-input"
+                  aria-label={t('settings.proxyAddress')}
+                  className="ai-ins-input ai-ins-proxy-input"
                   disabled={proxyMode !== 'custom'}
                   onChange={(event) => onProxyChange(event.target.value)}
                   placeholder={getProxyInputPlaceholder()}
@@ -931,174 +1093,588 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                   type="url"
                   value={getProxyInputValue()}
                 />
+              ) : null}
+              <p className="ai-ins-settings-note">{t('settings.proxyNote')}</p>
+            </section>
+            <section className="ai-ins-settings-section">
+              <div className="ai-ins-settings-label">
+                <span>{t('settings.shortcut')}</span>
               </div>
-              <label className="wbx-ai-ins-field">
-                <span className="wbx-ai-ins-label">
-                  <span>发送快捷键</span>
-                  <span className="wbx-ai-ins-label-hint">{submitShortcutLabel}</span>
+              {renderSegmented('shortcut', t('settings.shortcut'), submitShortcutOptions, submitShortcut, handleSubmitShortcutChange)}
+            </section>
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
+  function toggleTurnExpanded(key: string) {
+    setExpandedTurns((current) => {
+      const next = new Set(current)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
+
+  function renderTurn(run: AgentRun, turn: AgentRunTurn, previousTurn: AgentRunTurn | undefined, isLatest: boolean, expandAll: boolean) {
+    const key = `${run.id}:${turn.index}`
+    const pendingPermissions = isLatest && !expandAll ? run.pendingPermissions ?? [] : []
+    const waiting = pendingPermissions.length > 0
+    const tone = waiting ? 'waiting' : turn.stopped ? 'stopped' : turn.interrupted ? 'interrupted' : panelGetTurnStatusTone(turn)
+    const working = tone === 'active'
+    const output = turn.output || ''
+    const lineCount = panelCountLines(output)
+    const collapsible = !expandAll && !working && (output.length > panelCollapsibleOutputLength || lineCount > panelCollapsibleOutputLines)
+    // The latest reply is what the user is reading; earlier long ones fold.
+    const collapsed = collapsible && (isLatest ? expandedTurns.has(`${key}:collapsed`) : !expandedTurns.has(key))
+    const toggleKey = isLatest ? `${key}:collapsed` : key
+    // Only call out the focus when it is new information: the first turn, or a
+    // follow-up that was re-pointed to another element.
+    const focusChanged =
+      !previousTurn ||
+      (Boolean(turn.sourcePath) &&
+        (panelStripSourcePosition(turn.sourcePath) !== panelStripSourcePosition(previousTurn.sourcePath) ||
+          turn.sourceName !== previousTurn.sourceName))
+    const focusLabel = focusChanged ? turn.sourceName || getDisplayPath(turn.sourcePath || '') : ''
+    const duration = working
+      ? panelFormatDuration(Date.now() - turn.createdAt)
+      : turn.completedAt
+        ? panelFormatDuration(turn.completedAt - turn.createdAt)
+        : ''
+    // Retry re-sends the same request into the same session; only the last
+    // turn, only when it ended badly, and only if the session can take a turn.
+    const canRetry = isLatest && !expandAll && turn.completed && turn.status === 'failed' && run.canResume && !queuedPrompt && !submitting
+
+    return (
+      <section className="ai-ins-msg-group" key={key}>
+        <div className="ai-ins-msg-user">
+          <div className="ai-ins-msg-bubble">{turn.prompt}</div>
+          <div className="ai-ins-msg-meta">
+            {focusLabel ? (
+              <span className="ai-ins-msg-focus" title={turn.sourcePath}>
+                {previousTurn ? t('turn.focusChanged', { focus: focusLabel }) : focusLabel}
+              </span>
+            ) : null}
+            <span>{panelFormatRunListTime(turn.createdAt, Date.now())}</span>
+            <button className="ai-ins-msg-link" onClick={() => setAgentPromptTurnIndex(turn.index)} type="button">
+              {t('turn.fullPrompt')}
+            </button>
+          </div>
+        </div>
+        <article className={`ai-ins-msg-card ai-ins-msg-card-${tone}${collapsed ? ' ai-ins-msg-card-collapsed' : ''}`}>
+          <header className="ai-ins-msg-card-head">
+            <span className="ai-ins-msg-avatar" aria-hidden="true" />
+            <span className="ai-ins-msg-author">{run.providerLabel}</span>
+            {turn.resumed ? <span className="ai-ins-turn-tag">{t('turn.resumed')}</span> : null}
+            {turn.permissionMode === 'full' ? <span className="ai-ins-turn-tag ai-ins-turn-tag-warn">{t('turn.fullAccess')}</span> : null}
+            <span className={`ai-ins-turn-status ai-ins-turn-status-${tone}`}>{waiting ? t('permission.waiting') : panelGetTurnStatusLabel(turn)}</span>
+            {duration ? <span className="ai-ins-msg-duration" title={t('turn.duration')}>{duration}</span> : null}
+            {working ? <PanelLoadingSpinner /> : null}
+            <span className="ai-ins-msg-turn">{t('turn.index', { index: turn.index + 1 })}</span>
+          </header>
+          {working ? null : renderThinking(run, turn, key, false)}
+          <div className="ai-ins-msg-card-body">
+            {output ? (
+              <PanelOutputViewer live={working} onOpenFile={onOpenFile} value={output} />
+            ) : working ? null : (
+              <p className="ai-ins-msg-waiting">{t('turn.noOutput')}</p>
+            )}
+            {working ? renderThinking(run, turn, key, true) : null}
+          </div>
+          {collapsible ? (
+            <button className="ai-ins-msg-toggle" onClick={() => toggleTurnExpanded(toggleKey)} type="button">
+              {collapsed ? t('turn.expandAll', { count: lineCount }) : t('turn.collapse')}
+            </button>
+          ) : null}
+          {pendingPermissions.map((request) => renderPermissionRequest(run, request))}
+          {renderChangedFiles(key, turn)}
+          {canRetry ? (
+            <div className="ai-ins-msg-actions">
+              <span>{t(turn.stopped ? 'turn.stoppedNote' : turn.interrupted ? 'turn.interruptedNote' : 'turn.failedNote')}</span>
+              <button className="ai-ins-button ai-ins-button-small" onClick={() => onRetryTurn(run, turn)} type="button">
+                {t('turn.retry')}
+              </button>
+            </div>
+          ) : null}
+        </article>
+      </section>
+    )
+  }
+
+  /**
+   * Live: one line at the bottom of a running turn that says what the agent is
+   * doing right now (waiting for the model, or thinking plus its latest line).
+   * Settled: the reasoning folds into "Thought for 12s" at the top of the card.
+   */
+  function renderThinking(run: AgentRun, turn: AgentRunTurn, key: string, working: boolean) {
+    const thinking = turn.thinking?.trim() || ''
+    // While the turn runs the line never disappears: tool calls and pauses
+    // between replies would otherwise look like nothing is happening.
+    const live = working
+    if (!live && !thinking) return null
+
+    const thinkingKey = `${key}:thinking`
+    const open = Boolean(thinking) && expandedTurns.has(thinkingKey)
+    const latestLine = live && turn.thinkingSince ? thinking.split('\n').map((line) => line.trim()).filter(Boolean).pop() || '' : ''
+    // Startup lines ([system] …) fold into diagnostics, so they do not count as a reply yet.
+    const hasVisibleReply = Boolean(turn.output.replace(/^\[system\].*$/gmu, '').trim())
+    const label = live
+      ? turn.thinkingSince
+        ? t('thinking.live')
+        : hasVisibleReply
+          ? t('thinking.working', { provider: run.providerLabel })
+          : t('thinking.waiting', { provider: run.providerLabel })
+      : turn.thinkingMs && turn.thinkingMs >= 1000
+        ? t('thinking.done', { duration: panelFormatDuration(turn.thinkingMs) })
+        : t('thinking.title')
+
+    return (
+      <div className={`ai-ins-thinking${live ? ' ai-ins-thinking-live' : ''}${open ? ' ai-ins-thinking-open' : ''}`}>
+        <button aria-expanded={thinking ? open : undefined} className="ai-ins-thinking-head" disabled={!thinking} onClick={() => toggleTurnExpanded(thinkingKey)} type="button">
+          {live ? <span className="ai-ins-thinking-pulse" aria-hidden="true" /> : null}
+          <span className="ai-ins-thinking-label">{label}</span>
+          {latestLine && !open ? <span className="ai-ins-thinking-snippet">{latestLine}</span> : null}
+          {thinking ? <Icon paths={chevronDownIcon} /> : null}
+        </button>
+        {open ? <div className="ai-ins-thinking-body">{thinking}</div> : null}
+      </div>
+    )
+  }
+
+  function renderPermissionRequest(run: AgentRun, request: PermissionRequest) {
+    const detail = panelDescribePermissionInput(request.input)
+    return (
+      <div className="ai-ins-permission" key={request.id} role="group" aria-label={t('permission.title', { provider: run.providerLabel })}>
+        <div className="ai-ins-permission-head">
+          <span className="ai-ins-permission-mark" aria-hidden="true" />
+          <strong>{t('permission.title', { provider: run.providerLabel })}</strong>
+        </div>
+        <div className="ai-ins-permission-tool">{t('permission.tool', { tool: panelFormatToolName(request.toolName) })}</div>
+        {detail ? <pre className="ai-ins-permission-input">{detail}</pre> : null}
+        <div className="ai-ins-permission-actions">
+          <button className="ai-ins-button ai-ins-button-primary ai-ins-button-small" onClick={() => onAnswerPermission(run, request, 'allow')} type="button">
+            {t('permission.allow')}
+          </button>
+          <button className="ai-ins-button ai-ins-button-small" onClick={() => onAnswerPermission(run, request, 'always')} type="button">
+            {t('permission.always')}
+          </button>
+          <button className="ai-ins-button ai-ins-button-small ai-ins-button-danger" onClick={() => onAnswerPermission(run, request, 'deny')} type="button">
+            {t('permission.deny')}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  function renderChangedFiles(key: string, turn: AgentRunTurn) {
+    const files = turn.changedFiles
+    // Undefined: not a git work tree, or the turn has not settled yet.
+    if (!files || !turn.completed) {
+      return null
+    }
+
+    if (!files.length) {
+      return <div className="ai-ins-msg-files ai-ins-msg-files-empty">{t('files.none')}</div>
+    }
+
+    const filesKey = `${key}:files`
+    const showAll = expandedTurns.has(filesKey) || files.length <= panelVisibleChangedFiles
+    const visibleFiles = showAll ? files : files.slice(0, panelVisibleChangedFiles)
+
+    return (
+      <div className="ai-ins-msg-files">
+        <div className="ai-ins-msg-files-head">{t('files.changed', { count: files.length })}</div>
+        <ul>
+          {visibleFiles.map((file) => (
+            <li key={file.path}>
+              <button
+                className="ai-ins-msg-file"
+                disabled={file.status === 'deleted'}
+                onClick={() => onOpenFile(file.path)}
+                title={file.status === 'deleted' ? t('files.deletedTitle', { path: file.path }) : t('files.open', { path: file.path })}
+                type="button"
+              >
+                <span className={`ai-ins-msg-file-status ai-ins-msg-file-status-${file.status}`} title={t(panelChangeStatusTitleKeys[file.status])}>
+                  {panelChangeStatusLabels[file.status]}
                 </span>
-                <select className="wbx-ai-ins-select" onChange={(event) => handleSubmitShortcutChange(event.target.value as PanelSubmitShortcut)} value={submitShortcut}>
-                  {submitShortcutOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="wbx-ai-ins-field">
-                <span className="wbx-ai-ins-label">
-                  <span>Agent</span>
-                  <span className="wbx-ai-ins-label-hint" title={providerSwitchTitle}>
-                    {providerSwitchHint}
+                <span className="ai-ins-msg-file-path">{getDisplayPath(file.path)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        {files.length > panelVisibleChangedFiles ? (
+          <button className="ai-ins-msg-link" onClick={() => toggleTurnExpanded(filesKey)} type="button">
+            {showAll ? t('files.collapse') : t('files.more', { count: files.length - panelVisibleChangedFiles })}
+          </button>
+        ) : null}
+      </div>
+    )
+  }
+
+  function renderTranscript(expandAll: boolean) {
+    if (!selectedRun) {
+      return null
+    }
+
+    if (!selectedRun.outputLoaded) {
+      return (
+        <div className="ai-ins-chat-empty">
+          <p>{selectedRun.detailLoading ? t('empty.loadingTranscript') : t('empty.transcriptNotLoaded')}</p>
+        </div>
+      )
+    }
+
+    return (
+      <>
+        {selectedRunTurns.map((turn, index) =>
+          renderTurn(selectedRun, turn, selectedRunTurns[index - 1], index === selectedRunTurns.length - 1, expandAll),
+        )}
+        {queuedPrompt && !expandAll ? (
+          <div className="ai-ins-msg-user ai-ins-msg-user-queued">
+            <div className="ai-ins-msg-bubble">{queuedPrompt}</div>
+            <div className="ai-ins-msg-meta">
+              <span>{t('turn.queued')}</span>
+              <button className="ai-ins-msg-link" onClick={onCancelQueued} type="button">
+                {t('turn.withdraw')}
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </>
+    )
+  }
+
+  function renderNewConversationIntro() {
+    return (
+      <div className="ai-ins-chat-empty">
+        <span className="ai-ins-brand-mark ai-ins-chat-empty-mark" aria-hidden="true">
+          <span className="ai-ins-brand-spark" />
+        </span>
+        {hasTarget ? (
+          <>
+            <p className="ai-ins-chat-empty-title">{t('empty.newTitle')}</p>
+            <p>
+              {t('empty.focus')}
+              <code title={targetTitle}>{targetLabel}</code>
+            </p>
+            <p>{t('empty.newWithTarget')}</p>
+          </>
+        ) : (
+          <>
+            <p className="ai-ins-chat-empty-title">{runsLoading ? t('sidebar.loading') : t('empty.startTitle')}</p>
+            <p>{t('empty.pickHint')}</p>
+            {runs.length ? <p>{t('empty.historyHint')}</p> : null}
+          </>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="ai-ins-panel" data-theme={theme} lang={locale}>
+      <div className="ai-ins-header">
+        <div className="ai-ins-heading">
+          <span className="ai-ins-brand-mark" aria-hidden="true">
+            <span className="ai-ins-brand-spark" />
+          </span>
+          <div className="ai-ins-heading-copy">
+            <div className="ai-ins-title-row">
+              <p className="ai-ins-title">AI Ins</p>
+              <span className="ai-ins-title-badge">DOM Pilot</span>
+            </div>
+            <div className="ai-ins-subtitle">{t('panel.subtitle')}</div>
+          </div>
+        </div>
+        <div className="ai-ins-header-actions">
+          {renderSettings()}
+          <button className="ai-ins-button" onClick={onClose} type="button">
+            {t('panel.collapse')}
+          </button>
+        </div>
+      </div>
+
+      <div className="ai-ins-body">
+        <aside className="ai-ins-sidebar">
+          <div className="ai-ins-sidebar-new">
+            <button
+              className={`ai-ins-new-chat${selectedRun ? '' : ' ai-ins-new-chat-active'}`}
+              onClick={onNewConversation}
+              title={t('sidebar.newConversationTitle')}
+              type="button"
+            >
+              <Icon paths={plusIcon} />
+              <span>{t('sidebar.newConversation')}</span>
+            </button>
+          </div>
+          <div className="ai-ins-sidebar-top">
+            <p className="ai-ins-section-label">{t('sidebar.history')}</p>
+            <div className="ai-ins-sidebar-actions">
+              {finishedRunCount ? (
+                <button
+                  className="ai-ins-link-button"
+                  onClick={() => {
+                    if (window.confirm(t('sidebar.clearFinishedConfirm', { count: finishedRunCount }))) {
+                      onClearFinishedRuns()
+                    }
+                  }}
+                  title={t('sidebar.clearFinishedTitle')}
+                  type="button"
+                >
+                  {t('sidebar.clearFinished')}
+                </button>
+              ) : null}
+              <span className="ai-ins-count">{runCount}</span>
+            </div>
+          </div>
+          {runs.length > 1 ? (
+            <div className="ai-ins-run-search">
+              <input
+                aria-label={t('sidebar.search')}
+                className="ai-ins-input"
+                onChange={(event) => setRunQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  // The overlay closes the panel on Escape; with a query typed, Escape
+                  // clears the search first. React's root listener sits on the same
+                  // overlay node and runs first, hence the immediate stop.
+                  if (event.key === 'Escape' && runQuery) {
+                    event.nativeEvent.stopImmediatePropagation()
+                    setRunQuery('')
+                  }
+                }}
+                placeholder={t('sidebar.searchPlaceholder')}
+                type="search"
+                value={runQuery}
+              />
+            </div>
+          ) : null}
+          <div className="ai-ins-list">
+            {runGroups.length ? (
+              runGroups.map((group) => (
+                <div className="ai-ins-run-group" key={group.label}>
+                  <p className="ai-ins-run-group-label">{group.label}</p>
+                  {group.runs.map((run) => {
+                    const stuck = panelIsRunStuck(run)
+                    const tone = panelGetRunTone(run)
+                    const lastPrompt = run.turns.length > 1 ? run.turns[run.turns.length - 1]?.prompt : ''
+                    return (
+                      <button
+                        aria-current={selectedRun?.id === run.id ? 'true' : undefined}
+                        className={`ai-ins-run${selectedRun?.id === run.id ? ' ai-ins-run-active' : ''}`}
+                        key={run.id}
+                        onClick={() => onSelectRun(run.id)}
+                        title={stuck ? panelGetResumeBlockedMessage(run) : undefined}
+                        type="button"
+                      >
+                        <div className="ai-ins-run-top">
+                          <span className={`ai-ins-dot ai-ins-dot-${tone === 'active' ? run.status : tone}`} />
+                          <span className="ai-ins-run-title">{panelGetRunTitle(run, getDisplayPath)}</span>
+                        </div>
+                        <div className="ai-ins-run-focus">
+                          <span className="ai-ins-run-focus-name">{panelGetRunFocusLabel(run, getDisplayPath)}</span>
+                          <span className="ai-ins-run-provider">{run.providerLabel}</span>
+                        </div>
+                        {lastPrompt ? <div className="ai-ins-run-prompt ai-ins-run-prompt-latest">↳ {lastPrompt}</div> : null}
+                        <div className="ai-ins-run-meta">
+                          <span className={`ai-ins-run-status ai-ins-run-status-${tone}`}>{panelGetRunStateLabel(run)}</span>
+                          <span>{panelFormatRunListTime(panelGetRunActivityAt(run), Date.now())}</span>
+                          {run.turns.length > 1 ? <span className="ai-ins-run-turn-count">{t('sidebar.turnCount', { count: run.turns.length })}</span> : null}
+                          {stuck ? <span className="ai-ins-run-stuck-tag">{t('sidebar.cannotContinue')}</span> : null}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              ))
+            ) : (
+              <div className="ai-ins-detail-empty">
+                {runsLoading ? t('sidebar.loading') : runs.length ? t('sidebar.noMatch') : t('sidebar.empty')}
+              </div>
+            )}
+          </div>
+        </aside>
+
+        <main className="ai-ins-main ai-ins-chat">
+          <header className="ai-ins-chat-head">
+            {selectedRun ? (
+              <>
+                <div className="ai-ins-chat-head-copy">
+                  <p className="ai-ins-detail-title" title={panelGetRunTitle(selectedRun, getDisplayPath)}>
+                    {panelGetRunTitle(selectedRun, getDisplayPath)}
+                  </p>
+                  <div className="ai-ins-detail-subtitle" title={`${selectedRun.sourcePath}\n${t('chat.logTitle', { log: selectedRun.logPath })}`}>
+                    {t('chat.subtitle', {
+                      focus: panelGetRunFocusLabel(selectedRun, getDisplayPath),
+                      log: selectedRunLogLabel,
+                      provider: selectedRun.providerLabel,
+                      turns: t('sidebar.turnCount', { count: selectedRun.turns.length }),
+                    })}
+                  </div>
+                </div>
+                <div className="ai-ins-detail-actions">
+                  <span className={`ai-ins-pill ai-ins-pill-${panelGetRunTone(selectedRun)}`}>
+                    {panelGetRunStateLabel(selectedRun)}
                   </span>
+                  <IconButton label={t('chat.expand')} onClick={() => setOutputExpanded(true)}>
+                    <Icon paths={maximizeIcon} />
+                  </IconButton>
+                  {selectedRunWorking ? (
+                    <button
+                      className="ai-ins-button ai-ins-button-small ai-ins-button-stop"
+                      disabled={selectedRun.stopping}
+                      onClick={() => onStopRun(selectedRun)}
+                      title={t('chat.stopTitle')}
+                      type="button"
+                    >
+                      <span className="ai-ins-stop-mark" aria-hidden="true" />
+                      {selectedRun.stopping ? t('status.stopping') : t('chat.stop')}
+                    </button>
+                  ) : null}
+                  <button className="ai-ins-button ai-ins-button-danger ai-ins-button-small" onClick={() => onDeleteRun(selectedRun)} type="button">
+                    {t('chat.delete')}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="ai-ins-chat-head-copy">
+                <p className="ai-ins-detail-title">{t('chat.newConversation')}</p>
+                <div className="ai-ins-detail-subtitle">{t('chat.newConversationHint', { provider: provider?.label || 'Agent' })}</div>
+              </div>
+            )}
+          </header>
+
+          <div className="ai-ins-chat-scroll-wrap">
+            <div className="ai-ins-chat-scroll" onScroll={handleOutputScroll} ref={outputRef}>
+              {selectedRun ? renderTranscript(false) : renderNewConversationIntro()}
+            </div>
+            {selectedRun && outputDetachedFromBottom ? (
+              <button className="ai-ins-output-follow" onClick={() => handleFollowOutputBottom(false)} type="button">
+                <Icon paths={arrowDownIcon} />
+                <span>{t('chat.followLatest')}</span>
+              </button>
+            ) : null}
+          </div>
+
+          <form
+            className="ai-ins-composer"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void onSubmit()
+            }}
+          >
+            {repointRun?.canResume ? (
+              <p className="ai-ins-composer-note">
+                {t('composer.repointQuestion')}
+                <button className="ai-ins-msg-link" onClick={onContinueWithTarget} type="button">
+                  {t('composer.repointAction', { title: panelTruncate(panelGetRunTitle(repointRun, getDisplayPath), 24) })}
+                </button>
+              </p>
+            ) : null}
+            {continueBlocked ? <p className="ai-ins-composer-note ai-ins-composer-note-warn">{continueBlockedReason}</p> : null}
+            {selectedRun?.pendingPermissions?.length ? (
+              <p className="ai-ins-composer-note ai-ins-composer-note-warn">{t('permission.waitingNote', { provider: selectedRun.providerLabel })}</p>
+            ) : null}
+            {queueing && !queuedPrompt && !selectedRun?.pendingPermissions?.length ? (
+              <p className="ai-ins-composer-note">{t('composer.queueingNote', { provider: selectedRun?.providerLabel || 'Agent' })}</p>
+            ) : null}
+            {continuing && repointed ? <p className="ai-ins-composer-note">{t('composer.repointedNote')}</p> : null}
+
+            <div className={`ai-ins-composer-box${continueBlocked ? ' ai-ins-composer-box-blocked' : ''}`}>
+              <div className="ai-ins-target" title={targetTitle}>
+                <span className={`ai-ins-target-badge${continuing ? ' ai-ins-target-badge-continue' : ''}`}>
+                  {continuing ? t('composer.badgeContinue', { index: selectedRunTurns.length + 1 }) : t('composer.badgeNew')}
                 </span>
-                <select
-                  className="wbx-ai-ins-select"
-                  onChange={(event) => onProviderChange(event.target.value)}
+                <span className="ai-ins-target-text">{targetLabel}</span>
+                <span className="ai-ins-target-actions">
+                  <IconButton disabled={!hasTarget} label={copied ? t('composer.copied') : t('composer.copyLocation')} onClick={() => void handleCopyTarget()} success={copied}>
+                    <Icon paths={copied ? checkIcon : copyIcon} />
+                  </IconButton>
+                  <IconButton disabled={!hasTarget} label={t('composer.openInIde')} onClick={() => void onOpenInEditor()}>
+                    <Icon paths={codeIcon} />
+                  </IconButton>
+                </span>
+              </div>
+
+              <textarea
+                className="ai-ins-textarea"
+                onChange={(event) => handlePromptChange(event.target.value)}
+                onKeyDown={handlePromptKeyDown}
+                placeholder={
+                  continuing
+                    ? t('composer.placeholderContinue')
+                    : hasTarget
+                      ? t('composer.placeholderNew')
+                      : t('composer.placeholderPick')
+                }
+                rows={3}
+                value={prompt}
+              />
+
+              <div className="ai-ins-composer-toolbar">
+                <PanelSelect
+                  ariaLabel="Agent"
+                  disabled={continuing}
+                  onChange={onProviderChange}
+                  options={providerOptions}
                   title={providerSwitchTitle}
                   value={provider?.id || providerId}
-                >
-                  {providers.map((candidate) => (
-                    <option disabled={!candidate.enabled} key={candidate.id} value={candidate.id}>
-                      {candidate.label}
-                      {candidate.enabled ? '' : '（未配置）'}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            <textarea
-              className="wbx-ai-ins-textarea"
-              onChange={(event) => handlePromptChange(event.target.value)}
-              onKeyDown={handlePromptKeyDown}
-              placeholder="描述你想怎么改这个 DOM / 组件；新任务默认不带历史记录，如需延续上一轮，请把结论贴进来。"
-              value={prompt}
-            />
-
-            <div className="wbx-ai-ins-footer">
-              <div className="wbx-ai-ins-status">{status}</div>
-              <div className="wbx-ai-ins-actions">
-                <button className="wbx-ai-ins-button wbx-ai-ins-button-primary" disabled={submitDisabled} type="submit">
-                  {submitting ? '启动中' : `交给 ${provider?.label || 'Agent'} · ${submitShortcutLabel}`}
+                />
+                <div className="ai-ins-status" title={status}>
+                  {status}
+                </div>
+                <button className="ai-ins-button ai-ins-button-primary" disabled={submitDisabled} title={t('composer.sendTitle', { shortcut: submitShortcutLabel })} type="submit">
+                  {submitLabel}
+                  <span className="ai-ins-kbd">{submitShortcutLabel}</span>
                 </button>
               </div>
             </div>
           </form>
-
-          <section className="wbx-ai-ins-detail">
-            {!selectedRun ? (
-              <div className="wbx-ai-ins-detail-empty">
-                {runs.length ? '点击左侧任务查看输出；提交新任务仍是新会话，不会自动延续它的上下文。' : '还没有任务'}
-              </div>
-            ) : (
-              <div className="wbx-ai-ins-detail-content">
-                <div className="wbx-ai-ins-detail-head">
-                  <div>
-                    <p className="wbx-ai-ins-detail-title">{panelGetRunTitle(selectedRun, getDisplayPath)}</p>
-                    <div className="wbx-ai-ins-detail-subtitle">{selectedRun.providerLabel}</div>
-                  </div>
-                  <div className="wbx-ai-ins-detail-actions">
-                    <span className="wbx-ai-ins-pill">{panelGetRunStatusLabel(selectedRun.status)}</span>
-                    <button className="wbx-ai-ins-button wbx-ai-ins-button-danger" onClick={() => onDeleteRun(selectedRun)} type="button">
-                      {selectedRun.completed ? '删除' : '停止并删除'}
-                    </button>
-                  </div>
-                </div>
-                <div className="wbx-ai-ins-prompt">
-                  <span className="wbx-ai-ins-prompt-text">{selectedRun.prompt}</span>
-                  <button
-                    className="wbx-ai-ins-button"
-                    onClick={() => {
-                      setOutputExpanded(false)
-                      setAgentPromptExpanded(true)
-                    }}
-                    type="button"
-                  >
-                    查看详情
-                  </button>
-                </div>
-                <div className={`wbx-ai-ins-output-wrap wbx-ai-ins-output-wrap-${panelIsRunWorking(selectedRun) ? 'active' : selectedRun.status}`}>
-                  <div className="wbx-ai-ins-output-toolbar">
-                    <div className="wbx-ai-ins-output-title">
-                      <span>Output</span>
-                      <span className="wbx-ai-ins-output-format">Markdown</span>
-                    </div>
-                    <IconButton
-                      label="放大输出"
-                      onClick={() => {
-                        setAgentPromptExpanded(false)
-                        setOutputExpanded(true)
-                      }}
-                    >
-                      <Icon paths={maximizeIcon} />
-                    </IconButton>
-                  </div>
-                  <div
-                    className={`wbx-ai-ins-output${selectedRun.status === 'failed' ? ' wbx-ai-ins-output-error' : ''}`}
-                    onDoubleClick={() => {
-                      setAgentPromptExpanded(false)
-                      setOutputExpanded(true)
-                    }}
-                    onScroll={handleOutputScroll}
-                    ref={outputRef}
-                  >
-                    <PanelOutputViewer value={selectedRunOutput} />
-                  </div>
-                  {outputDetachedFromBottom ? (
-                    <button className="wbx-ai-ins-output-follow" onClick={() => handleFollowOutputBottom(false)} type="button">
-                      <Icon paths={arrowDownIcon} />
-                      <span>查看最新</span>
-                    </button>
-                  ) : null}
-                  <div className={`wbx-ai-ins-output-state wbx-ai-ins-output-state-${panelIsRunWorking(selectedRun) ? 'active' : selectedRun.status}`}>
-                    <span className="wbx-ai-ins-output-state-dot" />
-                    <span className="wbx-ai-ins-output-state-text">{panelGetRunWorkStatus(selectedRun)}</span>
-                    {panelIsRunWorking(selectedRun) ? <PanelLoadingSpinner /> : null}
-                  </div>
-                </div>
-              </div>
-            )}
-          </section>
         </main>
       </div>
-      {selectedRun && agentPromptExpanded ? (
-        <div className="wbx-ai-ins-output-modal" onClick={() => setAgentPromptExpanded(false)}>
+      {selectedRun && agentPromptTurn ? (
+        <div className="ai-ins-output-modal" onClick={() => setAgentPromptTurnIndex(undefined)}>
           <div
-            aria-label={`查看发送给 ${selectedRun.providerLabel} 的完整 prompt`}
+            aria-label={t('modal.promptAria', { provider: selectedRun.providerLabel })}
             aria-modal="true"
-            className="wbx-ai-ins-output-modal-panel wbx-ai-ins-agent-prompt-modal-panel"
+            className="ai-ins-output-modal-panel ai-ins-agent-prompt-modal-panel"
             onClick={(event) => event.stopPropagation()}
             onKeyDown={(event) => {
               if (event.key === 'Escape') {
                 event.stopPropagation()
-                setAgentPromptExpanded(false)
+                setAgentPromptTurnIndex(undefined)
               }
             }}
             ref={agentPromptModalRef}
             role="dialog"
             tabIndex={-1}
           >
-            <div className="wbx-ai-ins-output-modal-head">
+            <div className="ai-ins-output-modal-head">
               <div>
-                <p className="wbx-ai-ins-output-modal-title">发送给 {selectedRun.providerLabel} 的完整 prompt</p>
-                <div className="wbx-ai-ins-output-modal-subtitle">{panelGetRunTitle(selectedRun, getDisplayPath)}</div>
+                <p className="ai-ins-output-modal-title">
+                  {t('modal.promptTitle', { index: agentPromptTurn.index + 1, provider: selectedRun.providerLabel })}
+                </p>
+                <div className="ai-ins-output-modal-subtitle">{panelGetRunTitle(selectedRun, getDisplayPath)}</div>
               </div>
-              <div className="wbx-ai-ins-detail-actions">
-                <button className="wbx-ai-ins-button" onClick={() => setAgentPromptExpanded(false)} type="button">
-                  关闭
+              <div className="ai-ins-detail-actions">
+                <button className="ai-ins-button" onClick={() => setAgentPromptTurnIndex(undefined)} type="button">
+                  {t('panel.close')}
                 </button>
               </div>
             </div>
-            <div className="wbx-ai-ins-agent-prompt wbx-ai-ins-agent-prompt-modal">
+            <div className="ai-ins-agent-prompt ai-ins-agent-prompt-modal">
               <p>
                 {selectedRunAgentPrompt
-                  ? `这里是启动这条任务时真正发送给 ${selectedRun.providerLabel} 的完整 prompt，包含源码位置和 DOM source stack。`
-                  : `这条任务创建时还没有记录完整 prompt；请打开日志文件 ${selectedRunLogLabel} 检查启动命令和 prompt 正文。`}
+                  ? agentPromptTurn.resumed
+                    ? t('modal.promptResumed')
+                    : t('modal.promptFirst', { provider: selectedRun.providerLabel })
+                  : t('modal.promptMissing', { log: selectedRunLogLabel })}
               </p>
-              <div className="wbx-ai-ins-output-code-block wbx-ai-ins-agent-prompt-code-block">
+              <div className="ai-ins-output-code-block ai-ins-agent-prompt-code-block">
                 <pre>
-                  <code>{selectedRunAgentPrompt || `日志文件：${selectedRunLogLabel}`}</code>
+                  <code>{selectedRunAgentPrompt || t('modal.logFile', { log: selectedRunLogLabel })}</code>
                 </pre>
               </div>
             </div>
@@ -1106,11 +1682,11 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
         </div>
       ) : null}
       {selectedRun && outputExpanded ? (
-        <div className="wbx-ai-ins-output-modal" onClick={() => setOutputExpanded(false)}>
+        <div className="ai-ins-output-modal" onClick={() => setOutputExpanded(false)}>
           <div
-            aria-label="放大输出"
+            aria-label={t('chat.expand')}
             aria-modal="true"
-            className="wbx-ai-ins-output-modal-panel"
+            className="ai-ins-output-modal-panel"
             onClick={(event) => event.stopPropagation()}
             onKeyDown={(event) => {
               if (event.key === 'Escape') {
@@ -1120,25 +1696,34 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
             }}
             role="dialog"
           >
-            <div className="wbx-ai-ins-output-modal-head">
+            <div className="ai-ins-output-modal-head">
               <div>
-                <p className="wbx-ai-ins-output-modal-title">{panelGetRunTitle(selectedRun, getDisplayPath)}</p>
-                <div className="wbx-ai-ins-output-modal-subtitle">{selectedRun.providerLabel} output</div>
+                <p className="ai-ins-output-modal-title">{panelGetRunTitle(selectedRun, getDisplayPath)}</p>
+                <div className="ai-ins-output-modal-subtitle">
+                  {t('modal.transcriptSubtitle', { provider: selectedRun.providerLabel, turns: t('sidebar.turnCount', { count: selectedRun.turns.length }) })}
+                </div>
               </div>
-              <div className="wbx-ai-ins-detail-actions">
-                <span className="wbx-ai-ins-pill">{panelGetRunStatusLabel(selectedRun.status)}</span>
-                <IconButton label="收起输出" onClick={() => setOutputExpanded(false)}>
+              <div className="ai-ins-detail-actions">
+                <span className={`ai-ins-pill ai-ins-pill-${panelGetRunTone(selectedRun)}`}>
+                  {panelGetRunStateLabel(selectedRun)}
+                </span>
+                <IconButton label={t('panel.collapse')} onClick={() => setOutputExpanded(false)}>
                   <Icon paths={minimizeIcon} />
                 </IconButton>
               </div>
             </div>
-            <div className={`wbx-ai-ins-output wbx-ai-ins-output-expanded${selectedRun.status === 'failed' ? ' wbx-ai-ins-output-error' : ''}`} onScroll={handleOutputModalScroll} ref={outputModalRef} tabIndex={-1}>
-              <PanelOutputViewer value={selectedRunOutput} />
+            <div
+              className="ai-ins-chat-scroll ai-ins-output-expanded"
+              onScroll={handleOutputModalScroll}
+              ref={outputModalRef}
+              tabIndex={-1}
+            >
+              {renderTranscript(true)}
             </div>
             {outputModalDetachedFromBottom ? (
-              <button className="wbx-ai-ins-output-follow wbx-ai-ins-output-follow-expanded" onClick={() => handleFollowOutputBottom(true)} type="button">
+              <button className="ai-ins-output-follow ai-ins-output-follow-expanded" onClick={() => handleFollowOutputBottom(true)} type="button">
                 <Icon paths={arrowDownIcon} />
-                <span>查看最新</span>
+                <span>{t('chat.followLatest')}</span>
               </button>
             ) : null}
           </div>

@@ -328,7 +328,7 @@ function installDockDrag() {
     if (movedDistance > 4) {
       dockPointerState.didDrag = true
       suppressDockClick = true
-      dockButton.classList.add('wbx-ai-ins-dock-dragging')
+      dockButton.classList.add('ai-ins-dock-dragging')
     }
 
     event.preventDefault()
@@ -345,7 +345,7 @@ function installDockDrag() {
 
     const didDrag = dockPointerState.didDrag
     dockButton.releasePointerCapture?.(event.pointerId)
-    dockButton.classList.remove('wbx-ai-ins-dock-dragging')
+    dockButton.classList.remove('ai-ins-dock-dragging')
     dockPointerState = undefined
 
     if (didDrag) {
@@ -363,7 +363,7 @@ function installDockDrag() {
     }
 
     dockButton.releasePointerCapture?.(event.pointerId)
-    dockButton.classList.remove('wbx-ai-ins-dock-dragging')
+    dockButton.classList.remove('ai-ins-dock-dragging')
     dockPointerState = undefined
     suppressDockClick = false
   })

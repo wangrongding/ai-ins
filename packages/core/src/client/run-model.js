@@ -1,64 +1,21 @@
-function getRunStatusLabel(status) {
-  switch (status) {
-    case 'starting':
-      return '启动中'
-    case 'running':
-      return '运行中'
-    case 'done':
-      return '已完成'
-    case 'failed':
-      return '失败'
-    case 'disconnected':
-      return '连接断开'
-    default:
-      return '等待'
-  }
+function getRunCurrentTurn(run) {
+  return run.turns?.[run.turns.length - 1]
 }
 
-function isRunWorking(run) {
-  return run.status === 'starting' || run.status === 'running'
+/** Last turn start is the stable "activity" time: it moves when a task is continued, not on every heartbeat. */
+function getRunActivityAt(run) {
+  return Math.max(run.turns?.[run.turns.length - 1]?.createdAt || 0, run.createdAt || 0)
 }
 
-function getRunWorkStatus(run) {
-  if (run.status === 'starting') {
-    return `${run.providerLabel} 正在启动，马上开始处理这块代码`
-  }
-
-  if (run.status === 'running') {
-    return run.statusMessage || `${run.providerLabel} 正在分析代码和整理改动`
-  }
-
-  if (run.status === 'done') {
-    return `${run.providerLabel} 已完成`
-  }
-
-  if (run.status === 'failed') {
-    return run.statusMessage || `${run.providerLabel} 执行失败`
-  }
-
-  if (run.status === 'disconnected') {
-    return '进度连接断开，可以继续查看日志或刷新重连'
-  }
-
-  return '等待任务输出'
-}
-
-function getRunTitle(run) {
-  return run.sourceName || getDisplayPath(run.sourcePath || '')
-}
-
-function formatRunTime(timestamp) {
-  return new Date(timestamp).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })
+function sortClientRuns() {
+  runs.sort((first, second) => getRunActivityAt(second) - getRunActivityAt(first))
 }
 
 const maxPanelOutputLength = 70000
 const panelOutputHeadLength = 12000
 const panelOutputTailLength = 52000
-const panelOutputCompactionNotice = '\n\n[ai-ins] 面板输出过长，已保留开头和最新部分；完整输出请打开上方日志文件。\n\n'
+// A token, not text: the panel renders it in the current language.
+const panelOutputCompactionNotice = '\n\n[ai-ins:notice:panelTruncated]\n\n'
 
 function slicePanelOutputHead(output) {
   const newlineIndex = output.lastIndexOf('\n', panelOutputHeadLength)
@@ -79,9 +36,36 @@ function compactOutputForPanel(output) {
   return `${slicePanelOutputHead(output)}${panelOutputCompactionNotice}${slicePanelOutputTail(output)}`
 }
 
-function appendRunOutput(run, message, tone) {
+function createClientRunTurn(index, prompt, provider, layer, resumed) {
+  return {
+    agentPrompt: '',
+    completed: false,
+    createdAt: Date.now(),
+    index,
+    output: '',
+    prompt,
+    resumed,
+    sourceName: layer?.name || '',
+    sourcePath: layer?.path || '',
+    status: 'starting',
+    statusMessage: `${provider?.label || 'Agent'} starting`,
+  }
+}
+
+/** Events carry their turn index, so late output never lands on the wrong turn. */
+function getRunTurnAt(run, turnIndex) {
+  const index = typeof turnIndex === 'number' ? turnIndex : run.turns.length - 1
+  return run.turns[index] || run.turns[run.turns.length - 1]
+}
+
+function appendRunOutput(run, message, tone, turnIndex) {
+  const turn = getRunTurnAt(run, turnIndex)
+  if (!turn) {
+    return
+  }
+
   const prefix = tone === 'stderr' ? '[stderr] ' : ''
-  run.output = compactOutputForPanel(`${run.output}${prefix}${message}`)
+  turn.output = compactOutputForPanel(`${turn.output}${prefix}${message}`)
 
   if (selectedRunId === run.id) {
     globalThis.aiInsPanelRuntime?.refreshRunDetail()
@@ -96,10 +80,17 @@ function removeClientRun(runId) {
 
   runSubscriptions.get(runId)?.close()
   runSubscriptions.delete(runId)
+  window.clearTimeout(runResyncTimers.get(runId)?.timer)
+  runResyncTimers.delete(runId)
   runs.splice(index, 1)
 
   if (selectedRunId === runId) {
     selectedRunId = undefined
+    continueTarget = undefined
+  }
+
+  if (repointRunId === runId) {
+    repointRunId = undefined
   }
 
   globalThis.aiInsPanelRuntime?.refreshRunList()
@@ -111,6 +102,26 @@ async function deleteRun(run) {
   try {
     await deleteAgentRun(run.id)
     removeClientRun(run.id)
+  } catch (error) {
+    if (panelRefs) {
+      panelRefs.status.textContent = error instanceof Error ? error.message : String(error)
+    }
+  }
+}
+
+async function clearFinishedRuns() {
+  try {
+    const result = await clearFinishedAgentRuns()
+    const removedIds = Array.isArray(result.removedIds) ? result.removedIds : []
+    for (const runId of removedIds) {
+      removeClientRun(runId)
+    }
+
+    if (panelRefs) {
+      panelRefs.status.textContent = removedIds.length
+        ? globalThis.aiInsI18n.t('sidebar.clearedCount', { count: removedIds.length })
+        : globalThis.aiInsI18n.t('sidebar.clearedNone')
+    }
   } catch (error) {
     if (panelRefs) {
       panelRefs.status.textContent = error instanceof Error ? error.message : String(error)

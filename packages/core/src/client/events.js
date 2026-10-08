@@ -13,7 +13,7 @@ window.addEventListener('mousemove', (event) => {
   }
 
   // Element 而非 HTMLElement：svg/path 等图形元素也常是事件目标。
-  if (!(event.target instanceof Element) || event.target.closest('.wbx-ai-ins-dialog, .wbx-ai-ins-dock')) {
+  if (!(event.target instanceof Element) || event.target.closest('.ai-ins-dialog, .ai-ins-dock')) {
     clearOverlay()
     return
   }
@@ -41,7 +41,7 @@ window.addEventListener(
     }
 
     const target = event.target
-    if (!(target instanceof Element) || target.closest('.wbx-ai-ins-dialog, .wbx-ai-ins-dock')) {
+    if (!(target instanceof Element) || target.closest('.ai-ins-dialog, .ai-ins-dock')) {
       return
     }
 

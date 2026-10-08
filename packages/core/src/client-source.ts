@@ -28,7 +28,7 @@ export function getAiInsClientSource() {
 
   // 幂等保护：同一页面里客户端模块被多个入口加载（如 transformIndexHtml 与 Astro 页面脚本）时只初始化一次。
   const source = `if (!globalThis.${clientLoadedFlag}) {\nglobalThis.${clientLoadedFlag} = true\n\n${scripts.join('\n\n')}\n}\n`
-  return source.replace('__WBX_CLIENT_STYLE__', JSON.stringify(style))
+  return source.replace('__AI_INS_CLIENT_STYLE__', JSON.stringify(style))
 }
 
 export function getAiInsClientWatchFiles() {

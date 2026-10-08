@@ -65,12 +65,12 @@ export function getAiInsClientCode(input: {
   const agentProviders = getClientAgentProviders(input.root, options, pluginProxy)
 
   return getAiInsClientSource()
-    .replace('__WBX_ROOT__', JSON.stringify(input.root))
-    .replace('__WBX_BASE__', JSON.stringify(input.base ?? '/'))
-    .replace('__WBX_AGENT_PROXY__', JSON.stringify(getConfiguredCodexProxy(pluginProxy)))
-    .replace('__WBX_AGENT_PROVIDERS__', JSON.stringify(agentProviders))
+    .replace('__AI_INS_ROOT__', JSON.stringify(input.root))
+    .replace('__AI_INS_BASE__', JSON.stringify(input.base ?? '/'))
+    .replace('__AI_INS_AGENT_PROXY__', JSON.stringify(getConfiguredCodexProxy(pluginProxy)))
+    .replace('__AI_INS_AGENT_PROVIDERS__', JSON.stringify(agentProviders))
     .replace(
-      '__WBX_DEFAULT_AGENT_PROVIDER__',
+      '__AI_INS_DEFAULT_AGENT_PROVIDER__',
       JSON.stringify(getDefaultAgentProviderId(agentProviders, input.defaultProvider ?? options.agents?.defaultProvider)),
     )
 }
