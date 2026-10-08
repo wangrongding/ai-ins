@@ -1,10 +1,31 @@
-import { formatAgentJsonLine } from './agent-output'
+import { startAgentTurn } from './agent-runner'
+import { applySessionIdToArgs, createSessionId } from './agent-session'
 import { getOpenInEditorCommand, resolveCommand, resolveLaunchEditor, shouldUseShellForCommand } from './editor'
 import { getClientAgentProviders, getDefaultAgentProviderId, resolveAgentProviders } from './providers'
-import { getAgentEnv, getConfiguredCodexProxy, normalizeProxy } from './proxy'
-import { appendAiInsEvent, aiInsRuns, createAiInsRun, getAiInsRunSummary, sendAiInsEvent } from './run-store'
+import { getConfiguredCodexProxy, normalizeProxy } from './proxy'
+import {
+  appendAiInsRunTurn,
+  aiInsRuns,
+  bumpAiInsRunsVersion,
+  getAiInsRunsVersion,
+  createAiInsRun,
+  getAiInsRunResumeBlockedCode,
+  getAiInsRunSummary,
+  sendAiInsEvent,
+} from './run-store'
+import {
+  applyPermissionArgs,
+  cancelPendingPermissions,
+  defaultPermissionMode,
+  getPermissionMcpConfig,
+  parsePermissionMode,
+  resolvePermissionMode,
+} from './permissions'
+import { ensureAiInsRunHistoryLoaded, getAiInsRunActivityAt, pruneAiInsRunHistory, removeAiInsRunHistory } from './run-history'
 import {
   buildAgentPrompt,
+  buildFollowUpAgentPrompt,
+  getDisplayPath,
   getLayerNameForTarget,
   getLayerSummary,
   getSourceContext,
@@ -14,9 +35,11 @@ import {
   readRequestBody,
 } from './source'
 import { spawn } from 'child_process'
-import { createWriteStream, existsSync, mkdirSync } from 'fs'
+import { existsSync, mkdirSync } from 'fs'
 import { dirname, join } from 'path'
-import type { AiInsMiddleware, AiInsPluginOptions } from './types'
+import type { ServerResponse } from 'http'
+import type { AiInsMiddleware, AiInsPluginOptions, AiInsRun, ResolvedAiInsAgentProvider } from './types'
+
 
 type AiInsProxyMode = 'custom' | 'off' | 'system'
 
@@ -36,12 +59,16 @@ function getRevealInFolderCommand(fileName: string) {
   return { args: [dirname(fileName)], command: 'xdg-open' }
 }
 
-export function aiInsEventsMiddleware(): AiInsMiddleware {
+export function aiInsEventsMiddleware(root?: string): AiInsMiddleware {
   return (req, res) => {
     if (req.method !== 'GET') {
       res.statusCode = 405
       res.end('method not allowed')
       return
+    }
+
+    if (root) {
+      ensureAiInsRunHistoryLoaded(root)
     }
 
     const requestUrl = req.url ? new URL(req.url, 'http://localhost') : null
@@ -54,6 +81,11 @@ export function aiInsEventsMiddleware(): AiInsMiddleware {
       return
     }
 
+    // A run that took another turn reopens its stream. Without a cursor the
+    // client would replay — and re-append — every event of the earlier turns.
+    const rawSince = Number(requestUrl?.searchParams.get('since') || '0')
+    const since = Number.isFinite(rawSince) && rawSince > 0 ? rawSince : 0
+
     res.setHeader('Content-Type', 'text/event-stream')
     res.setHeader('Cache-Control', 'no-cache, no-transform')
     res.setHeader('Connection', 'keep-alive')
@@ -63,10 +95,13 @@ export function aiInsEventsMiddleware(): AiInsMiddleware {
 
     run.subscribers.add(res)
     for (const event of run.events) {
-      sendAiInsEvent(res, event)
+      if ((event.seq ?? 0) > since) {
+        sendAiInsEvent(res, event)
+      }
     }
 
     if (run.completed) {
+      run.subscribers.delete(res)
       res.end()
       return
     }
@@ -77,39 +112,135 @@ export function aiInsEventsMiddleware(): AiInsMiddleware {
   }
 }
 
+function stopAndForgetRun(runId: string, run: AiInsRun) {
+  if (!run.completed) {
+    run.child?.kill('SIGTERM')
+  }
+
+  cancelPendingPermissions(run)
+
+  for (const subscriber of run.subscribers) {
+    subscriber.end()
+  }
+
+  aiInsRuns.delete(runId)
+  removeAiInsRunHistory(runId, run)
+  bumpAiInsRunsVersion()
+}
+
+// Give the agent a moment to exit cleanly on SIGTERM before forcing it.
+const stopGraceMs = 4000
+
+function stopRunningTurn(run: AiInsRun) {
+  const child = run.child
+  if (run.completed || !child) {
+    return false
+  }
+
+  run.stopRequested = true
+  cancelPendingPermissions(run)
+  child.kill('SIGTERM')
+  const forceTimer = setTimeout(() => {
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill('SIGKILL')
+    }
+  }, stopGraceMs)
+  ;(forceTimer as unknown as { unref?: () => void }).unref?.()
+  return true
+}
+
+/**
+ * Errors the panel shows to the user carry a message key (plus params) so they
+ * appear in the panel's language; other clients still get a readable body.
+ */
+function sendPanelError(res: ServerResponse, error: string, params: Record<string, string> = {}, statusCode = 409) {
+  res.statusCode = statusCode
+  res.setHeader('Content-Type', 'application/json')
+  res.end(JSON.stringify({ error, params }))
+}
+
 export function aiInsRunsMiddleware(root: string): AiInsMiddleware {
   return (req, res) => {
     const requestUrl = req.url ? new URL(req.url, 'http://localhost') : null
+    const runId = requestUrl?.searchParams.get('id') || ''
+    ensureAiInsRunHistoryLoaded(root)
 
     if (req.method === 'GET') {
-      const runs = [...aiInsRuns.entries()]
-        .sort(([, firstRun], [, secondRun]) => secondRun.createdAt - firstRun.createdAt)
-        .map(([runId, run]) => getAiInsRunSummary(runId, run, root))
-
       res.setHeader('Content-Type', 'application/json')
-      res.end(JSON.stringify({ runs }))
+
+      if (runId) {
+        const run = aiInsRuns.get(runId)
+        if (!run || run.root !== root) {
+          res.statusCode = 404
+          res.end(JSON.stringify({ message: 'AI Ins run not found' }))
+          return
+        }
+
+        res.end(JSON.stringify({ run: getAiInsRunSummary(runId, run, root) }))
+        return
+      }
+
+      const version = getAiInsRunsVersion()
+      if (requestUrl?.searchParams.get('version') === String(version)) {
+        res.end(JSON.stringify({ unchanged: true, version }))
+        return
+      }
+
+      // Only live runs carry their output in the list: the panel streams those
+      // and needs a consistent starting point. Settled transcripts can be large
+      // and are fetched one at a time when the user opens them.
+      const runs = [...aiInsRuns.entries()]
+        .filter(([, run]) => run.root === root)
+        .sort(([, firstRun], [, secondRun]) => getAiInsRunActivityAt(secondRun) - getAiInsRunActivityAt(firstRun))
+        .map(([id, run]) => getAiInsRunSummary(id, run, root, !run.completed))
+
+      res.end(JSON.stringify({ runs, version }))
       return
     }
 
-    if (req.method === 'DELETE') {
-      const runId = requestUrl?.searchParams.get('id') || ''
+    if (req.method === 'POST' && requestUrl?.searchParams.get('action') === 'stop') {
       const run = aiInsRuns.get(runId)
-
-      if (!run) {
+      if (!run || run.root !== root) {
         res.statusCode = 404
         res.end('AI Ins run not found')
         return
       }
 
-      if (!run.completed) {
-        run.child?.kill('SIGTERM')
+      if (!stopRunningTurn(run)) {
+        res.statusCode = 409
+        sendPanelError(res, 'error.notRunning')
+        return
       }
 
-      for (const subscriber of run.subscribers) {
-        subscriber.end()
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({ success: true }))
+      return
+    }
+
+    if (req.method === 'DELETE') {
+      if (requestUrl?.searchParams.get('scope') === 'finished') {
+        const removedIds: string[] = []
+        for (const [id, run] of [...aiInsRuns.entries()]) {
+          if (run.root === root && run.completed) {
+            stopAndForgetRun(id, run)
+            removedIds.push(id)
+          }
+        }
+
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ removedIds, success: true }))
+        return
       }
 
-      aiInsRuns.delete(runId)
+      const run = aiInsRuns.get(runId)
+
+      if (!run || run.root !== root) {
+        res.statusCode = 404
+        res.end('AI Ins run not found')
+        return
+      }
+
+      stopAndForgetRun(runId, run)
       res.setHeader('Content-Type', 'application/json')
       res.end(JSON.stringify({ success: true }))
       return
@@ -136,6 +267,93 @@ export function aiInsConfigMiddleware(root: string, options: AiInsPluginOptions,
   }
 }
 
+type AiInsAgentRequest = {
+  file?: unknown
+  layers?: unknown
+  permissionMode?: unknown
+  prompt?: unknown
+  provider?: unknown
+  proxy?: unknown
+  proxyMode?: unknown
+  resumeRunId?: unknown
+}
+
+type RequestProxyResult = { ok: false; message: string } | { ok: true; proxy: string; proxyModeSet: boolean }
+
+function resolveRequestProxy(payload: AiInsAgentRequest, provider: ResolvedAiInsAgentProvider): RequestProxyResult {
+  const proxyMode = parseProxyMode(payload.proxyMode)
+  const requestedProxy = normalizeProxy(payload.proxy)
+
+  if (proxyMode === 'custom' && !requestedProxy) {
+    return { message: 'invalid custom proxy URL', ok: false }
+  }
+
+  let proxy = requestedProxy || provider.proxy
+  if (proxyMode === 'off') {
+    proxy = ''
+  } else if (proxyMode === 'custom') {
+    proxy = requestedProxy
+  } else if (proxyMode === 'system') {
+    proxy = provider.proxy
+  }
+
+  return { ok: true, proxy, proxyModeSet: Boolean(proxyMode) }
+}
+
+type ResolvedAgentTarget = {
+  columnNumber: number
+  context: ReturnType<typeof getSourceContext>
+  endColumnNumber?: number
+  endLineNumber?: number
+  fileName: string
+  layerSummary: string
+  lineNumber: number
+  sourceName: string
+}
+
+type AgentTargetResult = { ok: false; message: string; status: number } | { ok: true; target: ResolvedAgentTarget }
+
+function resolveAgentTarget(root: string, rawTarget: string, layers: unknown): AgentTargetResult {
+  const { columnNumber, fileName, lineNumber } = parseOpenInEditorTarget(rawTarget, root)
+
+  if (!isPathInsideRoot(fileName, root)) {
+    return { message: `source file outside project root: ${fileName}`, ok: false, status: 403 }
+  }
+
+  if (!existsSync(fileName)) {
+    return { message: `source file not found: ${fileName}`, ok: false, status: 404 }
+  }
+
+  const sourceRange = getSourceRangeForTarget(layers, fileName, lineNumber, root)
+
+  return {
+    ok: true,
+    target: {
+      columnNumber,
+      context: getSourceContext(fileName, lineNumber, 12, sourceRange?.endLineNumber),
+      endColumnNumber: sourceRange?.endColumnNumber,
+      endLineNumber: sourceRange?.endLineNumber,
+      fileName,
+      layerSummary: getLayerSummary(layers, root),
+      lineNumber,
+      sourceName: getLayerNameForTarget(layers, fileName, lineNumber, root),
+    },
+  }
+}
+
+function toPromptTarget(target: ResolvedAgentTarget, root: string) {
+  return {
+    columnNumber: target.columnNumber,
+    context: target.context,
+    endColumnNumber: target.endColumnNumber,
+    endLineNumber: target.endLineNumber,
+    fileName: target.fileName,
+    layerSummary: target.layerSummary,
+    lineNumber: target.lineNumber,
+    root,
+  }
+}
+
 export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, pluginProxy: string): AiInsMiddleware {
   return async (req, res) => {
     if (req.method !== 'POST') {
@@ -146,32 +364,34 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
 
     try {
       const body = await readRequestBody(req)
-      const payload = JSON.parse(body || '{}') as {
-        file?: unknown
-        layers?: unknown
-        prompt?: unknown
-        provider?: unknown
-        proxy?: unknown
-        proxyMode?: unknown
-      }
+      const payload = JSON.parse(body || '{}') as AiInsAgentRequest
       const rawTarget = typeof payload.file === 'string' ? payload.file : ''
       const rawPrompt = typeof payload.prompt === 'string' ? payload.prompt.trim() : ''
-      const providers = resolveAgentProviders(root, options, pluginProxy)
-      const requestedProviderId =
-        typeof payload.provider === 'string' && payload.provider.trim() ? payload.provider.trim() : getDefaultAgentProviderId(providers)
-      const provider = providers.find((candidate) => candidate.id === requestedProviderId)
-
-      if (!rawTarget) {
-        res.statusCode = 400
-        res.end('missing file')
-        return
-      }
+      const resumeRunId = typeof payload.resumeRunId === 'string' ? payload.resumeRunId.trim() : ''
 
       if (!rawPrompt) {
         res.statusCode = 400
         res.end('missing prompt')
         return
       }
+
+      ensureAiInsRunHistoryLoaded(root)
+      const existingRun = resumeRunId ? aiInsRuns.get(resumeRunId) : undefined
+      if (resumeRunId && (!existingRun || existingRun.root !== root)) {
+        res.statusCode = 404
+        res.end('AI Ins run not found')
+        return
+      }
+
+      const providers = resolveAgentProviders(root, options, pluginProxy)
+      // A follow-up turn is pinned to the provider that owns the session; the
+      // panel locks the picker to match, so a mismatch means a stale client.
+      const requestedProviderId = existingRun
+        ? existingRun.providerId
+        : typeof payload.provider === 'string' && payload.provider.trim()
+          ? payload.provider.trim()
+          : getDefaultAgentProviderId(providers)
+      const provider = providers.find((candidate) => candidate.id === requestedProviderId)
 
       if (!provider) {
         res.statusCode = 400
@@ -192,237 +412,170 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
         return
       }
 
-      const proxyMode = parseProxyMode(payload.proxyMode)
-      const requestedProxy = normalizeProxy(payload.proxy)
-      if (proxyMode === 'custom' && !requestedProxy) {
+      // The panel's permission setting, narrowed to what this provider supports.
+      const permissionMode = resolvePermissionMode(provider, parsePermissionMode(payload.permissionMode) ?? defaultPermissionMode)
+      const requestProxy = resolveRequestProxy(payload, provider)
+      if (!requestProxy.ok) {
         res.statusCode = 400
-        res.end('invalid custom proxy URL')
+        res.end(requestProxy.message)
         return
       }
 
-      let proxy = requestedProxy || provider.proxy
-      if (proxyMode === 'off') {
-        proxy = ''
-      } else if (proxyMode === 'custom') {
-        proxy = requestedProxy
-      } else if (proxyMode === 'system') {
-        proxy = provider.proxy
-      }
+      if (existingRun) {
+        const blockedCode = getAiInsRunResumeBlockedCode(existingRun)
+        if (blockedCode) {
+          sendPanelError(res, blockedCode, { provider: existingRun.providerLabel })
+          return
+        }
 
-      const { columnNumber, fileName, lineNumber } = parseOpenInEditorTarget(rawTarget, root)
-      if (!isPathInsideRoot(fileName, root)) {
-        res.statusCode = 403
-        res.end(`source file outside project root: ${fileName}`)
+        const sessionId = existingRun.sessionId as string
+        const previousDisplayPath = `${getDisplayPath(existingRun.sourcePath, root)}:${existingRun.lineNumber}`
+        let target: ResolvedAgentTarget | undefined
+
+        if (rawTarget) {
+          const resolved = resolveAgentTarget(root, rawTarget, payload.layers)
+          if (!resolved.ok) {
+            res.statusCode = resolved.status
+            res.end(resolved.message)
+            return
+          }
+
+          target = resolved.target
+        }
+
+        const targetChanged = Boolean(
+          target && (target.fileName !== existingRun.sourcePath || target.lineNumber !== existingRun.lineNumber),
+        )
+        const followUpPrompt = buildFollowUpAgentPrompt({
+          previousDisplayPath,
+          rawPrompt,
+          target: targetChanged && target ? toPromptTarget(target, root) : undefined,
+          turnNumber: existingRun.turns.length + 1,
+        })
+
+        const turn = appendAiInsRunTurn(resumeRunId, existingRun, {
+          agentPrompt: followUpPrompt,
+          fileName: targetChanged && target ? target.fileName : existingRun.sourcePath,
+          lineNumber: targetChanged && target ? target.lineNumber : existingRun.lineNumber,
+          permissionMode,
+          prompt: rawPrompt,
+          resumed: true,
+          sourceName: targetChanged && target ? target.sourceName : existingRun.sourceName,
+          sourcePath: targetChanged && target ? target.fileName : existingRun.sourcePath,
+        })
+
+        const resumedChild = await startAgentTurn({
+          agentCommand,
+          args: applyPermissionArgs(
+            applySessionIdToArgs(provider.session.resumeArgs, sessionId),
+            provider,
+            permissionMode,
+            getPermissionMcpConfig(req, resumeRunId, existingRun),
+          ),
+          input: provider.session.resumeInput,
+          logPath: existingRun.logPath,
+          prompt: followUpPrompt,
+          provider,
+          proxy: requestProxy.proxy,
+          proxyModeSet: requestProxy.proxyModeSet,
+          root,
+          run: existingRun,
+          runId: resumeRunId,
+        })
+
+        res.setHeader('Content-Type', 'application/json')
+        res.end(
+          JSON.stringify({
+            agentPrompt: followUpPrompt,
+            fileName: turn.sourcePath,
+            lineNumber: turn.lineNumber,
+            logPath: existingRun.logPath,
+            pid: resumedChild.pid,
+            providerId: provider.id,
+            providerLabel: provider.label,
+            resumed: true,
+            runId: resumeRunId,
+            sessionId,
+            sourceName: turn.sourceName,
+            success: true,
+            turnIndex: turn.index,
+          }),
+        )
         return
       }
 
-      if (!existsSync(fileName)) {
-        res.statusCode = 404
-        res.end(`source file not found: ${fileName}`)
+      if (!rawTarget) {
+        res.statusCode = 400
+        res.end('missing file')
         return
       }
 
-      const sourceRange = getSourceRangeForTarget(payload.layers, fileName, lineNumber, root)
-      const context = getSourceContext(fileName, lineNumber, 12, sourceRange?.endLineNumber)
-      const layerSummary = getLayerSummary(payload.layers, root)
-      const sourceName = getLayerNameForTarget(payload.layers, fileName, lineNumber, root)
-      const prompt = buildAgentPrompt({
-        columnNumber,
-        context,
-        endColumnNumber: sourceRange?.endColumnNumber,
-        endLineNumber: sourceRange?.endLineNumber,
-        fileName,
-        layerSummary,
-        lineNumber,
-        rawPrompt,
-        root,
-      })
+      const targetResult = resolveAgentTarget(root, rawTarget, payload.layers)
+      if (!targetResult.ok) {
+        res.statusCode = targetResult.status
+        res.end(targetResult.message)
+        return
+      }
 
+      const target = targetResult.target
+      const prompt = buildAgentPrompt({ ...toPromptTarget(target, root), rawPrompt })
       const logDirectory = join(root, '.ai-ins')
       mkdirSync(logDirectory, { recursive: true })
       const runId = `${new Date().toISOString().replace(/[:.]/gu, '-')}-${provider.id}`
       const logPath = join(logDirectory, `${runId}.log`)
-      const logStream = createWriteStream(logPath, { flags: 'a' })
-      const args = [...provider.args]
-      if (provider.input === 'argument') {
-        args.push(prompt)
-      }
 
-      logStream.write(`$ ${agentCommand} ${provider.input === 'argument' ? `${provider.args.join(' ')} <prompt>` : args.join(' ')}\n\n${prompt}\n\n`)
-      if (proxy) {
-        logStream.write(`[ai-ins] using proxy ${proxy}\n\n`)
-      }
-      createAiInsRun(runId, logPath, provider, {
+      // `assign` providers let us pin the id before the process exists, which is
+      // the only way to stay resumable if the run dies before printing anything.
+      const sessionId = provider.session.mode === 'assign' ? createSessionId() : undefined
+      const baseArgs = sessionId
+        ? [...applySessionIdToArgs(provider.session.assignArgs, sessionId), ...provider.args]
+        : [...provider.args]
+
+      const run = createAiInsRun(runId, root, logPath, provider, provider.session.mode, sessionId, {
         agentPrompt: prompt,
-        fileName,
-        lineNumber,
+        fileName: target.fileName,
+        lineNumber: target.lineNumber,
+        permissionMode,
         prompt: rawPrompt,
-        sourceName,
-        sourcePath: fileName,
+        resumed: false,
+        sourceName: target.sourceName,
+        sourcePath: target.fileName,
       })
+      pruneAiInsRunHistory(root)
+      // After the run exists: the permission bridge config carries its token.
+      const args = applyPermissionArgs(baseArgs, provider, permissionMode, getPermissionMcpConfig(req, runId, run))
 
-      const child = spawn(agentCommand, args, {
-        cwd: root,
-        env: getAgentEnv(proxy, { clearProxy: Boolean(proxyMode) }),
-        shell: shouldUseShellForCommand(agentCommand),
-        stdio: ['pipe', 'pipe', 'pipe'],
-      })
-      const run = aiInsRuns.get(runId)
-      if (run) {
-        run.child = child
-      }
-      const startedAt = Date.now()
-      let completed = false
-      let stdoutBuffer = ''
-      const heartbeatTimer = setInterval(() => {
-        if (completed) {
-          return
-        }
-
-        appendAiInsEvent(runId, {
-          logPath,
-          message: `${provider.label} 运行中 · ${Math.max(1, Math.round((Date.now() - startedAt) / 1000))}s`,
-          providerId: provider.id,
-          providerLabel: provider.label,
-          type: 'heartbeat',
-        })
-      }, 5000)
-      ;(heartbeatTimer as unknown as { unref?: () => void }).unref?.()
-
-      appendAiInsEvent(runId, {
+      const child = await startAgentTurn({
+        agentCommand,
+        args,
+        input: provider.input,
         logPath,
-        message: proxy ? `${provider.label} CLI started with proxy ${proxy}` : `${provider.label} CLI started`,
-        pid: child.pid,
-        providerId: provider.id,
-        providerLabel: provider.label,
-        type: 'status',
+        prompt,
+        provider,
+        proxy: requestProxy.proxy,
+        proxyModeSet: requestProxy.proxyModeSet,
+        root,
+        run,
+        runId,
       })
-
-      const appendOutput = (message: string, stream: 'stderr' | 'stdout') => {
-        appendAiInsEvent(runId, {
-          message,
-          providerId: provider.id,
-          providerLabel: provider.label,
-          stream,
-          type: 'output',
-        })
-      }
-      const flushStdoutLine = (line: string) => {
-        if (!line.trim()) {
-          return
-        }
-
-        if (provider.output === 'plain') {
-          appendOutput(`${line}\n`, 'stdout')
-          return
-        }
-
-        try {
-          appendOutput(formatAgentJsonLine(JSON.parse(line)), 'stdout')
-        } catch {
-          appendOutput(`${line}\n`, 'stdout')
-        }
-      }
-      const flushStdoutBuffer = () => {
-        if (!stdoutBuffer.trim()) {
-          stdoutBuffer = ''
-          return
-        }
-
-        if (provider.output === 'json') {
-          try {
-            appendOutput(formatAgentJsonLine(JSON.parse(stdoutBuffer)), 'stdout')
-          } catch {
-            appendOutput(`${stdoutBuffer}\n`, 'stdout')
-          }
-          stdoutBuffer = ''
-          return
-        }
-
-        flushStdoutLine(stdoutBuffer)
-        stdoutBuffer = ''
-      }
-      const handleStdout = (chunk: Buffer) => {
-        const message = chunk.toString()
-        logStream.write(message)
-        if (provider.output === 'plain') {
-          appendOutput(message, 'stdout')
-          return
-        }
-
-        stdoutBuffer += message
-        if (provider.output === 'json') {
-          return
-        }
-
-        const lines = stdoutBuffer.split(/\r?\n/u)
-        stdoutBuffer = lines.pop() ?? ''
-
-        for (const line of lines) {
-          flushStdoutLine(line)
-        }
-      }
-
-      child.stdout.on('data', handleStdout)
-      child.stderr.on('data', (chunk: Buffer) => {
-        const message = chunk.toString()
-        logStream.write(message)
-        appendOutput(message, 'stderr')
-      })
-      child.on('error', (error) => {
-        completed = true
-        clearInterval(heartbeatTimer)
-        const run = aiInsRuns.get(runId)
-        if (run) {
-          run.completed = true
-        }
-
-        logStream.write(`\n[ai-ins] ${provider.label} failed to start: ${error.message}\n`)
-        appendAiInsEvent(runId, {
-          message: error.message,
-          providerId: provider.id,
-          providerLabel: provider.label,
-          type: 'error',
-        })
-        logStream.end()
-      })
-      child.on('exit', (code, signal) => {
-        completed = true
-        clearInterval(heartbeatTimer)
-        flushStdoutBuffer()
-        const run = aiInsRuns.get(runId)
-        if (run) {
-          run.completed = true
-        }
-
-        logStream.write(`\n[ai-ins] ${provider.label} exited with code=${code ?? 'null'} signal=${signal ?? 'null'}\n`)
-        appendAiInsEvent(runId, {
-          code,
-          providerId: provider.id,
-          providerLabel: provider.label,
-          signal,
-          type: 'done',
-        })
-        logStream.end()
-      })
-      if (provider.input === 'stdin') {
-        child.stdin.end(prompt)
-      } else {
-        child.stdin.end()
-      }
 
       res.setHeader('Content-Type', 'application/json')
       res.end(
         JSON.stringify({
           agentPrompt: prompt,
-          fileName,
-          lineNumber,
+          fileName: target.fileName,
+          lineNumber: target.lineNumber,
           logPath,
           pid: child.pid,
           providerId: provider.id,
           providerLabel: provider.label,
+          resumed: false,
           runId,
+          sessionId,
+          sessionMode: provider.session.mode,
+          sourceName: target.sourceName,
           success: true,
+          turnIndex: 0,
         }),
       )
     } catch (error) {

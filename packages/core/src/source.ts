@@ -152,30 +152,26 @@ export function getLayerNameForTarget(rawLayers: unknown, fileName: string, line
   return fallbackName || getDisplayPath(fileName, root)
 }
 
-export function buildAgentPrompt(options: {
+type AgentPromptTarget = {
   columnNumber: number
   context: ReturnType<typeof getSourceContext>
   endColumnNumber?: number
   endLineNumber?: number
   fileName: string
-  lineNumber: number
-  rawPrompt: string
-  root: string
   layerSummary: string
-}) {
-  const { columnNumber, context, endColumnNumber, endLineNumber, fileName, layerSummary, lineNumber, rawPrompt, root } = options
+  lineNumber: number
+  root: string
+}
+
+function buildTargetBlock(options: AgentPromptTarget) {
+  const { columnNumber, context, endColumnNumber, endLineNumber, fileName, layerSummary, lineNumber, root } = options
   const displayPath = getDisplayPath(fileName, root)
   const sourceRange =
     endLineNumber && endColumnNumber
       ? `${displayPath}:${lineNumber}:${columnNumber}-${endLineNumber}:${endColumnNumber}`
       : `${displayPath}:${lineNumber}:${columnNumber}`
 
-  return `You are an AI coding agent invoked from AI Ins after the user Option-clicked a DOM node in the running app.
-
-User request:
-${rawPrompt}
-
-Clicked source location:
+  return `Clicked source location:
 - ${displayPath}:${lineNumber}:${columnNumber}
 - Source range: ${sourceRange}
 - Context window: L${context.startLine}-L${context.endLine}
@@ -186,7 +182,42 @@ ${layerSummary}
 Source excerpt:
 \`\`\`
 ${context.text}
-\`\`\`
+\`\`\``
+}
+
+export function buildAgentPrompt(options: AgentPromptTarget & { rawPrompt: string }) {
+  return `You are an AI coding agent invoked from AI Ins after the user Option-clicked a DOM node in the running app.
+
+User request:
+${options.rawPrompt}
+
+${buildTargetBlock(options)}
 
 Please edit the repository directly. Keep the change narrowly scoped to the clicked component/source region unless the request clearly requires nearby supporting changes. Preserve existing project style and run focused checks if they are cheap.`
 }
+
+/**
+ * Prompt for turn 2+ of an existing agent session. The agent still holds the
+ * first turn's source excerpt and its own edits, so re-sending that block would
+ * just burn context and invite it to redo work — `target` is only passed when
+ * the user re-pointed AI Ins at a different element.
+ */
+export function buildFollowUpAgentPrompt(options: {
+  previousDisplayPath: string
+  rawPrompt: string
+  target?: AgentPromptTarget
+  turnNumber: number
+}) {
+  const { previousDisplayPath, rawPrompt, target, turnNumber } = options
+  const focusBlock = target
+    ? `\nThe user re-pointed AI Ins at a different element (previous focus: ${previousDisplayPath}). Treat the block below as the new focus:\n\n${buildTargetBlock(target)}\n`
+    : `\nSame focus as the previous turn: ${previousDisplayPath}\n`
+
+  return `Follow-up request from AI Ins — turn ${turnNumber} of the same session. You already have the earlier turns in context, including any edits you made.
+
+User request:
+${rawPrompt}
+${focusBlock}
+Apply the same constraints as before: edit the repository directly, keep the change narrowly scoped, and preserve existing project style.`
+}
+
