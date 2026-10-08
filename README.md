@@ -53,6 +53,9 @@ npx ai-ins --bundler webpack --config build/webpack.dev.js
 - 在检测到多个候选配置文件或多个可能的 bundler 时，CLI 会直接要求你显式指定，而不是静默修改第一个匹配项。
 - Vite dev server 自动注入 AI Ins 客户端，支持 `Option` / `Alt` 点选 DOM 打开面板。
 - 面板内可以选择 Agent、填写代理、提交修改要求，并并发跟踪多个运行任务。
+- 面板是对话式的：左侧是历史会话，**点哪条就接着哪条的 Agent 会话继续追问**（多轮对话），Agent 保留上一轮的上下文和它自己改过的代码；`Option` / `Alt` 点选页面元素则总是开一个新会话。
+- 任务历史落盘到 `.ai-ins/runs/`，刷新页面或重启 dev server 后仍可查看、搜索和继续。
+- 面板支持 10 种界面语言（默认跟随浏览器，不支持的语言回退到英文，也可以在设置里固定）：English、简体中文、繁體中文、日本語、한국어、Español、Français、Deutsch、Português (Brasil)、Русский。
 - 内置 Codex、Claude 和 Copilot CLI provider。
 - macOS 下会优先使用正在运行的 VS Code / Zed / WebStorm / Cursor 等编辑器打开源码。
 
@@ -308,6 +311,111 @@ Provider 字段说明：
 - `input`：`stdin` 或 `argument`，表示 prompt 通过标准输入还是命令参数传入。
 - `output`：`codex-json`、`json`、`jsonl` 或 `plain`，用于解析输出流。
 - `proxy`：单个 provider 的代理配置。
+- `session`：多轮续跑声明，见下方「多轮会话」。不填则该 provider 只能单轮。
+
+### 多轮会话（继续这条任务）
+
+面板右侧是对话视图：你发的每一轮需求显示为消息气泡，Agent 的回复包在卡片里（较早轮次的长回复默认折叠）。交互规则只有两条：
+
+- **点左侧历史会话 = 在这条会话里继续**。下一次提交不会新开一个 Agent，而是 resume 它原来的会话，所以 Agent 记得上一轮说过什么、改过哪些文件。会话还在跑、或者不能续跑时，输入框会说明原因并禁用，不会悄悄变成新会话。
+- **`Option` / `Alt` 点选页面元素 = 开新会话**。如果你其实是想让刚才那条会话接着改这个新元素，输入框上方会有「改为在 X 里继续」的入口。
+
+- 续跑轮**不会重发源码摘录**，除非你通过「改为在 X 里继续」把焦点切到了新元素——那时才会带上新元素的 source stack 和代码片段，并在 prompt 里注明焦点变更。
+- 续跑轮固定用发起这条任务的 Agent，面板会锁住 Agent 选择器；想换 Agent 请点「改为新任务」。
+- 任务还在跑、或者没拿到会话 id 时，面板会说明原因并保持禁用，不会悄悄退化成一个没有上下文的新会话。
+
+各 provider 的会话能力（`sessionMode`）：
+
+| provider  | sessionMode | 机制                                                          | 验证 |
+| --------- | ----------- | ------------------------------------------------------------- | ---- |
+| `codex`   | `capture`   | 从 `thread.started` 事件读 `thread_id`，续跑走 `exec resume`   | 本地实测通过 |
+| `claude`  | `assign`    | 首轮用 `--session-id` 指定 uuid，续跑走 `--resume`             | 本地实测通过 |
+| `copilot` | `assign`    | 首轮用 `--session-id` 指定 uuid，续跑走 `--resume`             | 本地实测通过 |
+| `cursor`  | `capture`   | 从 stream-json 读会话 id，续跑走 `--resume`                    | 按官方文档实现，未本地实测 |
+| `gemini`  | `none`      | 非交互模式没有可用的 resume 入口，保持单轮                     | —    |
+
+续跑依赖 Agent CLI 把会话写到磁盘，所以默认不再传 codex 的 `--ephemeral` 和 claude 的 `--no-session-persistence`。如果你不想让会话落盘，可以整体关掉：
+
+```ts
+aiIns({
+  agents: {
+    // 关掉之后所有 provider 的 sessionMode 都变成 none，面板不再提供「继续」。
+    sessions: false,
+  },
+})
+```
+
+自定义 provider 想支持续跑，加一段 `session` 声明即可（`{sessionId}` 会被替换成实际会话 id）：
+
+```ts
+aiIns({
+  agents: {
+    providers: [
+      {
+        id: 'my-agent',
+        command: 'my-agent',
+        args: ['run', '--json'],
+        input: 'stdin',
+        output: 'jsonl',
+        session: {
+          // 'assign'：我们生成 id 用 assignArgs 传进去；'capture'：从输出里读 sessionIdKeys。
+          mode: 'assign',
+          assignArgs: ['--session-id', '{sessionId}'],
+          resumeArgs: ['run', '--json', '--resume', '{sessionId}'],
+          resumeInput: 'stdin',
+        },
+      },
+    ],
+  },
+})
+```
+
+> 覆盖了内置 provider 的 `args` 却没有重新声明 `session` 时，续跑会自动关闭——因为原来的 resume 命令行未必还能配上你的新命令。
+
+### 权限
+
+Agent 在面板里是以非交互模式运行的，它没法像在终端里那样弹出「是否允许」让你确认。面板右上角的设置里可以选三档权限：
+
+| 档位 | 行为 |
+| --- | --- |
+| **询问我**（默认） | 自动允许编辑文件；其他需要授权的操作（执行命令、调用 MCP 工具等）会在对话里出现授权卡片，可以选「允许 / 本会话一直允许 / 拒绝」。 |
+| **自动编辑** | 自动允许编辑文件；其他需要授权的操作直接拒绝。 |
+| **完全访问** | 不再询问，Agent 可以执行任何命令和工具。只在你信任的项目里使用。 |
+
+- 「询问我」目前只有 Claude 支持：AI Ins 通过 `--permission-prompt-tool` 接入一个自带的 MCP 桥，把授权请求转到面板里，等你选择后再交回给 Claude。
+- Codex 的非交互模式没法暂停等待授权，选「询问我」时按「自动编辑」（`workspace-write` 沙箱）运行，「完全访问」对应 `--dangerously-bypass-approvals-and-sandbox`。Copilot 的权限由它自己的启动参数决定（默认 `--allow-all-tools`）。
+- 不支持的档位只会退到更严格的一档，不会悄悄放宽；面板设置里会说明当前 Agent 实际按哪一档运行。
+- 授权的结果会记在对话里，用「完全访问」跑的轮次会单独标出来。
+
+自定义 provider 可以用 `permissions` 声明每一档的参数，它们会被插入到 `args` / `session.resumeArgs` 里 `{permissionArgs}` 所在的位置（没有占位符时追加到末尾），没声明的档位视为不支持：
+
+```ts
+{
+  id: 'my-agent',
+  args: ['run', '{permissionArgs}', '--json'],
+  permissions: {
+    edit: ['--allow-edits'],
+    full: ['--yolo'],
+  },
+}
+```
+
+### 任务历史
+
+任务列表会写到 `<root>/.ai-ins/runs/<run-id>.json`（和 `.log` 日志放在一起，建议把 `.ai-ins` 加进 `.gitignore`），所以刷新页面、重启 dev server 之后历史都还在，能续跑的任务照样可以接着聊。
+
+- 列表按最近一轮的时间排序，分「今天 / 昨天 / 最近 7 天 / 更早」，支持按需求、组件名、文件路径搜索；每条会标出「可继续 / 不可继续」，鼠标悬停能看到不可继续的原因。
+- dev server 在任务运行中重启，这一轮会被标记为「已中断」并保留已有输出；只要 Agent 的会话已经建立，就可以在这条任务里继续追问让它接着做。
+- 每个项目默认保留最近 100 条（运行中的任务不会被清理）；「清空已结束」和单条删除只删除历史记录，`.log` 日志文件保留。
+- 列表接口只返回摘要，已结束任务的完整对话记录在点开时才加载。
+
+```ts
+aiIns({
+  agents: {
+    history: { limit: 50 }, // 或 false：只保存在内存里，重启 dev server 即清空
+  },
+})
+```
 
 ## 环境变量
 

@@ -68,6 +68,7 @@ pnpm version-packages
 
 ```bash
 pnpm typecheck
+pnpm test
 pnpm build
 ```
 
