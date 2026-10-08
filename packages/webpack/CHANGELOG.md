@@ -1,5 +1,16 @@
 # @ai-ins/webpack
 
+## 1.0.0
+
+### Major Changes
+
+- 与 `@ai-ins/core` 1.0.0 同步发布：面板升级为对话式多轮会话，历史持久化，支持停止、重试、排队发送和改动文件列表。破坏性变更（class 前缀改为 `ai-ins-`、会话默认落盘、历史写入 `.ai-ins/runs/`）见 `@ai-ins/core` 的 CHANGELOG。
+
+### Patch Changes
+
+- Updated dependencies
+  - @ai-ins/core@1.0.0
+
 ## 0.2.16
 
 ### Patch Changes

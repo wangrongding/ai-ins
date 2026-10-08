@@ -1,5 +1,11 @@
 # ai-ins
 
+## 1.0.0
+
+### Major Changes
+
+- 版本号与 `@ai-ins/*` 插件统一为 1.0.0，此后各包同步发版；CLI 本身没有行为变化。
+
 ## 0.4.0
 
 ### Minor Changes

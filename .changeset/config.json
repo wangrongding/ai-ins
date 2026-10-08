@@ -2,7 +2,16 @@
   "$schema": "https://unpkg.com/@changesets/config@3.1.4/schema.json",
   "changelog": "@changesets/cli/changelog",
   "commit": false,
-  "fixed": [],
+  "fixed": [
+    [
+      "ai-ins",
+      "@ai-ins/core",
+      "@ai-ins/vite",
+      "@ai-ins/webpack",
+      "@ai-ins/nextjs",
+      "@ai-ins/astro"
+    ]
+  ],
   "linked": [],
   "access": "public",
   "baseBranch": "main",
