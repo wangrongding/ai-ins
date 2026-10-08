@@ -9,6 +9,7 @@
 - `@ai-ins/vite`：Vite 插件。
 - `@ai-ins/webpack`：Webpack 插件。
 - `@ai-ins/nextjs`：Next.js 插件，支持 Webpack / Turbopack dev server。
+- `@ai-ins/astro`：Astro integration。
 
 ## 发布前检查
 
@@ -108,6 +109,7 @@ npm view @ai-ins/core version
 npm view @ai-ins/vite version
 npm view @ai-ins/webpack version
 npm view @ai-ins/nextjs version
+npm view @ai-ins/astro version
 ```
 
 检查 CLI 是否可用：
@@ -147,7 +149,7 @@ git push origin ai-ins@<version>
 
 ### Scoped 包发布失败
 
-`@ai-ins/core`、`@ai-ins/vite`、`@ai-ins/webpack`、`@ai-ins/nextjs` 是 scoped packages，需要公开发布权限。
+`@ai-ins/core`、`@ai-ins/vite`、`@ai-ins/webpack`、`@ai-ins/nextjs`、`@ai-ins/astro` 是 scoped packages，需要公开发布权限。
 
 确保每个 scoped 包的 `package.json` 里有：
 

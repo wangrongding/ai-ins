@@ -1,6 +1,6 @@
 {
   "name": "@ai-ins/astro",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Astro integration for AI Ins.",
   "author": "Rongding Wang <wangrongding@qq.com> (https://github.com/wangrongding)",
   "repository": {
