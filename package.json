@@ -2,7 +2,7 @@
   "name": "ai-ins-workspace",
   "version": "0.0.0",
   "private": true,
-  "description": "AI Ins plugins for Vite, Webpack and more bundlers.",
+  "description": "AI Ins plugins for Vite, Webpack, Next.js, Astro and more bundlers.",
   "type": "module",
   "packageManager": "pnpm@10.33.2",
   "scripts": {
@@ -11,6 +11,7 @@
     "dev:watch": "pnpm --parallel --filter @ai-ins/core --filter @ai-ins/vite --filter @ai-ins/playground-vite dev",
     "dev:nextjs": "pnpm --filter @ai-ins/core build && pnpm --filter @ai-ins/nextjs build && pnpm --filter @ai-ins/playground-nextjs dev",
     "dev:nextjs:webpack": "pnpm --filter @ai-ins/core build && pnpm --filter @ai-ins/nextjs build && pnpm --filter @ai-ins/playground-nextjs dev:webpack",
+    "dev:astro": "pnpm --filter @ai-ins/core build && pnpm --filter @ai-ins/vite build && pnpm --filter @ai-ins/astro build && pnpm --filter @ai-ins/playground-astro dev",
     "dev:vite": "pnpm --parallel --filter @ai-ins/core --filter @ai-ins/vite --filter '@ai-ins/playground-vite*' dev",
     "dev:webpack": "pnpm --filter @ai-ins/core build && pnpm --filter @ai-ins/webpack build && pnpm --parallel --filter @ai-ins/core --filter @ai-ins/webpack --filter @ai-ins/playground-webpack dev",
     "dev:webpack:once": "pnpm --filter @ai-ins/core build && pnpm --filter @ai-ins/webpack build && pnpm --filter @ai-ins/playground-webpack dev",

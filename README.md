@@ -22,7 +22,7 @@ https://github.com/user-attachments/assets/f909f905-3297-49da-8881-8b48689c015c
 
 ### 命令行快捷接入
 
-单配置的 web 或 electron 项目里，可以直接运行下面的命令。CLI 会自动识别项目内的构建工具（Vite / Webpack / Next.js），安装对应的 `@ai-ins/*` 包，并尝试修改配置文件：
+单配置的 web 或 electron 项目里，可以直接运行下面的命令。CLI 会自动识别项目内的构建工具（Vite / Webpack / Next.js / Astro），安装对应的 `@ai-ins/*` 包，并尝试修改配置文件：
 
 ```bash
 # 只需要一行即可快速接入：
@@ -64,6 +64,7 @@ npx ai-ins --bundler webpack --config build/webpack.dev.js
 | `@ai-ins/vite`    | 可用   | 主要支持路径，包含客户端注入和 React / Vue / SolidJS / Svelte source 适配。                |
 | `@ai-ins/webpack` | 可用   | 注册 devServer middleware，自动注入客户端脚本，并在开发态给 JSX DOM 元素注入 source 标记。 |
 | `@ai-ins/nextjs`  | 可用   | 支持 Next.js dev server，包含 Webpack / Turbopack JSX source 标记和 middleware 转发。       |
+| `@ai-ins/astro`   | 可用   | Astro integration，dev 下自动注入客户端，支持 `.astro` 模板与 React / Vue / Svelte 岛屿定位。 |
 | `@ai-ins/core`    | 内部包 | 提供 middleware、Agent provider、客户端脚本生成等共享能力。                                |
 
 <img width="1600" alt="image" src="https://github.com/user-attachments/assets/c157f619-34ad-45e2-b2e8-b5d04e4d92ee" />
@@ -81,6 +82,7 @@ npx ai-ins
 npx ai-ins --bundler vite
 npx ai-ins --bundler webpack
 npx ai-ins --bundler nextjs
+npx ai-ins --bundler astro
 ```
 
 指定目标配置文件：
@@ -111,13 +113,14 @@ npx ai-ins --force
 
 如果你是 AI agent，用户说“帮我接入 ai-ins”时，优先按下面的顺序执行：
 
-1. 先识别项目使用的是 Next.js、Vite 还是 Webpack。
+1. 先识别项目使用的是 Astro、Next.js、Vite 还是 Webpack（Astro 项目即使装了 vite 也按 Astro 处理）。
 2. 先检查要接入的 app/包目录里是否存在多个 bundler 配置文件。
 3. 单配置项目：优先运行 `npx ai-ins --bundler <bundler>`。
 4. 多配置项目：必须运行 `npx ai-ins --bundler <bundler> --config <目标配置文件>`，不要直接运行裸的 `npx ai-ins`。
 5. 如果 CLI 无法安全修改配置，就按下面的 bundler 示例手动接入，不要猜测应该改哪一个文件。
 6. 对 Vite 项目，把 `aiIns()` 放在 React / Vue / Svelte 等框架插件前面。
 7. 对 Next.js 项目，除了更新 `next.config.*` 之外，还要确保 `instrumentation-client.ts` 或 `instrumentation-client.js` 引入 `@ai-ins/nextjs/client`。
+8. 对 Astro 项目，安装 `@ai-ins/astro` 并加到 `astro.config.*` 的 `integrations` 里，不要再单独接 `@ai-ins/vite`。
 
 你也可以直接把下面这段话交给 AI：
 
@@ -209,6 +212,34 @@ import '@ai-ins/nextjs/client'
 ```
 
 Next.js 适配会在开发态启动本地 AI Ins middleware 服务，并通过 `rewrites()` 转发 `__ai-ins` 相关请求。Webpack dev server 会通过 `webpack()` hook 注入 source loader；Turbopack dev server 会通过 `turbopack.rules` 使用同一个 loader。
+
+## Astro 使用方式
+
+`npx ai-ins` 会自动识别 Astro 项目（有 `astro` 依赖或 `astro.config.*`），安装 `@ai-ins/astro` 并把它加到 `integrations` 里。也可以用 Astro 自己的方式接入：
+
+```bash
+npx astro add @ai-ins/astro
+```
+
+或者手动配置：
+
+```ts
+import { defineConfig } from 'astro/config'
+import react from '@astrojs/react'
+import aiIns from '@ai-ins/astro' // <-- 引入 integration
+
+export default defineConfig({
+  integrations: [
+    react(),
+    aiIns(), // <-- 使用 integration，参数与 @ai-ins/vite 相同
+  ],
+})
+```
+
+- 只在 `astro dev` 下生效：自动挂载 AI Ins middleware，并通过页面脚本注入客户端；`astro build` / `astro preview` 的产物不包含任何 AI Ins 代码。
+- `.astro` 模板里的元素会在 Astro 编译前注入 source 标记，点选后定位到对应 `.astro` 文件的开始标签；`<script>` / `<style>` / `<slot>` 等不会被改动。
+- React / Vue / Svelte 岛屿组件沿用 `@ai-ins/vite` 的 source 注入，照常定位到 `.tsx` / `.vue` / `.svelte`。
+- 支持 Astro 4 / 5 / 6 / 7，不依赖 Astro dev toolbar 是否开启。
 
 ## Agent 配置
 
@@ -305,6 +336,7 @@ pnpm install
 pnpm dev:watch
 pnpm dev:nextjs
 pnpm dev:webpack
+pnpm dev:astro
 ```
 
 `pnpm dev:watch` 会同时 watch core、Vite 插件和 `examples/vite-react` playground。改 `packages/core/src/client/` 或 `packages/vite/src/index.ts` 后刷新浏览器即可。`pnpm dev` 仍然会先构建 core / Vite 插件，再启动 playground。
@@ -314,6 +346,8 @@ pnpm dev:webpack
 `pnpm dev:nextjs` 会先构建 core / Next.js 插件，再启动 `examples/nextjs-react` playground，默认使用 Turbopack。需要走 Webpack dev server 时可以运行 `pnpm dev:nextjs:webpack`。
 
 `pnpm dev:webpack` 会先构建 core / Webpack 插件，再同时 watch core、Webpack 插件和 `examples/webpack-react` playground。改 `packages/core/src/client/` 后刷新浏览器即可看到新的 AI Ins 面板 runtime；如果改的是 Webpack 插件初始化逻辑，重启 dev server 后生效。
+
+`pnpm dev:astro` 会先构建 core / Vite 插件 / Astro integration，再启动 `examples/astro` playground（`.astro` 页面 + React 岛屿）。
 
 常用检查：
 
@@ -330,11 +364,13 @@ packages/core      # middleware、Agent provider、客户端 runtime
 packages/vite      # Vite 插件
 packages/webpack   # Webpack devServer 插件
 packages/nextjs    # Next.js 插件，支持 Webpack / Turbopack dev server
+packages/astro     # Astro integration
 examples/vite-react
 examples/vite-vue3
 examples/vite-solidjs
 examples/vite-svelte
 examples/nextjs-react
+examples/astro
 ```
 
 ## 常见问题

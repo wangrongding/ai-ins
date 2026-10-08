@@ -1,0 +1,43 @@
+---
+import Layout from '../layouts/Layout.astro'
+import Card from '../components/Card.astro'
+import Counter from '../components/Counter.tsx'
+---
+
+<Layout title="AI Ins Astro Playground">
+  <main class="page">
+    <h1>AI Ins + Astro</h1>
+    <p class="tip">按住 Option（Windows 为 Alt）点选元素，即可定位到 .astro 或岛屿组件的源码。</p>
+
+    <Card title="Astro 组件">
+      <p>这一段来自 <code>src/components/Card.astro</code> 的插槽内容。</p>
+      <ul>
+        <li>点选 .astro 模板里的元素，定位到对应的 .astro 文件</li>
+        <li>点选下方 React 岛屿里的元素，定位到 .tsx 文件</li>
+      </ul>
+    </Card>
+
+    <Card title="React 岛屿">
+      <Counter client:load />
+    </Card>
+  </main>
+</Layout>
+
+<style>
+  .page {
+    display: grid;
+    gap: 16px;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 24px;
+  }
+
+  h1 {
+    margin: 0;
+  }
+
+  .tip {
+    margin: 0;
+    color: #57606a;
+  }
+</style>

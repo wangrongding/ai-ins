@@ -30,8 +30,15 @@ function closeAiInsPanel() {
   globalThis.aiInsPanelRuntime?.updateDockButton()
 }
 
+// Astro dev（devToolbar 开启时）会给 .astro 模板里的元素输出
+// data-astro-source-file="<绝对路径>" 与 data-astro-source-loc="<行>:<列>"，
+// 作为 data-ai-ins-source 缺失时的回退，无需运行时改写 DOM。
+const astroSourceFileAttribute = 'data-astro-source-file'
+const astroSourceLocAttribute = 'data-astro-source-loc'
+const sourceElementSelector = `[${sourceAttribute}], [${astroSourceFileAttribute}]`
+
 function getSourceElement(element) {
-  return element.closest(`[${sourceAttribute}]`)
+  return element.closest(sourceElementSelector)
 }
 
 // —— React fiber 兜底 ——
@@ -109,7 +116,18 @@ function getPickTarget(element) {
 
 function getSourcePath(element) {
   const path = element.getAttribute(sourceAttribute)
-  return path || undefined
+  if (path) {
+    return path
+  }
+
+  // 依赖包（如主题、组件库）里的 .astro 不作为定位目标，交给外层应用侧元素。
+  const astroFile = element.getAttribute(astroSourceFileAttribute)
+  if (!astroFile || astroFile.includes('/node_modules/') || astroFile.includes('\\node_modules\\')) {
+    return undefined
+  }
+
+  const astroLoc = element.getAttribute(astroSourceLocAttribute)
+  return /^\d+:\d+$/u.test(astroLoc || '') ? `${astroFile}:${astroLoc}` : `${astroFile}:1:1`
 }
 
 function getSourceRange(element) {
@@ -134,7 +152,7 @@ function getLayersForElement(element) {
       layers.push({ name: getElementName(instance), path, range: getSourceRange(instance) })
     }
 
-    instance = instance.parentElement?.closest(`[${sourceAttribute}]`)
+    instance = instance.parentElement?.closest(sourceElementSelector)
   }
 
   // 属性链完全没命中（portal / 不透传 props 的组件）时退回 fiber 解析。

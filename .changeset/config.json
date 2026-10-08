@@ -13,6 +13,7 @@
     "@ai-ins/playground-vite-solidjs",
     "@ai-ins/playground-vite-svelte",
     "@ai-ins/playground-nextjs",
-    "@ai-ins/playground-webpack"
+    "@ai-ins/playground-webpack",
+    "@ai-ins/playground-astro"
   ]
 }

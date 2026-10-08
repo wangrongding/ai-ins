@@ -4,7 +4,7 @@ import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join, relative } from 'node:path'
 import process from 'node:process'
 
-type Bundler = 'nextjs' | 'vite' | 'webpack'
+type Bundler = 'astro' | 'nextjs' | 'vite' | 'webpack'
 
 type InitOptions = {
   bundler?: Bundler
@@ -21,11 +21,14 @@ type PackageJson = {
 }
 
 const aiInsPackages: Record<Bundler, string> = {
+  astro: '@ai-ins/astro',
   nextjs: '@ai-ins/nextjs',
   vite: '@ai-ins/vite',
   webpack: '@ai-ins/webpack',
 }
 
+const bundlers: Bundler[] = ['astro', 'nextjs', 'vite', 'webpack']
+const astroConfigFiles = ['astro.config.mjs', 'astro.config.ts', 'astro.config.mts', 'astro.config.js', 'astro.config.cjs', 'astro.config.cts']
 const nextConfigFiles = ['next.config.ts', 'next.config.mts', 'next.config.js', 'next.config.mjs', 'next.config.cts', 'next.config.cjs']
 const nextClientInstrumentationFiles = ['instrumentation-client.ts', 'instrumentation-client.js']
 const viteConfigFiles = ['vite.config.ts', 'vite.config.mts', 'vite.config.js', 'vite.config.mjs', 'vite.config.cts', 'vite.config.cjs']
@@ -37,11 +40,12 @@ function printHelp() {
   console.log(`ai-ins
 
 Usage:
-  ai-ins [--bundler nextjs|vite|webpack] [--config <path>] [--no-install] [--force]
-  ai-ins init [--bundler nextjs|vite|webpack] [--config <path>] [--no-install] [--force]
+  ai-ins [--bundler astro|nextjs|vite|webpack] [--config <path>] [--no-install] [--force]
+  ai-ins init [--bundler astro|nextjs|vite|webpack] [--config <path>] [--no-install] [--force]
 
 Examples:
   npx ai-ins
+  npx ai-ins --bundler astro
   npx ai-ins --bundler nextjs
   npx ai-ins --bundler vite
   npx ai-ins --bundler vite --config apps/web/vite.config.ts
@@ -55,20 +59,24 @@ function printInitHelp() {
   console.log(`ai-ins init
 
 Usage:
-  ai-ins [init] [--bundler nextjs|vite|webpack] [--config <path>] [--no-install] [--force]
+  ai-ins [init] [--bundler astro|nextjs|vite|webpack] [--config <path>] [--no-install] [--force]
 
 Options:
-  --bundler nextjs|vite|webpack  Specify the bundler instead of auto-detecting it.
-  --config <path>                Update a specific bundler config file instead of auto-picking one.
-  --no-install                  Update config only, without installing dependencies.
-  --force                       Install the latest matching @ai-ins/* package even if it is already installed.
-  --cwd <path>                  Run init in a different project directory.
+  --bundler astro|nextjs|vite|webpack  Specify the bundler instead of auto-detecting it.
+  --config <path>                      Update a specific bundler config file instead of auto-picking one.
+  --no-install                         Update config only, without installing dependencies.
+  --force                              Install the latest matching @ai-ins/* package even if it is already installed.
+  --cwd <path>                         Run init in a different project directory.
 `)
 }
 
 function fail(message: string): never {
   console.error(`ai-ins: ${message}`)
   process.exit(1)
+}
+
+function isBundler(value: string | undefined): value is Bundler {
+  return bundlers.includes(value as Bundler)
 }
 
 function isHelpArg(arg: string | undefined) {
@@ -94,6 +102,10 @@ function findExistingFile(root: string, candidates: string[]) {
 
 function inferBundlerFromConfig(fileName: string): Bundler | undefined {
   const baseName = fileName.split(/[/\\]/u).at(-1) ?? fileName
+
+  if (astroConfigFiles.includes(baseName)) {
+    return 'astro'
+  }
 
   if (nextConfigFiles.includes(baseName)) {
     return 'nextjs'
@@ -122,6 +134,10 @@ function uniqueFiles(fileNames: string[]) {
 }
 
 function getConfigCandidates(root: string, bundler: Bundler) {
+  if (bundler === 'astro') {
+    return astroConfigFiles.map((fileName) => join(root, fileName)).filter((fileName) => existsSync(fileName))
+  }
+
   if (bundler === 'nextjs') {
     return nextConfigFiles.map((fileName) => join(root, fileName)).filter((fileName) => existsSync(fileName))
   }
@@ -140,7 +156,14 @@ function getConfigCandidates(root: string, bundler: Bundler) {
 }
 
 function getDefaultConfigFile(root: string, bundler: Bundler) {
-  return join(root, bundler === 'nextjs' ? 'next.config.ts' : bundler === 'vite' ? 'vite.config.ts' : 'webpack.config.js')
+  const defaultConfigFiles: Record<Bundler, string> = {
+    astro: 'astro.config.mjs',
+    nextjs: 'next.config.ts',
+    vite: 'vite.config.ts',
+    webpack: 'webpack.config.js',
+  }
+
+  return join(root, defaultConfigFiles[bundler])
 }
 
 function resolveRequestedPath(root: string, fileName: string) {
@@ -153,7 +176,14 @@ function formatDisplayPath(root: string, fileName: string) {
 }
 
 function getBundlerLabel(bundler: Bundler) {
-  return bundler === 'nextjs' ? 'Next.js' : bundler === 'vite' ? 'Vite' : 'Webpack'
+  const labels: Record<Bundler, string> = {
+    astro: 'Astro',
+    nextjs: 'Next.js',
+    vite: 'Vite',
+    webpack: 'Webpack',
+  }
+
+  return labels[bundler]
 }
 
 function resolveConfigFile(root: string, bundler: Bundler, requestedConfig?: string) {
@@ -185,12 +215,18 @@ function detectBundler(root: string, packageJson: PackageJson, requested?: Bundl
   }
 
   const detectedBundlers: Bundler[] = []
+  // Astro 项目通常也装了 vite，识别到 Astro 时不再把 vite 算作候选。
+  const isAstro = hasDependency(packageJson, 'astro') || getConfigCandidates(root, 'astro').length > 0
+
+  if (isAstro) {
+    detectedBundlers.push('astro')
+  }
 
   if (hasDependency(packageJson, 'next') || getConfigCandidates(root, 'nextjs').length > 0) {
     detectedBundlers.push('nextjs')
   }
 
-  if (hasDependency(packageJson, 'vite') || getConfigCandidates(root, 'vite').length > 0) {
+  if (!isAstro && (hasDependency(packageJson, 'vite') || getConfigCandidates(root, 'vite').length > 0)) {
     detectedBundlers.push('vite')
   }
 
@@ -203,10 +239,10 @@ function detectBundler(root: string, packageJson: PackageJson, requested?: Bundl
   }
 
   if (detectedBundlers.length > 1) {
-    fail(`found multiple possible bundlers (${detectedBundlers.join(', ')}). Run with --bundler nextjs, --bundler vite or --bundler webpack.`)
+    fail(`found multiple possible bundlers (${detectedBundlers.join(', ')}). Run with --bundler astro, --bundler nextjs, --bundler vite or --bundler webpack.`)
   }
 
-  fail('could not detect Next.js, Vite or Webpack. Run with --bundler nextjs, --bundler vite or --bundler webpack.')
+  fail('could not detect Astro, Next.js, Vite or Webpack. Run with --bundler astro, --bundler nextjs, --bundler vite or --bundler webpack.')
 }
 
 function parseInitOptions(args: string[]): InitOptions {
@@ -243,13 +279,13 @@ function parseInitOptions(args: string[]): InitOptions {
 
     if (arg === '--bundler') {
       const value = args[index + 1]
-      if (value !== 'nextjs' && value !== 'vite' && value !== 'webpack') fail('--bundler must be nextjs, vite or webpack')
+      if (!isBundler(value)) fail('--bundler must be astro, nextjs, vite or webpack')
       options.bundler = value
       index += 1
       continue
     }
 
-    if (arg === 'nextjs' || arg === 'vite' || arg === 'webpack') {
+    if (isBundler(arg)) {
       options.bundler = arg
       continue
     }
@@ -389,7 +425,7 @@ function findMatchingBracket(code: string, openIndex: number, openChar: string, 
 }
 
 function insertImport(code: string, statement: string) {
-  const importMatches = [...code.matchAll(/^import[\s\S]*?from\s+['"][^'"]+['"];?\s*$/gmu)]
+  const importMatches = [...code.matchAll(/^import[\s\S]*?from\s+['"][^'"]+['"];?[ \t]*$/gmu)]
   const lastImport = importMatches.at(-1)
   if (lastImport?.index !== undefined) {
     return `${code.slice(0, lastImport.index + lastImport[0].length)}\n${statement}${code.slice(lastImport.index + lastImport[0].length)}`
@@ -399,7 +435,7 @@ function insertImport(code: string, statement: string) {
 }
 
 function insertRequire(code: string, statement: string) {
-  const requireMatches = [...code.matchAll(/^(?:const|let|var)\s+[\s\S]*?=\s*require\(['"][^'"]+['"]\);?\s*$/gmu)]
+  const requireMatches = [...code.matchAll(/^(?:const|let|var)\s+[\s\S]*?=\s*require\(['"][^'"]+['"]\);?[ \t]*$/gmu)]
   const lastRequire = requireMatches.at(-1)
   if (lastRequire?.index !== undefined) {
     return `${code.slice(0, lastRequire.index + lastRequire[0].length)}\n${statement}${code.slice(lastRequire.index + lastRequire[0].length)}`
@@ -421,8 +457,8 @@ function uniqueIdentifier(code: string, preferredName: string) {
   return `${preferredName}${index}`
 }
 
-function addPluginToArray(code: string, expression: string, position: 'start' | 'end' = 'end') {
-  const match = /\bplugins\s*:\s*\[/u.exec(code)
+function addToArrayProperty(code: string, propertyName: string, expression: string, position: 'start' | 'end' = 'end') {
+  const match = new RegExp(`\\b${propertyName}\\s*:\\s*\\[`, 'u').exec(code)
   if (!match) {
     return null
   }
@@ -452,7 +488,14 @@ function addPluginToArray(code: string, expression: string, position: 'start' | 
   if (arrayBody.includes('\n')) {
     const indent = getLineIndent(code, closeIndex)
     const trimmedBeforeClose = beforeClose.replace(/\s+$/u, '')
-    const comma = trimmedBeforeClose.endsWith(',') ? '' : ','
+    const hasTrailingComma = trimmedBeforeClose.endsWith(',')
+    const comma = hasTrailingComma ? '' : ','
+    // `]` 单独成行时保留它原来的换行和缩进，以及原有的尾逗号风格。
+    const closingWhitespace = beforeClose.slice(trimmedBeforeClose.length)
+    if (closingWhitespace.includes('\n')) {
+      return `${trimmedBeforeClose}${comma}\n${indent}  ${expression}${hasTrailingComma ? ',' : ''}${closingWhitespace}${code.slice(closeIndex)}`
+    }
+
     return `${trimmedBeforeClose}${comma}\n${indent}  ${expression}${code.slice(closeIndex)}`
   }
 
@@ -461,7 +504,7 @@ function addPluginToArray(code: string, expression: string, position: 'start' | 
   return `${trimmedBeforeClose}${separator}${expression}${code.slice(closeIndex)}`
 }
 
-function addPluginProperty(code: string, expression: string) {
+function addArrayProperty(code: string, propertyName: string, expression: string) {
   const objectPatterns = [/defineConfig\s*\(\s*\{/u, /export\s+default\s+\{/u, /module\.exports\s*=\s*\{/u]
 
   for (const pattern of objectPatterns) {
@@ -470,14 +513,18 @@ function addPluginProperty(code: string, expression: string) {
 
     const openIndex = match.index + match[0].lastIndexOf('{')
     const indent = getLineIndent(code, openIndex)
-    return `${code.slice(0, openIndex + 1)}\n${indent}  plugins: [${expression}],${code.slice(openIndex + 1)}`
+    return `${code.slice(0, openIndex + 1)}\n${indent}  ${propertyName}: [${expression}],${code.slice(openIndex + 1)}`
   }
 
   return null
 }
 
+function patchArrayConfig(code: string, propertyName: string, expression: string, position: 'start' | 'end' = 'end') {
+  return addToArrayProperty(code, propertyName, expression, position) ?? addArrayProperty(code, propertyName, expression)
+}
+
 function patchPluginConfig(code: string, expression: string, position: 'start' | 'end' = 'end') {
-  return addPluginToArray(code, expression, position) ?? addPluginProperty(code, expression)
+  return patchArrayConfig(code, 'plugins', expression, position)
 }
 
 function patchViteConfig(root: string, requestedConfig?: string) {
@@ -500,6 +547,32 @@ function patchViteConfig(root: string, requestedConfig?: string) {
   const patched = patchPluginConfig(withImport, `${importName}()`, 'start')
   if (!patched) {
     fail(`could not update ${configFile}. Add ${importName}() to the Vite plugins array manually.`)
+  }
+
+  writeFileSync(configFile, patched)
+  return configFile
+}
+
+function patchAstroConfig(root: string, requestedConfig?: string) {
+  const configFile = resolveConfigFile(root, 'astro', requestedConfig)
+  if (!existsSync(configFile)) {
+    writeFileSync(
+      configFile,
+      `import aiIns from '@ai-ins/astro'\nimport { defineConfig } from 'astro/config'\n\nexport default defineConfig({\n  integrations: [aiIns()],\n})\n`,
+    )
+    return configFile
+  }
+
+  const code = readFileSync(configFile, 'utf-8')
+  if (code.includes('@ai-ins/astro')) {
+    return configFile
+  }
+
+  const importName = uniqueIdentifier(code, 'aiIns')
+  const withImport = insertImport(code, `import ${importName} from '@ai-ins/astro'`)
+  const patched = patchArrayConfig(withImport, 'integrations', `${importName}()`)
+  if (!patched) {
+    fail(`could not update ${configFile}. Add ${importName}() to the Astro integrations array manually.`)
   }
 
   writeFileSync(configFile, patched)
@@ -652,7 +725,13 @@ function runInit(args: string[]) {
     installPackage(options.cwd, packageJson, packageName, options.forceInstall)
   }
 
-  const configFile = bundler === 'nextjs' ? patchNextConfig(options.cwd, options.config) : bundler === 'vite' ? patchViteConfig(options.cwd, options.config) : patchWebpackConfig(options.cwd, options.config)
+  const configPatchers: Record<Bundler, (root: string, requestedConfig?: string) => string> = {
+    astro: patchAstroConfig,
+    nextjs: patchNextConfig,
+    vite: patchViteConfig,
+    webpack: patchWebpackConfig,
+  }
+  const configFile = configPatchers[bundler](options.cwd, options.config)
   const clientFile = bundler === 'nextjs' ? patchNextClientInstrumentation(options.cwd) : undefined
   console.log(`- Updated ${configFile}`)
   if (clientFile) {
@@ -678,7 +757,7 @@ function main(args: string[]) {
     return
   }
 
-  if (command.startsWith('-') || command === 'nextjs' || command === 'vite' || command === 'webpack') {
+  if (command.startsWith('-') || isBundler(command)) {
     runInit(args)
     return
   }

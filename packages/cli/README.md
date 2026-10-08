@@ -1,6 +1,6 @@
 # ai-ins
 
-`ai-ins` 是 AI Ins 的项目接入 CLI，用来把 AI Ins 接到 Next.js、Vite 和 Webpack 项目里。
+`ai-ins` 是 AI Ins 的项目接入 CLI，用来把 AI Ins 接到 Astro、Next.js、Vite 和 Webpack 项目里。
 
 它会做两件事：
 
@@ -21,7 +21,10 @@ npx ai-ins
 npx ai-ins --bundler vite
 npx ai-ins --bundler webpack
 npx ai-ins --bundler nextjs
+npx ai-ins --bundler astro
 ```
+
+Astro 项目（有 `astro` 依赖或 `astro.config.*`）会被优先识别为 Astro，即使同时装了 `vite` 也不会报多个 bundler；CLI 会安装 `@ai-ins/astro`，并在 `astro.config.*` 的 `integrations` 里加上 `aiIns()`（没有 `integrations` 时自动新增）。
 
 ## 多配置文件项目
 
@@ -68,7 +71,7 @@ npx ai-ins init --bundler vite --config vite.config.ts
 
 如果用户说“帮我接入 ai-ins”，AI/Agent 应该按下面的顺序做：
 
-1. 先识别项目使用的是 Next.js、Vite 还是 Webpack。
+1. 先识别项目使用的是 Astro、Next.js、Vite 还是 Webpack。
 2. 再检查目标 app 目录里是否存在多个配置文件。
 3. 单配置项目：优先运行 `npx ai-ins --bundler <bundler>`。
 4. 多配置项目：必须运行 `npx ai-ins --bundler <bundler> --config <目标配置文件>`。
@@ -128,6 +131,19 @@ import '@ai-ins/nextjs/client'
 ```
 
 通常放在 `instrumentation-client.ts` 或 `instrumentation-client.js`。
+
+### Astro
+
+```ts
+import { defineConfig } from 'astro/config'
+import aiIns from '@ai-ins/astro'
+
+export default defineConfig({
+  integrations: [aiIns()],
+})
+```
+
+也可以直接用 `npx astro add @ai-ins/astro`。integration 只在 `astro dev` 下生效，`astro build` 产物不受影响。
 
 ## 行为说明
 
