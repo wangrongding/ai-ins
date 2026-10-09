@@ -1,6 +1,6 @@
-# @ai-ins/astro
+# @ai-ins/webpack
 
-AI Ins 的 Astro integration。`.astro` 模板和 React / Vue / Svelte 岛屿组件都能定位到源码，支持 Astro 4 ~ 7。
+AI Ins 的 Webpack 插件：注册 dev server 中间件、自动注入面板脚本，并在开发构建中给 JSX 元素标上源码位置。
 
 **在页面上点一下元素，说一句话，让本地的 AI 编码 Agent 直接改代码。**
 
@@ -11,24 +11,22 @@ AI Ins 的 Astro integration。`.astro` 模板和 React / Vue / Svelte 岛屿组
 ## 安装
 
 ```bash
-npx ai-ins
-# 或
-npx astro add @ai-ins/astro
+npx ai-ins          # 自动安装并改好 webpack 配置
+# 或手动：
+npm i -D @ai-ins/webpack
 ```
 
-手动接入：
+```js
+// webpack.config.js（开发配置）
+const { AiInsWebpackPlugin } = require('@ai-ins/webpack')
 
-```ts
-// astro.config.mjs
-import { defineConfig } from 'astro/config'
-import aiIns from '@ai-ins/astro'
-
-export default defineConfig({
-  integrations: [aiIns()],
-})
+module.exports = {
+  devServer: {},
+  plugins: [new AiInsWebpackPlugin()],
+}
 ```
 
-只在 `astro dev` 下生效；不需要再单独接 `@ai-ins/vite`。参数与 `@ai-ins/vite` 相同。
+有多个 Webpack 配置文件时，用 `npx ai-ins --bundler webpack --config webpack.dev.js` 指定 dev server 实际使用的那个。
 
 ## 使用
 

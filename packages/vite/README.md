@@ -1,6 +1,6 @@
-# @ai-ins/astro
+# @ai-ins/vite
 
-AI Ins 的 Astro integration。`.astro` 模板和 React / Vue / Svelte 岛屿组件都能定位到源码，支持 Astro 4 ~ 7。
+AI Ins 的 Vite 插件，支持 React、Vue、SolidJS、Svelte。
 
 **在页面上点一下元素，说一句话，让本地的 AI 编码 Agent 直接改代码。**
 
@@ -11,24 +11,24 @@ AI Ins 的 Astro integration。`.astro` 模板和 React / Vue / Svelte 岛屿组
 ## 安装
 
 ```bash
-npx ai-ins
-# 或
-npx astro add @ai-ins/astro
+npx ai-ins          # 自动安装并改好 vite.config
+# 或手动：
+npm i -D @ai-ins/vite
 ```
-
-手动接入：
 
 ```ts
-// astro.config.mjs
-import { defineConfig } from 'astro/config'
-import aiIns from '@ai-ins/astro'
+// vite.config.ts
+import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
+import aiIns from '@ai-ins/vite'
 
 export default defineConfig({
-  integrations: [aiIns()],
+  plugins: [
+    aiIns(), // 必须放在 React / Vue / Svelte 等框架插件前面
+    react(),
+  ],
 })
 ```
-
-只在 `astro dev` 下生效；不需要再单独接 `@ai-ins/vite`。参数与 `@ai-ins/vite` 相同。
 
 ## 使用
 

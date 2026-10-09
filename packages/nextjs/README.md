@@ -1,6 +1,6 @@
-# @ai-ins/astro
+# @ai-ins/nextjs
 
-AI Ins 的 Astro integration。`.astro` 模板和 React / Vue / Svelte 岛屿组件都能定位到源码，支持 Astro 4 ~ 7。
+AI Ins 的 Next.js 插件，支持 Webpack 和 Turbopack 两种 dev server。
 
 **在页面上点一下元素，说一句话，让本地的 AI 编码 Agent 直接改代码。**
 
@@ -11,24 +11,26 @@ AI Ins 的 Astro integration。`.astro` 模板和 React / Vue / Svelte 岛屿组
 ## 安装
 
 ```bash
-npx ai-ins
-# 或
-npx astro add @ai-ins/astro
+npx ai-ins          # 自动安装并改好 next.config 和 instrumentation-client
+# 或手动：
+npm i -D @ai-ins/nextjs
 ```
-
-手动接入：
 
 ```ts
-// astro.config.mjs
-import { defineConfig } from 'astro/config'
-import aiIns from '@ai-ins/astro'
+// next.config.ts
+import { withAiIns } from '@ai-ins/nextjs'
+import type { NextConfig } from 'next'
 
-export default defineConfig({
-  integrations: [aiIns()],
-})
+const nextConfig: NextConfig = {}
+
+export default withAiIns(nextConfig)
 ```
 
-只在 `astro dev` 下生效；不需要再单独接 `@ai-ins/vite`。参数与 `@ai-ins/vite` 相同。
+同时在项目根目录的 `instrumentation-client.ts`（或 `.js`）里加一行：
+
+```ts
+import '@ai-ins/nextjs/client'
+```
 
 ## 使用
 
