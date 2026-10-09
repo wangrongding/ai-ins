@@ -68,6 +68,39 @@ describe('createAgentJsonFormatter', () => {
     expect(output).toBe('[tool error] Permission denied\n[result] Out of credits\n')
   })
 
+  it('formats Codex exec events like the Claude path: reply text, one line per tool, results hidden', () => {
+    const { output } = run([
+      { thread_id: 't', type: 'thread.started' },
+      { type: 'turn.started' },
+      { item: { id: 'i0', text: 'Checking first.\n', type: 'agent_message' }, type: 'item.completed' },
+      { item: { command: '/bin/zsh -lc "cat src/a.ts"', id: 'i1', status: 'in_progress', type: 'command_execution' }, type: 'item.started' },
+      { item: { aggregated_output: 'body', command: '/bin/zsh -lc "cat src/a.ts"', exit_code: 0, id: 'i1', type: 'command_execution' }, type: 'item.completed' },
+      { item: { arguments: { fileKey: 'abc', nodeId: '1:2' }, id: 'i2', server: 'figma', status: 'in_progress', tool: 'get_design_context', type: 'mcp_tool_call' }, type: 'item.started' },
+      {
+        item: { id: 'i2', result: { content: [{ text: 'export default function Frame() {}', type: 'text' }] }, server: 'figma', status: 'completed', tool: 'get_design_context', type: 'mcp_tool_call' },
+        type: 'item.completed',
+      },
+      { message: 'Reconnecting... 1/5', type: 'error' },
+      { item: { aggregated_output: 'x\nnot found\n', command: "/bin/zsh -lc 'rg foo'", exit_code: 1, id: 'i3', type: 'command_execution' }, type: 'item.completed' },
+      { item: { changes: [{ kind: 'update', path: '/repo/src/b.ts' }], id: 'i4', status: 'completed', type: 'file_change' }, type: 'item.completed' },
+      { item: { id: 'i5', items: [{ completed: false, text: 'step' }], type: 'todo_list' }, type: 'item.started' },
+      { item: { id: 'i6', text: 'Done.', type: 'agent_message' }, type: 'item.completed' },
+      { type: 'turn.completed', usage: { input_tokens: 1 } },
+    ], '/repo')
+    expect(output).toBe(
+      [
+        'Checking first.\n\n',
+        '[tool] shell cat src/a.ts\n',
+        '[tool] figma.get_design_context abc\n',
+        '[system] Reconnecting... 1/5\n',
+        '[tool error] exit 1: not found\n',
+        '[tool] update src/b.ts\n',
+        'Done.\n\n',
+      ].join(''),
+    )
+    expect(output).not.toContain('export default')
+  })
+
   it('routes Codex reasoning items to onThinking', () => {
     const { output, thinking } = run([
       { item: { id: 'r1', text: 'Considering options', type: 'reasoning' }, type: 'item.completed' },

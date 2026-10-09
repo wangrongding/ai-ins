@@ -223,6 +223,119 @@ function getToolResultText(content: unknown) {
   return collectJsonText(content).join('\n')
 }
 
+// `/bin/zsh -lc "cmd"` → `cmd`: Codex wraps every command in a login shell.
+function unwrapShellCommand(command: string) {
+  const match = command.match(/^\S*\/(?:ba|z)?sh\s+-l?c\s+([\s\S]+)$/u)
+  if (!match) return command
+  const inner = match[1].trim()
+  const quote = inner[0]
+  return (quote === '"' || quote === "'") && inner.endsWith(quote) ? inner.slice(1, -1) : inner
+}
+
+function summarizeCodexArguments(value: unknown, root: string) {
+  const record = getRecord(value)
+  if (!record) return ''
+  const preferred = summarizeToolInput(record, root)
+  if (preferred) return preferred
+  // Otherwise the first short string argument (an id, a key) says enough.
+  for (const entry of Object.values(record)) {
+    if (typeof entry === 'string' && entry.trim() && entry.length <= 80) return entry.trim()
+  }
+  return ''
+}
+
+/**
+ * `codex exec --json` events, in the same shape the Claude path produces:
+ * replies as plain text, each tool call as one `[tool]` line, failures as
+ * `[tool error]`. Tool results (file bodies, MCP payloads such as generated
+ * code) stay in the log only. Returns undefined for events it does not know.
+ */
+function formatCodexEvent(event: Record<string, unknown>, eventType: string, root: string): string | undefined {
+  if (eventType === 'thread.started' || eventType === 'turn.started' || eventType === 'turn.completed') {
+    return ''
+  }
+
+  if (eventType === 'turn.failed') {
+    const error = getRecord(event.error)
+    return `[result] ${truncateAgentOutput((error && getStringRecordValue(error, ['message'])) || 'turn failed', 400).trim()}\n`
+  }
+
+  // Transient: rate-limit reconnects and the like. Bookkeeping, not reply.
+  if (eventType === 'error') {
+    return `[system] ${truncateAgentOutput(getStringRecordValue(event, ['message']) || 'error', 400).trim()}\n`
+  }
+
+  if (!eventType.startsWith('item.')) {
+    return undefined
+  }
+
+  const item = getRecord(event.item)
+  const itemType = item ? getStringRecordValue(item, ['type']) : ''
+  if (!item) return ''
+  const started = eventType === 'item.started'
+  const completed = eventType === 'item.completed'
+
+  switch (itemType) {
+    case 'agent_message': {
+      const text = completed ? getStringRecordValue(item, ['text']) : ''
+      return text ? `${text}\n\n` : ''
+    }
+
+    case 'command_execution': {
+      const command = unwrapShellCommand(getStringRecordValue(item, ['command']))
+      if (started) {
+        return `[tool] shell ${summarizeToolInput({ command }, root)}\n`
+      }
+      const exitCode = getNumberRecordValue(item, 'exit_code')
+      if (completed && exitCode) {
+        const output = getStringRecordValue(item, ['aggregated_output']).split('\n').filter(Boolean).pop() || ''
+        return `[tool error] exit ${exitCode}${output ? `: ${truncateAgentOutput(output, 300).trim()}` : ''}\n`
+      }
+      return ''
+    }
+
+    case 'mcp_tool_call': {
+      const name = [getStringRecordValue(item, ['server']), getStringRecordValue(item, ['tool'])].filter(Boolean).join('.') || 'mcp'
+      if (started) {
+        const summary = summarizeCodexArguments(item.arguments, root)
+        return `[tool] ${name}${summary ? ` ${summary}` : ''}\n`
+      }
+      const error = getRecord(item.error)
+      const errorText = (error && getStringRecordValue(error, ['message'])) || (typeof item.error === 'string' ? item.error : '')
+      if (completed && (errorText || item.status === 'failed')) {
+        return `[tool error] ${name}: ${truncateAgentOutput(errorText || 'failed', 300).trim()}\n`
+      }
+      return ''
+    }
+
+    case 'file_change': {
+      if (!completed) return ''
+      const changes = Array.isArray(item.changes) ? item.changes : []
+      return changes
+        .map((change) => {
+          const record = getRecord(change)
+          const path = record ? summarizeToolInput({ path: getStringRecordValue(record, ['path']) }, root) : ''
+          return path ? `[tool] ${getStringRecordValue(record!, ['kind']) || 'edit'} ${path}\n` : ''
+        })
+        .join('')
+    }
+
+    case 'web_search': {
+      const query = getStringRecordValue(item, ['query'])
+      return started && query ? `[tool] web_search ${truncateAgentOutput(query, 160).trim()}\n` : ''
+    }
+
+    case 'error': {
+      const message = getStringRecordValue(item, ['message'])
+      return completed && message ? `[system] ${truncateAgentOutput(message, 400).trim()}\n` : ''
+    }
+
+    default:
+      // Plans (todo_list) and anything newer: progress only, nothing to read.
+      return ''
+  }
+}
+
 /**
  * One formatter per agent process. Claude streams a reply twice — as
  * `stream_event` text deltas and again as the settled `assistant` message —
@@ -251,6 +364,11 @@ export function createAgentJsonFormatter(root = '', onThinking: (text: string) =
         onThinking(`${text}\n\n`)
       }
       return ''
+    }
+
+    const codexLine = event ? formatCodexEvent(event, eventType, root) : undefined
+    if (codexLine !== undefined) {
+      return codexLine
     }
 
     if (!event || !['assistant', 'result', 'stream_event', 'system', 'user'].includes(eventType)) {

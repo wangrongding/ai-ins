@@ -1,7 +1,8 @@
+import { createAgentJsonFormatter } from './agent-output'
 import { createPermissionToken, parsePermissionMode } from './permissions'
 import { aiInsRuns, getAiInsTurnOutput } from './run-store'
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'fs'
-import { join } from 'path'
+import { join, relative, sep } from 'path'
 import type { AiInsAgentSessionMode, AiInsPluginOptions, AiInsRun, AiInsRunStatus, AiInsRunTurn } from './types'
 
 const historyVersion = 1
@@ -28,6 +29,7 @@ type StoredAiInsRun = {
   eventSeq: number
   id: string
   logPath: string
+  pinnedAt?: number
   providerId: string
   providerLabel: string
   root: string
@@ -82,6 +84,7 @@ function toStoredRun(runId: string, run: AiInsRun): StoredAiInsRun {
     eventSeq: run.eventSeq,
     id: runId,
     logPath: run.logPath,
+    pinnedAt: run.pinnedAt,
     providerId: run.providerId,
     providerLabel: run.providerLabel,
     root: run.root,
@@ -137,12 +140,27 @@ export function schedulePersistAiInsRun(runId: string) {
   pendingWrites.set(runId, timer)
 }
 
+/** The run's agent log goes with it, but only a log AI Ins wrote under `<root>/.ai-ins`. */
+function removeRunLog(run: AiInsRun) {
+  if (!run.logPath) return
+  const path = relative(join(run.root, '.ai-ins'), run.logPath)
+  if (!path || path.startsWith('..') || path.includes(sep) || !path.endsWith('.log')) return
+  try {
+    rmSync(run.logPath, { force: true })
+  } catch (error) {
+    console.error('[ai-ins] delete agent log failed:', error instanceof Error ? error.message : error)
+  }
+}
+
+/** Forget a run on disk: its history file and its agent log. */
 export function removeAiInsRunHistory(runId: string, run: AiInsRun) {
   const pending = pendingWrites.get(runId)
   if (pending) {
     clearTimeout(pending)
     pendingWrites.delete(runId)
   }
+
+  removeRunLog(run)
 
   if (!isSafeRunId(runId)) {
     return
@@ -225,6 +243,7 @@ function restoreRun(stored: StoredAiInsRun, root: string): AiInsRun | undefined 
     // Pending requests died with the previous dev server; the token is per process.
     pendingPermissions: new Map(),
     permissionToken: createPermissionToken(),
+    pinnedAt: typeof stored.pinnedAt === 'number' ? stored.pinnedAt : undefined,
     root,
     sessionId: typeof stored.sessionId === 'string' && stored.sessionId ? stored.sessionId : undefined,
     sessionMode: stored.sessionMode === 'assign' || stored.sessionMode === 'capture' ? stored.sessionMode : 'none',
@@ -238,6 +257,58 @@ function restoreRun(stored: StoredAiInsRun, root: string): AiInsRun | undefined 
     turns,
     updatedAt: typeof stored.updatedAt === 'number' ? stored.updatedAt : lastTurn.createdAt,
   }
+}
+
+// Codex turns stored before Codex events had their own formatter: raw
+// `[item.started]` lines and dumped tool payloads instead of a readable reply.
+const legacyCodexOutputPattern = /^\[item\.(?:started|completed)\]/mu
+
+/**
+ * Re-derive such turns from the raw events in the run's log (each turn starts
+ * with a `$ <command>` line), so old conversations read like new ones.
+ * Returns true when anything changed and the run should be saved again.
+ */
+function reformatLegacyCodexTurns(run: AiInsRun, root: string) {
+  const turns = run.turns.filter((turn) => legacyCodexOutputPattern.test(turn.output || ''))
+  if (run.providerId !== 'codex' || !turns.length || !run.logPath || !existsSync(run.logPath)) {
+    return false
+  }
+
+  const sections: string[][] = []
+  try {
+    for (const line of readFileSync(run.logPath, 'utf-8').split('\n')) {
+      if (/^\$ \S/u.test(line)) {
+        sections.push([])
+      } else if (line.startsWith('{') && sections.length) {
+        sections[sections.length - 1].push(line)
+      }
+    }
+  } catch {
+    return false
+  }
+
+  let changed = false
+  for (const turn of turns) {
+    const lines = sections[turn.index]
+    if (!lines?.length) continue
+    const format = createAgentJsonFormatter(root)
+    const output = lines
+      .map((line) => {
+        try {
+          return format(JSON.parse(line))
+        } catch {
+          return ''
+        }
+      })
+      .join('')
+      .trim()
+    if (output) {
+      turn.output = compactStoredTurnOutput(`${output}\n`)
+      changed = true
+    }
+  }
+
+  return changed
 }
 
 /**
@@ -282,7 +353,8 @@ export function ensureAiInsRunHistoryLoaded(root: string) {
       }
 
       aiInsRuns.set(runId, run)
-      if (run.turns.some((turn, index) => turn.interrupted && !stored.turns[index]?.interrupted)) {
+      const reformatted = reformatLegacyCodexTurns(run, root)
+      if (reformatted || run.turns.some((turn, index) => turn.interrupted && !stored.turns[index]?.interrupted)) {
         interruptedRunIds.push(runId)
       }
     } catch (error) {
@@ -290,8 +362,8 @@ export function ensureAiInsRunHistoryLoaded(root: string) {
     }
   }
 
-  // Record the interruption once, so it is not re-derived (and re-appended to
-  // the output) on every restart.
+  // Record the interruption (and any re-derived output) once, so it is not
+  // redone (and re-appended to the output) on every restart.
   for (const runId of interruptedRunIds) {
     persistAiInsRun(runId)
   }
@@ -303,7 +375,7 @@ export function getAiInsRunActivityAt(run: AiInsRun) {
   return Math.max(run.updatedAt || 0, run.turns[run.turns.length - 1]?.createdAt || 0, run.createdAt)
 }
 
-/** Keep at most `limit` runs per root; running runs are never pruned. */
+/** Keep at most `limit` runs per root; running and pinned runs are never pruned. */
 export function pruneAiInsRunHistory(root: string) {
   const { limit } = getHistorySettings(root)
   const rootRuns = [...aiInsRuns.entries()]
@@ -312,7 +384,7 @@ export function pruneAiInsRunHistory(root: string) {
 
   let kept = 0
   for (const [runId, run] of rootRuns) {
-    if (!run.completed || kept < limit) {
+    if (!run.completed || run.pinnedAt || kept < limit) {
       kept += 1
       continue
     }

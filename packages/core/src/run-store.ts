@@ -315,6 +315,7 @@ export function getAiInsRunSummary(runId: string, run: AiInsRun, root: string, d
     lastSeq: run.eventSeq,
     logDisplayPath: getDisplayPath(run.logPath, root),
     logPath: run.logPath,
+    pinnedAt: run.pinnedAt,
     providerId: run.providerId,
     providerLabel: run.providerLabel,
     resumeBlockedCode,
@@ -326,7 +327,8 @@ export function getAiInsRunSummary(runId: string, run: AiInsRun, root: string, d
     statusMessage: run.statusMessage,
     turns: run.turns.map((turn) => ({
       ...(detail ? { agentPrompt: turn.agentPrompt, output: getAiInsTurnOutput(run, turn.index), thinking: turn.thinking } : {}),
-      changedFiles: turn.changedFiles,
+      // Patches can be large; the panel asks for one when the file is expanded.
+      changedFiles: turn.changedFiles?.map(({ patch: _patch, ...file }) => file),
       code: turn.code,
       completed: turn.completed,
       completedAt: turn.completedAt,

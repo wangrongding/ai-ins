@@ -4,7 +4,7 @@ import { getAgentEnv } from './proxy'
 import { cancelPendingPermissions } from './permissions'
 import { appendAiInsEvent, setAiInsRunSessionId } from './run-store'
 import { shouldUseShellForCommand } from './editor'
-import { diffWorkspaceSnapshots, takeWorkspaceSnapshot } from './workspace-changes'
+import { addWorkspacePatches, diffWorkspaceSnapshots, takeWorkspaceBaseline, takeWorkspaceSnapshot } from './workspace-changes'
 import { spawn } from 'child_process'
 import { createWriteStream } from 'fs'
 import type { AiInsRun, ResolvedAiInsAgentProvider } from './types'
@@ -36,6 +36,8 @@ export async function startAgentTurn(options: AgentTurnOptions) {
   // Taken before the process exists, so every edit the agent makes shows up in
   // the diff at exit. Undefined outside a git work tree: no file list then.
   const workspaceBefore = await takeWorkspaceSnapshot(root)
+  // File contents to diff against when the turn ends.
+  const workspaceBaseline = await takeWorkspaceBaseline(root, workspaceBefore).catch(() => undefined)
   const logStream = createWriteStream(logPath, { flags: 'a' })
   const turnIndex = run.turns.length - 1
 
@@ -212,6 +214,7 @@ export async function startAgentTurn(options: AgentTurnOptions) {
     logStream.write(`\n[ai-ins] ${provider.label} exited with code=${code ?? 'null'} signal=${signal ?? 'null'}\n`)
     void takeWorkspaceSnapshot(root)
       .then((workspaceAfter) => (workspaceBefore && workspaceAfter ? diffWorkspaceSnapshots(workspaceBefore, workspaceAfter) : undefined))
+      .then((changedFiles) => (changedFiles ? addWorkspacePatches(root, workspaceBaseline, changedFiles) : undefined))
       .catch(() => undefined)
       .then((changedFiles) => {
         if (changedFiles?.length) {

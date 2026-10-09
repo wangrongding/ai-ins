@@ -78,8 +78,20 @@ export type ResolvedAiInsAgentSession = {
 
 /** A file whose git state changed while one turn ran. `path` is absolute. */
 export type AiInsChangedFile = {
+  /** Lines added / removed by the turn; undefined when no diff was taken. */
+  additions?: number
+  binary?: boolean
+  deletions?: number
+  /**
+   * Unified diff of what the turn did to this file (hunks only, no file
+   * headers). Stored with the history; summaries leave it out and the panel
+   * fetches it when the file is expanded.
+   */
+  patch?: string
   path: string
   status: 'added' | 'deleted' | 'modified'
+  /** The patch was cut short, or dropped because the turn's diff budget ran out. */
+  truncated?: boolean
 }
 
 export type AiInsEvent = {
@@ -180,6 +192,8 @@ export type AiInsRun = {
   pendingPermissions: Map<string, { request: AiInsPermissionRequest; resolve: (decision: AiInsPermissionDecision) => void }>
   /** Shared secret the permission bridge sends back, so only our agent process can ask. */
   permissionToken: string
+  /** When the user pinned the run to the top of the list; pinned runs are never pruned or bulk-cleared. */
+  pinnedAt?: number
   /** Set between a stop request and the process actually exiting. */
   stopRequested?: boolean
   subscribers: Set<ServerResponse>

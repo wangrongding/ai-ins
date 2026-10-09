@@ -21,7 +21,8 @@ import {
   parsePermissionMode,
   resolvePermissionMode,
 } from './permissions'
-import { ensureAiInsRunHistoryLoaded, getAiInsRunActivityAt, pruneAiInsRunHistory, removeAiInsRunHistory } from './run-history'
+import { getWorkspaceFilePatch, listWorkspaceChanges, setWorkspaceFilesStaged } from './workspace-changes'
+import { ensureAiInsRunHistoryLoaded, getAiInsRunActivityAt, persistAiInsRun, pruneAiInsRunHistory, removeAiInsRunHistory } from './run-history'
 import {
   buildAgentPrompt,
   buildFollowUpAgentPrompt,
@@ -176,6 +177,20 @@ export function aiInsRunsMiddleware(root: string): AiInsMiddleware {
           return
         }
 
+        // `?id=&turn=&file=`: one changed file's patch.
+        const file = requestUrl?.searchParams.get('file')
+        if (file) {
+          const turn = run.turns[Number(requestUrl?.searchParams.get('turn'))]
+          const changed = turn?.changedFiles?.find((entry) => entry.path === file)
+          if (!changed) {
+            sendPanelError(res, 'error.diffGone', {}, 404)
+            return
+          }
+
+          res.end(JSON.stringify({ binary: changed.binary === true, patch: changed.patch ?? null, truncated: changed.truncated === true }))
+          return
+        }
+
         res.end(JSON.stringify({ run: getAiInsRunSummary(runId, run, root) }))
         return
       }
@@ -217,11 +232,29 @@ export function aiInsRunsMiddleware(root: string): AiInsMiddleware {
       return
     }
 
+    const pinAction = requestUrl?.searchParams.get('action')
+    if (req.method === 'POST' && (pinAction === 'pin' || pinAction === 'unpin')) {
+      const run = aiInsRuns.get(runId)
+      if (!run || run.root !== root) {
+        res.statusCode = 404
+        res.end('AI Ins run not found')
+        return
+      }
+
+      run.pinnedAt = pinAction === 'pin' ? Date.now() : undefined
+      bumpAiInsRunsVersion()
+      persistAiInsRun(runId)
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({ pinnedAt: run.pinnedAt ?? null, success: true }))
+      return
+    }
+
     if (req.method === 'DELETE') {
       if (requestUrl?.searchParams.get('scope') === 'finished') {
         const removedIds: string[] = []
         for (const [id, run] of [...aiInsRuns.entries()]) {
-          if (run.root === root && run.completed) {
+          // Pinned conversations are kept on purpose; only delete them one by one.
+          if (run.root === root && run.completed && !run.pinnedAt) {
             stopAndForgetRun(id, run)
             removedIds.push(id)
           }
@@ -696,5 +729,87 @@ export function revealInFolderMiddleware(root: string): AiInsMiddleware {
       res.statusCode = 500
       res.end(message)
     }
+  }
+}
+
+/** Which conversation last touched each file, by turn end time. */
+function getChangeAttribution(root: string) {
+  const owners = new Map<string, { at: number; runId: string }>()
+  for (const [runId, run] of aiInsRuns) {
+    if (run.root !== root) continue
+    for (const turn of run.turns) {
+      const at = turn.completedAt ?? turn.createdAt
+      for (const file of turn.changedFiles ?? []) {
+        const owner = owners.get(file.path)
+        if (!owner || owner.at < at) owners.set(file.path, { at, runId })
+      }
+    }
+  }
+  return owners
+}
+
+/**
+ * `GET` — every uncommitted file under the root, staged and unstaged, with the
+ * conversation that last changed it. `GET ?file=&staged=` — that file's patch.
+ */
+export function aiInsChangesMiddleware(root: string): AiInsMiddleware {
+  return async (req, res) => {
+    if (req.method === 'POST') {
+      // `POST ?action=stage|unstage` with `{ paths }`: only paths that are listed changes.
+      const action = new URL(req.url || '', 'http://localhost').searchParams.get('action')
+      try {
+        const body = JSON.parse((await readRequestBody(req)) || '{}') as { paths?: unknown }
+        const requested = Array.isArray(body.paths) ? body.paths.filter((path): path is string => typeof path === 'string') : []
+        const changes = (await listWorkspaceChanges(root)) ?? []
+        const known = new Set(changes.map((change) => change.path))
+        const paths = [...new Set(requested)].filter((path) => known.has(path))
+        if ((action !== 'stage' && action !== 'unstage') || !paths.length) {
+          sendPanelError(res, 'error.diffGone', {}, 409)
+          return
+        }
+
+        await setWorkspaceFilesStaged(root, paths, action === 'stage')
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ success: true }))
+      } catch (error) {
+        res.statusCode = 500
+        res.setHeader('Content-Type', 'application/json')
+        res.end(JSON.stringify({ message: error instanceof Error ? error.message : String(error) }))
+      }
+      return
+    }
+
+    if (req.method !== 'GET') {
+      res.statusCode = 405
+      res.end('method not allowed')
+      return
+    }
+
+    ensureAiInsRunHistoryLoaded(root)
+    const requestUrl = new URL(req.url || '', 'http://localhost')
+    const file = requestUrl.searchParams.get('file')
+    const changes = await listWorkspaceChanges(root)
+    res.setHeader('Content-Type', 'application/json')
+
+    if (file) {
+      const staged = requestUrl.searchParams.get('staged') === '1'
+      // Only files that are actually changed: this must not become a file reader.
+      if (!changes?.some((change) => change.path === file && change.staged === staged)) {
+        sendPanelError(res, 'error.diffGone', {}, 404)
+        return
+      }
+
+      const patch = await getWorkspaceFilePatch(root, file, staged)
+      res.end(JSON.stringify({ binary: patch.binary === true, patch: patch.binary ? null : patch.patch ?? '', truncated: patch.truncated === true }))
+      return
+    }
+
+    const owners = getChangeAttribution(root)
+    res.end(
+      JSON.stringify({
+        available: Boolean(changes),
+        files: (changes ?? []).map((change) => ({ ...change, runId: owners.get(change.path)?.runId })),
+      }),
+    )
   }
 }

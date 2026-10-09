@@ -1,5 +1,6 @@
 import { getAiInsClientSource, getAiInsClientWatchFiles } from './client-source'
 import {
+  aiInsChangesMiddleware,
   aiInsConfigMiddleware,
   aiInsEditMiddleware,
   aiInsEventsMiddleware,
@@ -11,10 +12,12 @@ import { aiInsPermissionMiddleware } from './permissions'
 import { getClientAgentProviders, getDefaultAgentProviderId } from './providers'
 import { getConfiguredCodexProxy, normalizeProxy } from './proxy'
 import { configureAiInsRunHistory } from './run-history'
+import { aiInsSettingsMiddleware } from './user-settings'
 import type { AiInsPluginOptions, AiInsRoute } from './types'
 
 export { ensureLaunchEditor } from './editor'
 export {
+  aiInsChangesMiddleware,
   aiInsConfigMiddleware,
   aiInsEditMiddleware,
   aiInsEventsMiddleware,
@@ -45,8 +48,10 @@ export function createAiInsMiddlewares(root: string, options: AiInsPluginOptions
     { path: '/__open-in-editor', middleware: openInEditorMiddleware(root) },
     { path: '/__reveal-in-folder', middleware: revealInFolderMiddleware(root) },
     { path: '/__ai-ins-config', middleware: aiInsConfigMiddleware(root, options, codexProxy) },
+    { path: '/__ai-ins-settings', middleware: aiInsSettingsMiddleware() },
     { path: '/__ai-ins-agent/events', middleware: aiInsEventsMiddleware(root) },
     { path: '/__ai-ins-agent/runs', middleware: aiInsRunsMiddleware(root) },
+    { path: '/__ai-ins-agent/changes', middleware: aiInsChangesMiddleware(root) },
     // Registered before `/__ai-ins-agent`, which would otherwise match it as a prefix.
     { path: '/__ai-ins-agent/permission', middleware: aiInsPermissionMiddleware(root) },
     { path: '/__ai-ins-agent', middleware: aiInsEditMiddleware(root, options, codexProxy) },
