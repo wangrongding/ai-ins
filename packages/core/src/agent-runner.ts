@@ -7,6 +7,7 @@ import { shouldUseShellForCommand } from './editor'
 import { addWorkspacePatches, diffWorkspaceSnapshots, takeWorkspaceBaseline, takeWorkspaceSnapshot } from './workspace-changes'
 import { spawn } from 'child_process'
 import { createWriteStream } from 'fs'
+import { StringDecoder } from 'string_decoder'
 import type { AiInsRun, ResolvedAiInsAgentProvider } from './types'
 
 const heartbeatIntervalMs = 5000
@@ -161,9 +162,22 @@ export async function startAgentTurn(options: AgentTurnOptions) {
     stdoutBuffer = ''
   }
 
+  // Pipes cut the byte stream anywhere, including inside a multi-byte
+  // character (every CJK character is 3 bytes). Decoding chunk by chunk would
+  // turn the two halves into U+FFFD; a decoder holds the first half back.
+  const stdoutDecoder = new StringDecoder('utf8')
+  const stderrDecoder = new StringDecoder('utf8')
+
   child.stdout.on('data', (chunk: Buffer) => {
-    const message = chunk.toString()
+    const message = stdoutDecoder.write(chunk)
+    if (!message) {
+      return
+    }
+
+    // Whole characters only: stdout and stderr share the log, and raw bytes
+    // of the two would interleave mid-character.
     logStream.write(message)
+
     if (provider.output === 'plain') {
       appendOutput(message, 'stdout')
       return
@@ -183,9 +197,11 @@ export async function startAgentTurn(options: AgentTurnOptions) {
   })
 
   child.stderr.on('data', (chunk: Buffer) => {
-    const message = chunk.toString()
-    logStream.write(message)
-    appendOutput(message, 'stderr')
+    const message = stderrDecoder.write(chunk)
+    if (message) {
+      logStream.write(message)
+      appendOutput(message, 'stderr')
+    }
   })
 
   child.on('error', (error) => {
@@ -206,6 +222,10 @@ export async function startAgentTurn(options: AgentTurnOptions) {
   child.on('exit', (code, signal) => {
     completed = true
     clearInterval(heartbeatTimer)
+    // Bytes of a character the process never finished writing.
+    const stdoutTail = stdoutDecoder.end()
+    logStream.write(stdoutTail)
+    stdoutBuffer += stdoutTail
     flushStdoutBuffer()
     // Approval cards for a process that is gone can never be answered.
     cancelPendingPermissions(run)
