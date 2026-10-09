@@ -6,7 +6,7 @@ AI Ins 的 Next.js 插件，支持 Webpack 和 Turbopack 两种 dev server。
 
 开发时按住 `Option`（Windows / Linux 是 `Alt`）点选页面元素，AI Ins 会把元素对应的源码位置和你的需求一起交给本机的 Agent CLI（Codex、Claude Code、Copilot、Gemini、Cursor），改完由热更新直接显示结果。只在开发态生效，生产构建里没有任何 AI Ins 代码。
 
-![AI Ins 对话面板](https://raw.githubusercontent.com/wangrongding/ai-ins/main/docs/images/conversation.webp)
+![AI Ins 对话面板](https://raw.githubusercontent.com/wangrongding/ai-ins/fab60d043e6f4e0a7f4257a6c3596ec32fafb81c/docs/images/conversation.webp)
 
 ## 安装
 

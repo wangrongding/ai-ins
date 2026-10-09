@@ -4,7 +4,7 @@ AI Ins 的接入 CLI：一行命令把 AI Ins 接到 Vite、Webpack、Next.js �
 
 **AI Ins 是什么**：开发时按住 `Option`（Windows / Linux 是 `Alt`）点选页面元素，说一句话，本机的 AI 编码 Agent（Codex、Claude Code、Copilot、Gemini、Cursor）就从这个元素对应的源码开始修改，热更新直接显示结果。
 
-![按住 Option 点选页面元素](https://raw.githubusercontent.com/wangrongding/ai-ins/main/docs/images/pick.webp)
+![按住 Option 点选页面元素](https://raw.githubusercontent.com/wangrongding/ai-ins/fab60d043e6f4e0a7f4257a6c3596ec32fafb81c/docs/images/pick.webp)
 
 ## 快速接入
 
