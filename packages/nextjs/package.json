@@ -1,6 +1,6 @@
 {
   "name": "@ai-ins/nextjs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Next.js plugin for AI Ins.",
   "author": "Rongding Wang <wangrongding@qq.com> (https://github.com/wangrongding)",
   "repository": {
