@@ -197,6 +197,23 @@ Please edit the repository directly. Keep the change narrowly scoped to the clic
 }
 
 /**
+ * A new conversation started without picking an element: the request is about
+ * the project as a whole. The page the user is looking at is the best hint of
+ * where to start, so it goes in when the panel sends it.
+ */
+export function buildWorkspaceAgentPrompt(options: { pageUrl?: string; rawPrompt: string; root: string }) {
+  const page = options.pageUrl ? `\nThe user had this page of the running app open: ${options.pageUrl}\n` : ''
+  return `You are an AI coding agent invoked from the AI Ins panel in the running app. The user did not pick a specific element, so the request may concern any part of the project.
+
+User request:
+${options.rawPrompt}
+${page}
+Project root: ${options.root}
+
+Please work in this repository directly. Find the relevant code yourself, keep the change focused on what was asked, preserve existing project style, and run focused checks if they are cheap.`
+}
+
+/**
  * Prompt for turn 2+ of an existing agent session. The agent still holds the
  * first turn's source excerpt and its own edits, so re-sending that block would
  * just burn context and invite it to redo work — `target` is only passed when
@@ -209,9 +226,13 @@ export function buildFollowUpAgentPrompt(options: {
   turnNumber: number
 }) {
   const { previousDisplayPath, rawPrompt, target, turnNumber } = options
+  // No previous focus: the conversation was started for the project as a whole.
+  const previous = previousDisplayPath || 'none, the whole project'
   const focusBlock = target
-    ? `\nThe user re-pointed AI Ins at a different element (previous focus: ${previousDisplayPath}). Treat the block below as the new focus:\n\n${buildTargetBlock(target)}\n`
-    : `\nSame focus as the previous turn: ${previousDisplayPath}\n`
+    ? `\nThe user re-pointed AI Ins at a different element (previous focus: ${previous}). Treat the block below as the new focus:\n\n${buildTargetBlock(target)}\n`
+    : previousDisplayPath
+      ? `\nSame focus as the previous turn: ${previousDisplayPath}\n`
+      : '\nNo specific element is in focus; the request concerns the project as a whole.\n'
 
   return `Follow-up request from AI Ins — turn ${turnNumber} of the same session. You already have the earlier turns in context, including any edits you made.
 

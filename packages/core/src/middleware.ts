@@ -26,6 +26,7 @@ import { ensureAiInsRunHistoryLoaded, getAiInsRunActivityAt, persistAiInsRun, pr
 import {
   buildAgentPrompt,
   buildFollowUpAgentPrompt,
+  buildWorkspaceAgentPrompt,
   getDisplayPath,
   getLayerNameForTarget,
   getLayerSummary,
@@ -303,6 +304,8 @@ export function aiInsConfigMiddleware(root: string, options: AiInsPluginOptions,
 type AiInsAgentRequest = {
   file?: unknown
   layers?: unknown
+  /** Address of the page the panel was opened on; context for element-less requests. */
+  page?: unknown
   permissionMode?: unknown
   prompt?: unknown
   provider?: unknown
@@ -462,7 +465,7 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
         }
 
         const sessionId = existingRun.sessionId as string
-        const previousDisplayPath = `${getDisplayPath(existingRun.sourcePath, root)}:${existingRun.lineNumber}`
+        const previousDisplayPath = existingRun.sourcePath ? `${getDisplayPath(existingRun.sourcePath, root)}:${existingRun.lineNumber}` : ''
         let target: ResolvedAgentTarget | undefined
 
         if (rawTarget) {
@@ -537,21 +540,22 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
         return
       }
 
-      if (!rawTarget) {
-        res.statusCode = 400
-        res.end('missing file')
-        return
+      // No element picked: a conversation about the project as a whole.
+      let target: ResolvedAgentTarget | undefined
+      if (rawTarget) {
+        const targetResult = resolveAgentTarget(root, rawTarget, payload.layers)
+        if (!targetResult.ok) {
+          res.statusCode = targetResult.status
+          res.end(targetResult.message)
+          return
+        }
+        target = targetResult.target
       }
 
-      const targetResult = resolveAgentTarget(root, rawTarget, payload.layers)
-      if (!targetResult.ok) {
-        res.statusCode = targetResult.status
-        res.end(targetResult.message)
-        return
-      }
-
-      const target = targetResult.target
-      const prompt = buildAgentPrompt({ ...toPromptTarget(target, root), rawPrompt })
+      const pageUrl = typeof payload.page === 'string' && /^https?:\/\//u.test(payload.page) ? payload.page.slice(0, 500) : undefined
+      const prompt = target
+        ? buildAgentPrompt({ ...toPromptTarget(target, root), rawPrompt })
+        : buildWorkspaceAgentPrompt({ pageUrl, rawPrompt, root })
       const logDirectory = join(root, '.ai-ins')
       mkdirSync(logDirectory, { recursive: true })
       const runId = `${new Date().toISOString().replace(/[:.]/gu, '-')}-${provider.id}`
@@ -566,13 +570,13 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
 
       const run = createAiInsRun(runId, root, logPath, provider, provider.session.mode, sessionId, {
         agentPrompt: prompt,
-        fileName: target.fileName,
-        lineNumber: target.lineNumber,
+        fileName: target?.fileName ?? '',
+        lineNumber: target?.lineNumber ?? 0,
         permissionMode,
         prompt: rawPrompt,
         resumed: false,
-        sourceName: target.sourceName,
-        sourcePath: target.fileName,
+        sourceName: target?.sourceName ?? '',
+        sourcePath: target?.fileName ?? '',
       })
       pruneAiInsRunHistory(root)
       // After the run exists: the permission bridge config carries its token.
@@ -596,8 +600,8 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
       res.end(
         JSON.stringify({
           agentPrompt: prompt,
-          fileName: target.fileName,
-          lineNumber: target.lineNumber,
+          fileName: target?.fileName ?? '',
+          lineNumber: target?.lineNumber ?? 0,
           logPath,
           pid: child.pid,
           providerId: provider.id,
@@ -606,7 +610,7 @@ export function aiInsEditMiddleware(root: string, options: AiInsPluginOptions, p
           runId,
           sessionId,
           sessionMode: provider.session.mode,
-          sourceName: target.sourceName,
+          sourceName: target?.sourceName ?? '',
           success: true,
           turnIndex: 0,
         }),
