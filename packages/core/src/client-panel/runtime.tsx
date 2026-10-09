@@ -8,14 +8,18 @@ import {
   savePromptDraft,
   saveQueuedPrompts,
 } from './composer-storage'
-import { getLocale, getLocalePreference, isMessageKey, onLocaleChange, setLocalePreference, t } from './i18n'
-import { getPanelDefaultSubmitShortcutLabel, PanelView } from './PanelView'
-import type { AgentProvider, AgentRun, LayerTarget, PermissionDecision, PermissionMode, PermissionRequest, ProxyMode } from './types'
+import { getLocale, getLocalePreference, isMessageKey, onLocaleChange, reloadLocalePreference, setLocalePreference, t } from './i18n'
+import type { FileDiffData } from './FileDiff'
+import { type NotifyKind, notifyRunEvent } from './notifications'
+import { PanelView } from './PanelView'
+import type { AgentProvider, AgentRun, WorkspaceChanges, LayerTarget, PermissionDecision, PermissionMode, PermissionRequest, ProxyMode } from './types'
 
 declare global {
   var aiInsPanelRuntime:
     | {
+        applyUserSettings: () => void
         flushQueuedPrompt: (run: AgentRun) => void
+        notifyRun: (run: AgentRun, kind: NotifyKind) => void
         refreshComposer: () => void
         refreshRunDetail: () => void
         refreshRunList: () => void
@@ -69,7 +73,12 @@ declare function installDockDrag(): void
 declare function loadRunDetail(run: AgentRun): Promise<void>
 declare function scheduleRunListSync(delay?: number): void
 declare function stopRun(run: AgentRun): Promise<void>
+declare function pinRun(run: AgentRun, pinned: boolean): Promise<void>
 declare function openInEditor(layerPath: string): Promise<void>
+declare function loadAgentFileDiff(runId: string, turnIndex: number, path: string): Promise<FileDiffData>
+declare function loadWorkspaceChanges(): Promise<WorkspaceChanges>
+declare function loadWorkspaceFileDiff(path: string, staged: boolean): Promise<FileDiffData>
+declare function stageWorkspaceFiles(paths: string[], staged: boolean): Promise<unknown>
 declare function readStoredProviderId(): string
 declare function readStoredProxy(): string
 declare function readStoredProxyMode(): string
@@ -98,6 +107,8 @@ let providerValue = ''
 let proxyModeValue: ProxyMode = 'off'
 let proxyValue = ''
 let permissionModeValue: PermissionMode = readPermissionMode()
+// Bumped when the settings file changes what the panel read at mount; remounts it.
+let settingsVersion = 0
 const statusRef = {
   get textContent() {
     return panelStatus
@@ -178,26 +189,26 @@ function getInitialProxyMode(storedProxy: string): ProxyMode {
   return defaultProxy ? 'system' : 'off'
 }
 
+/**
+ * Transient news for the toast over the composer (copied, opened, errors).
+ * Standing conditions (no element picked, agent not set up, proxy missing)
+ * show in the composer itself, so this is empty most of the time.
+ */
 function getPanelStatus() {
-  if (panelStatus) {
-    return panelStatus
-  }
-
-  const continueRun = getContinueRun()
-  if (continueRun) {
-    return continueRun.canResume ? t('status.hintContinue', { shortcut: getPanelDefaultSubmitShortcutLabel() }) : ''
-  }
-
-  const provider = getCurrentProvider()
-  if (!provider?.enabled) {
-    return provider?.disabledReason || t('status.agentNotConfigured')
-  }
-
-  return draftTarget?.layer ? t('status.hintNew', { shortcut: getPanelDefaultSubmitShortcutLabel() }) : t('status.pickFirst')
+  return panelStatus
 }
+
+let panelStatusTimer: number | undefined
 
 function setPanelStatus(value: string) {
   panelStatus = value
+  window.clearTimeout(panelStatusTimer)
+  if (value) {
+    // Toasts leave on their own; the close button is there for the impatient.
+    panelStatusTimer = window.setTimeout(() => {
+      if (panelStatus === value) setPanelStatus('')
+    }, 5000)
+  }
   renderAiInsPanel()
 }
 
@@ -336,6 +347,7 @@ function renderAiInsPanel() {
 
   panelRoot.render(
     <PanelView
+      key={settingsVersion}
       defaultProxy={defaultProxy}
       locale={getLocale()}
       localePreference={getLocalePreference()}
@@ -353,8 +365,8 @@ function renderAiInsPanel() {
       onCopyTarget={async () => {
         const layerPath = activeTarget?.layer?.path || continueRun?.sourcePath
         if (!layerPath) return
+        // The button turns into a check; no toast needed on top.
         await copyTextToClipboard(getDisplayPath(layerPath))
-        setPanelStatus(t('status.copied'))
       }}
       onCancelQueued={() => {
         if (selectedRunId) cancelQueuedPrompt(selectedRunId)
@@ -365,6 +377,15 @@ function renderAiInsPanel() {
         }
         void deleteRun(run)
       }}
+      onLoadFileDiff={(run, turn, path) => loadAgentFileDiff(run.id, turn.index, path)}
+      onLoadWorkspaceChanges={loadWorkspaceChanges}
+      onLoadWorkspaceFileDiff={loadWorkspaceFileDiff}
+      onStageFiles={(paths, staged) =>
+        stageWorkspaceFiles(paths, staged).then(
+          () => undefined,
+          (error: unknown) => setPanelStatus(error instanceof Error ? error.message : String(error)),
+        )
+      }
       onOpenFile={(path) => {
         void openInEditor(path)
           .then(() => setPanelStatus(t('status.openedInIde')))
@@ -372,6 +393,9 @@ function renderAiInsPanel() {
       }}
       onRetryTurn={(run, turn) => {
         void sendTurn(turn.prompt, run, undefined)
+      }}
+      onPinRun={(run, pinned) => {
+        void pinRun(run, pinned)
       }}
       onStopRun={(run) => {
         void stopRun(run)
@@ -420,10 +444,10 @@ function renderAiInsPanel() {
       proxyMode={proxyModeValue}
       repointRun={repointRun}
       repointed={Boolean(continueRun && continueTarget)}
-      runCount={runs.length}
       runs={[...runs]}
       runsLoading={!runsHydrated}
       selectedRunId={selectedRunId}
+      onDismissStatus={() => setPanelStatus('')}
       status={getPanelStatus()}
       submitting={submitting}
       targetLabel={targetLabel}
@@ -474,8 +498,8 @@ function submitAiInsPrompt() {
   const prompt = promptValue.trim()
   const continueRun = getContinueRun()
 
+  // The send button is disabled until there is text; the shortcut does nothing either.
   if (!prompt) {
-    setPanelStatus(t('status.writeSomething'))
     return
   }
 
@@ -727,8 +751,37 @@ onLocaleChange(() => {
   updateDockButton()
 })
 
+/** A system notification for a run event; clicking it opens that conversation. */
+function notifyRun(run: AgentRun, kind: NotifyKind) {
+  const turn = run.turns[run.turns.length - 1]
+  notifyRunEvent(kind, {
+    body: turn?.prompt || run.sourceName || '',
+    onClick: () => {
+      showAiInsPanel()
+      openConversation(run.id)
+    },
+    panelOpen: Boolean(aiInsPanel),
+    provider: run.providerLabel,
+    tag: `ai-ins:${run.id}:${turn?.index ?? 0}:${kind}`,
+  })
+}
+
+/** The settings file loaded with different values: re-read them everywhere. */
+function applyUserSettings() {
+  permissionModeValue = readPermissionMode()
+  reloadLocalePreference()
+  if (!aiInsPanel) return
+  providerValue = readStoredProviderId()
+  proxyValue = readStoredProxy()
+  proxyModeValue = getInitialProxyMode(proxyValue)
+  settingsVersion += 1
+  renderAiInsPanel()
+}
+
 globalThis.aiInsPanelRuntime = {
+  applyUserSettings,
   flushQueuedPrompt,
+  notifyRun,
   refreshComposer,
   refreshRunDetail,
   refreshRunList,

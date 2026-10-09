@@ -1,26 +1,42 @@
-import { type KeyboardEvent as ReactKeyboardEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { type KeyboardEvent as ReactKeyboardEvent, type MouseEvent as ReactMouseEvent, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   arrowDownIcon,
   checkIcon,
   chevronDownIcon,
+  chevronRightIcon,
   closeIcon,
   codeIcon,
   copyIcon,
+  externalLinkIcon,
+  globeIcon,
+  helpIcon,
   Icon,
   IconButton,
   maximizeIcon,
   minimizeIcon,
+  pinIcon,
+  pinOffIcon,
+  moonIcon,
+  minusIcon,
   plusIcon,
+  refreshIcon,
+  searchIcon,
   slidersIcon,
+  sunIcon,
+  trashIcon,
 } from './icons'
 import { detectBrowserLocale, getLocale, isMessageKey, type Locale, type LocalePreference, localeNames, locales, t } from './i18n'
+import { FileDiff, type FileDiffData } from './FileDiff'
 import { MarkdownView } from './markdown'
+import { getNotifySupport, type NotifySupport, readNotifyEnabled, setNotifyEnabled } from './notifications'
 import { PanelSelect, usePanelDismiss } from './PanelSelect'
 import type {
   AgentProvider,
   AgentRun,
   AgentRunTurn,
   ChangedFile,
+  WorkspaceChange,
+  WorkspaceChanges,
   PermissionDecision,
   PermissionMode,
   PermissionRequest,
@@ -49,6 +65,7 @@ function readPanelTheme(): PanelTheme {
 function savePanelTheme(value: PanelTheme) {
   try {
     window.localStorage.setItem(panelThemeStorageKey, value)
+    globalThis.aiInsRememberSetting?.(panelThemeStorageKey, value)
   } catch {
     // Ignore storage restrictions in embedded browsers.
   }
@@ -79,6 +96,56 @@ function readPanelSubmitShortcut(): PanelSubmitShortcut {
 function savePanelSubmitShortcut(value: PanelSubmitShortcut) {
   try {
     window.localStorage.setItem(panelSubmitShortcutStorageKey, value)
+    globalThis.aiInsRememberSetting?.(panelSubmitShortcutStorageKey, value)
+  } catch {
+    // Ignore storage restrictions in embedded browsers.
+  }
+}
+
+type PanelSidebarView = 'changes' | 'runs'
+
+const panelSidebarViewStorageKey = 'ai-ins-sidebar-view'
+
+function readPanelSidebarView(): PanelSidebarView {
+  try {
+    return window.localStorage.getItem(panelSidebarViewStorageKey) === 'changes' ? 'changes' : 'runs'
+  } catch {
+    return 'runs'
+  }
+}
+
+function savePanelSidebarView(value: PanelSidebarView) {
+  try {
+    window.localStorage.setItem(panelSidebarViewStorageKey, value)
+  } catch {
+    // Ignore storage restrictions in embedded browsers.
+  }
+}
+
+/** `src/a/b.ts` → `['b.ts', 'src/a']`. */
+/** A file can be listed twice (staged and unstaged); this tells the entries apart. */
+function panelChangeKey(file: WorkspaceChange) {
+  return `${file.staged ? 'staged' : 'unstaged'}:${file.path}`
+}
+
+function panelSplitPath(path: string): [string, string] {
+  const index = path.lastIndexOf('/')
+  return index === -1 ? [path, ''] : [path.slice(index + 1), path.slice(0, index)]
+}
+
+const panelHelpSeenStorageKey = 'ai-ins-help-seen'
+
+function readPanelHelpSeen() {
+  try {
+    return window.localStorage.getItem(panelHelpSeenStorageKey) === '1'
+  } catch {
+    return true
+  }
+}
+
+function savePanelHelpSeen() {
+  try {
+    window.localStorage.setItem(panelHelpSeenStorageKey, '1')
   } catch {
     // Ignore storage restrictions in embedded browsers.
   }
@@ -99,10 +166,6 @@ function panelGetModifierSubmitShortcutLabel(macPlatform: boolean) {
 
 function panelGetEnterShortcutLabel() {
   return 'Enter'
-}
-
-export function getPanelDefaultSubmitShortcutLabel() {
-  return panelGetModifierSubmitShortcutLabel(panelIsMacPlatform())
 }
 
 function panelMatchesSubmitShortcut(
@@ -146,7 +209,6 @@ type PanelViewProps = {
   repointRun?: AgentRun
   /** True when the open conversation's next turn focuses a freshly picked element. */
   repointed: boolean
-  runCount: number
   runs: AgentRun[]
   /** True until the first history fetch settles. */
   runsLoading: boolean
@@ -159,13 +221,16 @@ type PanelViewProps = {
   onClearFinishedRuns: () => void
   onCancelQueued: () => void
   onClose: () => void
+  onDismissStatus: () => void
   onContinueWithTarget: () => void
   onCopyTarget: () => Promise<void>
   onAnswerPermission: (run: AgentRun, request: PermissionRequest, decision: PermissionDecision) => void
   onDeleteRun: (run: AgentRun) => void
   onLocaleChange: (value: LocalePreference) => void
   onNewConversation: () => void
+  onPinRun: (run: AgentRun, pinned: boolean) => void
   onPermissionModeChange: (value: PermissionMode) => void
+  onLoadFileDiff: (run: AgentRun, turn: AgentRunTurn, path: string) => Promise<FileDiffData>
   onOpenFile: (path: string) => void
   onOpenInEditor: () => Promise<void>
   onPromptChange: (value: string) => void
@@ -174,6 +239,9 @@ type PanelViewProps = {
   onProxyModeChange: (value: ProxyMode) => void
   onRetryTurn: (run: AgentRun, turn: AgentRunTurn) => void
   onSelectRun: (runId: string) => void
+  onLoadWorkspaceChanges: () => Promise<WorkspaceChanges>
+  onLoadWorkspaceFileDiff: (path: string, staged: boolean) => Promise<FileDiffData>
+  onStageFiles: (paths: string[], staged: boolean) => Promise<void>
   onStopRun: (run: AgentRun) => void
   onSubmit: () => void
 }
@@ -623,6 +691,33 @@ function panelGetRunStateLabel(run: AgentRun) {
   return panelGetRunStatusLabel(run.status)
 }
 
+/**
+ * Which edges of a scroll area have more content past them, so the area can
+ * fade there. Re-measured on scroll, on resize and when `contentKey` changes.
+ */
+function usePanelScrollEdges(contentKey: unknown) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [edges, setEdges] = useState({ bottom: false, top: false })
+  const measure = useCallback(() => {
+    const node = ref.current
+    if (!node) return
+    const top = node.scrollTop > 1
+    const bottom = node.scrollHeight - node.scrollTop - node.clientHeight > 1
+    setEdges((current) => (current.top === top && current.bottom === bottom ? current : { bottom, top }))
+  }, [])
+
+  useEffect(() => {
+    measure()
+    const node = ref.current
+    if (!node || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [contentKey, measure])
+
+  return { edges, measure, ref }
+}
+
 export function PanelView(props: PanelViewProps & { getDisplayPath: (path: string) => string }) {
   const {
     defaultProxy,
@@ -632,12 +727,17 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     onCancelQueued,
     onClearFinishedRuns,
     onClose,
+    onDismissStatus,
     onContinueWithTarget,
     onCopyTarget,
     onAnswerPermission,
     onDeleteRun,
     onLocaleChange,
     onNewConversation,
+    onLoadWorkspaceChanges,
+    onLoadWorkspaceFileDiff,
+    onStageFiles,
+    onLoadFileDiff,
     onOpenFile,
     onPermissionModeChange,
     onOpenInEditor,
@@ -646,6 +746,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     onProxyChange,
     onProxyModeChange,
     onRetryTurn,
+    onPinRun,
     onSelectRun,
     onStopRun,
     onSubmit,
@@ -658,7 +759,6 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     queuedPrompt,
     repointRun,
     repointed,
-    runCount,
     runs,
     runsLoading,
     selectedRunId,
@@ -669,6 +769,19 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   } = props
   const [copied, setCopied] = useState(false)
   const [runQuery, setRunQuery] = useState('')
+  // Sidebar shows either the conversations or the work tree's uncommitted changes.
+  const [sidebarView, setSidebarView] = useState<PanelSidebarView>(() => readPanelSidebarView())
+  // A file picked in the Changes list; the main area shows its diff instead of the chat.
+  const [selectedChangePath, setSelectedChangePath] = useState<string | undefined>()
+  // Folded sections of the Changes list ('staged' / 'unstaged').
+  const [collapsedChangeSections, setCollapsedChangeSections] = useState<Set<string>>(() => new Set())
+  // Paths with a stage/unstage request in flight, so their buttons wait.
+  const [stagingPaths, setStagingPaths] = useState<Set<string>>(() => new Set())
+  const [workspaceChanges, setWorkspaceChanges] = useState<{ data?: WorkspaceChanges; error: string; loading: boolean; version: number }>({
+    error: '',
+    loading: false,
+    version: 0,
+  })
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [expandedTurns, setExpandedTurns] = useState<Set<string>>(() => new Set())
   const [agentPromptTurnIndex, setAgentPromptTurnIndex] = useState<number | undefined>(undefined)
@@ -682,6 +795,21 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   const settingsTriggerRef = useRef<HTMLButtonElement>(null)
   const closeSettings = useCallback(() => setSettingsOpen(false), [])
   usePanelDismiss(settingsOpen, settingsRef, closeSettings)
+  const [notifyEnabled, setNotifyEnabledState] = useState(() => readNotifyEnabled())
+  const [notifySupport, setNotifySupport] = useState<NotifySupport>(() => getNotifySupport())
+  const [helpOpen, setHelpOpen] = useState(false)
+  // A dot on the help button until the guide has been opened once.
+  const [helpSeen, setHelpSeen] = useState(() => readPanelHelpSeen())
+  const helpRef = useRef<HTMLDivElement>(null)
+  const helpTriggerRef = useRef<HTMLButtonElement>(null)
+  const closeHelp = useCallback(() => setHelpOpen(false), [])
+  usePanelDismiss(helpOpen, helpRef, closeHelp)
+  // Right-click menu on a history row, positioned inside the panel.
+  const [runMenu, setRunMenu] = useState<{ runId: string; x: number; y: number } | null>(null)
+  const runMenuRef = useRef<HTMLDivElement>(null)
+  const runMenuTriggerRef = useRef<HTMLButtonElement | null>(null)
+  const closeRunMenu = useCallback(() => setRunMenu(null), [])
+  usePanelDismiss(Boolean(runMenu), runMenuRef, closeRunMenu)
   const outputShouldFollowRef = useRef(true)
   const outputModalShouldFollowRef = useRef(true)
   const agentPromptModalRef = useRef<HTMLDivElement>(null)
@@ -698,8 +826,15 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   const runGroups = useMemo(() => {
     const now = Date.now()
     const groups: Array<{ label: string; runs: AgentRun[] }> = []
-    for (const run of runs) {
-      if (!panelRunMatchesQuery(run, trimmedRunQuery, getDisplayPath)) continue
+    const matching = runs.filter((run) => panelRunMatchesQuery(run, trimmedRunQuery, getDisplayPath))
+    // Pinned conversations lead the list, most recently pinned first.
+    const pinned = matching.filter((run) => run.pinnedAt).sort((first, second) => (second.pinnedAt || 0) - (first.pinnedAt || 0))
+    if (pinned.length) {
+      groups.push({ label: t('sidebar.pinned'), runs: pinned })
+    }
+
+    for (const run of matching) {
+      if (run.pinnedAt) continue
       const label = panelGetRunDayGroup(panelGetRunActivityAt(run), now)
       const group = groups[groups.length - 1]
       if (group?.label === label) {
@@ -711,7 +846,36 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     return groups
     // `locale`: day-group labels are translated text.
   }, [getDisplayPath, locale, runs, trimmedRunQuery])
-  const finishedRunCount = runs.filter((run) => run.completed).length
+  const runListEdges = usePanelScrollEdges(runGroups)
+  const changeListEdges = usePanelScrollEdges(workspaceChanges.data)
+
+  const refreshWorkspaceChanges = useCallback(() => {
+    setWorkspaceChanges((current) => ({ ...current, loading: true }))
+    onLoadWorkspaceChanges()
+      .then((data) => setWorkspaceChanges((current) => ({ data, error: '', loading: false, version: current.version + 1 })))
+      .catch((reason: unknown) =>
+        setWorkspaceChanges((current) => ({ ...current, error: reason instanceof Error ? reason.message : String(reason), loading: false })),
+      )
+  }, [onLoadWorkspaceChanges])
+  // Re-read after every settled turn, and whenever the tab comes back into
+  // view (the user may have committed or edited in the IDE meanwhile).
+  const settledTurnsKey = runs.map((run) => `${run.id}:${run.turns.filter((turn) => turn.completed).length}`).join(',')
+  useEffect(() => {
+    refreshWorkspaceChanges()
+  }, [refreshWorkspaceChanges, settledTurnsKey])
+  useEffect(() => {
+    window.addEventListener('focus', refreshWorkspaceChanges)
+    return () => window.removeEventListener('focus', refreshWorkspaceChanges)
+  }, [refreshWorkspaceChanges])
+  // Opening a conversation, or picking an element, goes back to the chat.
+  useEffect(() => {
+    setSelectedChangePath(undefined)
+  }, [selectedRunId, targetLabel])
+  const changedFiles = workspaceChanges.data?.files ?? []
+  const selectedChange = selectedChangePath ? changedFiles.find((file) => panelChangeKey(file) === selectedChangePath) : undefined
+  const changedFileCount = new Set(changedFiles.map((file) => file.path)).size
+  // "Clear finished" keeps pinned conversations.
+  const finishedRunCount = runs.filter((run) => run.completed && !run.pinnedAt).length
   // An open conversation is always the one the next submit continues.
   const continuing = Boolean(selectedRun)
   // A follow-up turn always runs on the session's own agent, so the picker is
@@ -759,6 +923,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
       : panelGetResumeBlockedMessage(selectedRun)
   const submitDisabled =
     submitting ||
+    !prompt.trim() ||
     !hasTarget ||
     !provider?.enabled ||
     customProxyMissing ||
@@ -790,7 +955,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
       ? t('composer.queue')
       : continuing
         ? t('composer.continue')
-        : t('composer.send', { provider: provider?.label || 'Agent' })
+        : t('composer.send')
 
   useEffect(() => {
     outputShouldFollowRef.current = true
@@ -921,6 +1086,30 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     return t('settings.proxyOff')
   }
 
+  /** Composer chip for a proxy in use; nothing when the proxy is off. */
+  function renderProxyChip() {
+    if (proxyMode === 'off') return null
+    const address = proxyMode === 'custom' ? proxy.trim() : defaultProxy
+    const missing = !address
+    const label = missing
+      ? t(proxyMode === 'custom' ? 'composer.proxyMissing' : 'composer.proxySystemMissing')
+      : t(proxyMode === 'custom' ? 'composer.proxyCustom' : 'composer.proxySystem')
+    return (
+      <button
+        className={`ai-ins-proxy-chip${missing ? ' ai-ins-proxy-chip-warn' : ''}`}
+        onClick={() => {
+          setHelpOpen(false)
+          setSettingsOpen(true)
+        }}
+        title={missing ? label : t('composer.proxyTitle', { proxy: address })}
+        type="button"
+      >
+        <Icon paths={globeIcon} />
+        <span>{label}</span>
+      </button>
+    )
+  }
+
   function getProxyInputValue() {
     if (proxyMode === 'system') return defaultProxy
     if (proxyMode === 'custom') return proxy
@@ -951,13 +1140,23 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     void onSubmit()
   }
 
-  function renderSegmented<T extends string>(name: string, label: string, options: Array<{ label: string; value: T }>, value: T, onChange: (next: T) => void) {
+  function renderSegmented<T extends string>(
+    name: string,
+    label: string,
+    options: Array<{ icon?: string[]; label: string; value: T }>,
+    value: T,
+    onChange: (next: T) => void,
+    compact = false,
+  ) {
     return (
-      <div aria-label={label} className="ai-ins-segmented" role="radiogroup">
+      <div aria-label={label} className={`ai-ins-segmented${compact ? ' ai-ins-segmented-compact' : ''}`} role="radiogroup">
         {options.map((option) => (
           <label className="ai-ins-segmented-option" key={option.value}>
             <input checked={value === option.value} name={`ai-ins-${name}`} onChange={() => onChange(option.value)} type="radio" value={option.value} />
-            <span>{option.label}</span>
+            <span>
+              {option.icon ? <Icon paths={option.icon} /> : null}
+              {option.label}
+            </span>
           </label>
         ))}
       </div>
@@ -981,6 +1180,425 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
           requested: t(panelPermissionModeKeys[permissionMode]),
         })}
       </p>
+    )
+  }
+
+  function openRunMenu(event: ReactMouseEvent<HTMLButtonElement>, run: AgentRun) {
+    event.preventDefault()
+    const panel = event.currentTarget.closest('.ai-ins-panel')
+    if (!panel) return
+    const bounds = panel.getBoundingClientRect()
+    // The context-menu key fires with no pointer position: open at the row instead.
+    const row = event.currentTarget.getBoundingClientRect()
+    const clientX = event.clientX || row.left + 24
+    const clientY = event.clientY || row.bottom - 8
+    // Keep the menu (about 184 x 100) inside the panel.
+    const x = Math.min(clientX - bounds.left, bounds.width - 192)
+    const y = Math.min(clientY - bounds.top, bounds.height - 108)
+    runMenuTriggerRef.current = event.currentTarget
+    setSettingsOpen(false)
+    setRunMenu({ runId: run.id, x: Math.max(8, x), y: Math.max(8, y) })
+  }
+
+  function renderRunsSidebar() {
+    return (
+      <>
+          {/* Search fills the row; "new conversation" is the compact + at its end. */}
+          <div className="ai-ins-sidebar-nav">
+            <label className="ai-ins-run-search">
+              <Icon paths={searchIcon} />
+              <input
+                aria-label={t('sidebar.search')}
+                onChange={(event) => setRunQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  // The overlay closes the panel on Escape; with a query typed, Escape
+                  // clears the search first. React's root listener sits on the same
+                  // overlay node and runs first, hence the immediate stop.
+                  if (event.key === 'Escape' && runQuery) {
+                    event.nativeEvent.stopImmediatePropagation()
+                    setRunQuery('')
+                  }
+                }}
+                placeholder={t('sidebar.searchPlaceholder')}
+                type="search"
+                value={runQuery}
+              />
+            </label>
+            <button
+              aria-label={t('sidebar.newConversation')}
+              aria-pressed={!selectedRun && !selectedChange}
+              className="ai-ins-icon-button ai-ins-new-chat"
+              onClick={() => {
+                setSelectedChangePath(undefined)
+                onNewConversation()
+              }}
+              title={t('sidebar.newConversationTitle')}
+              type="button"
+            >
+              <Icon paths={plusIcon} />
+            </button>
+          </div>
+          <div
+            className="ai-ins-list"
+            data-fade-bottom={runListEdges.edges.bottom}
+            data-fade-top={runListEdges.edges.top}
+            onScroll={() => {
+              runListEdges.measure()
+              if (runMenu) closeRunMenu()
+            }}
+            ref={runListEdges.ref}
+          >
+            {runGroups.length ? (
+              runGroups.map((group) => (
+                <div className="ai-ins-run-group" key={group.label}>
+                  <p className="ai-ins-run-group-label">{group.label}</p>
+                  {group.runs.map((run) => {
+                    const stuck = panelIsRunStuck(run)
+                    const tone = panelGetRunTone(run)
+                    const lastPrompt = run.turns.length > 1 ? run.turns[run.turns.length - 1]?.prompt : ''
+                    return (
+                      <button
+                        aria-current={selectedRun?.id === run.id && !selectedChange ? 'true' : undefined}
+                        className={`ai-ins-run${selectedRun?.id === run.id && !selectedChange ? ' ai-ins-run-active' : ''}`}
+                        key={run.id}
+                        onClick={() => {
+                          setSelectedChangePath(undefined)
+                          onSelectRun(run.id)
+                        }}
+                        onContextMenu={(event) => openRunMenu(event, run)}
+                        title={stuck ? panelGetResumeBlockedMessage(run) : undefined}
+                        type="button"
+                      >
+                        <div className="ai-ins-run-top">
+                          <span className={`ai-ins-dot ai-ins-dot-${tone === 'active' ? run.status : tone}`} />
+                          <span className="ai-ins-run-title">{panelGetRunTitle(run, getDisplayPath)}</span>
+                          {run.pinnedAt ? (
+                            <span className="ai-ins-run-pin" title={t('sidebar.pinned')}>
+                              <Icon paths={pinIcon} />
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="ai-ins-run-focus">
+                          <span className="ai-ins-run-focus-name">{panelGetRunFocusLabel(run, getDisplayPath)}</span>
+                          <span className="ai-ins-run-provider">{run.providerLabel}</span>
+                        </div>
+                        {lastPrompt ? <div className="ai-ins-run-prompt ai-ins-run-prompt-latest">↳ {lastPrompt}</div> : null}
+                        <div className="ai-ins-run-meta">
+                          <span className={`ai-ins-run-status ai-ins-run-status-${tone}`}>{panelGetRunStateLabel(run)}</span>
+                          <span>{panelFormatRunListTime(panelGetRunActivityAt(run), Date.now())}</span>
+                          {run.turns.length > 1 ? <span className="ai-ins-run-turn-count">{t('sidebar.turnCount', { count: run.turns.length })}</span> : null}
+                          {stuck ? <span className="ai-ins-run-stuck-tag">{t('sidebar.cannotContinue')}</span> : null}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              ))
+            ) : (
+              <div className="ai-ins-detail-empty">
+                {runsLoading ? t('sidebar.loading') : runs.length ? t('sidebar.noMatch') : t('sidebar.empty')}
+              </div>
+            )}
+          </div>
+          {/* Rare and destructive: kept out of the way at the bottom. */}
+          {finishedRunCount ? (
+            <div className="ai-ins-sidebar-foot">
+              <button
+                className="ai-ins-sidebar-foot-button"
+                onClick={() => {
+                  if (window.confirm(t('sidebar.clearFinishedConfirm', { count: finishedRunCount }))) {
+                    onClearFinishedRuns()
+                  }
+                }}
+                title={t('sidebar.clearFinishedTitle')}
+                type="button"
+              >
+                <Icon paths={trashIcon} />
+                <span>{t('sidebar.clearFinished')}</span>
+                <span className="ai-ins-sidebar-foot-count">{finishedRunCount}</span>
+              </button>
+            </div>
+          ) : null}
+      </>
+    )
+  }
+
+  function renderChangesList() {
+    const { data, error, loading, version } = workspaceChanges
+    const additions = changedFiles.reduce((total, file) => total + (file.additions ?? 0), 0)
+    const deletions = changedFiles.reduce((total, file) => total + (file.deletions ?? 0), 0)
+
+    return (
+      <>
+        <div className="ai-ins-changes-head">
+          <span className="ai-ins-changes-title">{t('changes.title')}</span>
+          {changedFiles.length ? (
+            <span className="ai-ins-msg-file-stat">
+              {additions ? <span className="ai-ins-msg-file-add">+{additions}</span> : null}
+              {deletions ? <span className="ai-ins-msg-file-del">−{deletions}</span> : null}
+            </span>
+          ) : null}
+          <button
+            aria-label={t('changes.refresh')}
+            className={`ai-ins-icon-button ai-ins-changes-refresh${loading ? ' ai-ins-changes-refresh-busy' : ''}`}
+            onClick={refreshWorkspaceChanges}
+            title={t('changes.refresh')}
+            type="button"
+          >
+            <Icon paths={refreshIcon} />
+          </button>
+        </div>
+        <div
+          className="ai-ins-list"
+          data-fade-bottom={changeListEdges.edges.bottom}
+          data-fade-top={changeListEdges.edges.top}
+          onScroll={changeListEdges.measure}
+          ref={changeListEdges.ref}
+        >
+          {error && !data ? (
+            <div className="ai-ins-detail-empty">{error}</div>
+          ) : !data ? (
+            <div className="ai-ins-detail-empty">{t('changes.loading')}</div>
+          ) : !data.available ? (
+            <div className="ai-ins-detail-empty">{t('changes.unavailable')}</div>
+          ) : !changedFiles.length ? (
+            <div className="ai-ins-detail-empty">{t('changes.empty')}</div>
+          ) : (
+            ([true, false] as const).map((staged) => {
+              const section = changedFiles.filter((file) => file.staged === staged)
+              if (!section.length) return null
+              const sectionKey = staged ? 'staged' : 'unstaged'
+              const collapsed = collapsedChangeSections.has(sectionKey)
+              const busy = section.some((file) => stagingPaths.has(file.path))
+              return (
+                <div className="ai-ins-run-group" key={sectionKey}>
+                  <div className="ai-ins-changes-section">
+                    <button
+                      aria-expanded={!collapsed}
+                      className="ai-ins-changes-section-toggle"
+                      onClick={() =>
+                        setCollapsedChangeSections((current) => {
+                          const next = new Set(current)
+                          if (next.has(sectionKey)) next.delete(sectionKey)
+                          else next.add(sectionKey)
+                          return next
+                        })
+                      }
+                      type="button"
+                    >
+                      <span className="ai-ins-changes-section-chevron">
+                        <Icon paths={chevronRightIcon} />
+                      </span>
+                      {staged ? t('changes.staged') : t('changes.unstaged')}
+                      <span className="ai-ins-changes-section-count">{section.length}</span>
+                    </button>
+                    <button
+                      aria-label={staged ? t('changes.unstageAll') : t('changes.stageAll')}
+                      className="ai-ins-icon-button ai-ins-change-stage"
+                      disabled={busy}
+                      onClick={() => stageChanges(section, !staged)}
+                      title={staged ? t('changes.unstageAll') : t('changes.stageAll')}
+                      type="button"
+                    >
+                      <Icon paths={staged ? minusIcon : plusIcon} />
+                    </button>
+                  </div>
+                  {collapsed
+                    ? null
+                    : section.map((file) => {
+                        const key = panelChangeKey(file)
+                        const [name, directory] = panelSplitPath(getDisplayPath(file.path))
+                        return (
+                          <div className={`ai-ins-change${selectedChangePath === key ? ' ai-ins-change-active' : ''}`} key={`${key}:${version}`}>
+                            <button
+                              aria-current={selectedChangePath === key ? 'true' : undefined}
+                              className="ai-ins-change-main"
+                              onClick={() => setSelectedChangePath(key)}
+                              title={getDisplayPath(file.path)}
+                              type="button"
+                            >
+                              <span className={`ai-ins-msg-file-status ai-ins-msg-file-status-${file.status}`}>{panelChangeStatusLabels[file.status]}</span>
+                              <span className="ai-ins-change-name">
+                                <span>{name}</span>
+                                {directory ? <span className="ai-ins-change-dir">{directory}</span> : null}
+                              </span>
+                              {file.additions !== undefined && !file.binary ? (
+                                <span className="ai-ins-msg-file-stat">
+                                  {file.additions ? <span className="ai-ins-msg-file-add">+{file.additions}</span> : null}
+                                  {file.deletions ? <span className="ai-ins-msg-file-del">−{file.deletions}</span> : null}
+                                </span>
+                              ) : null}
+                            </button>
+                            <button
+                              aria-label={`${staged ? t('changes.unstage') : t('changes.stage')} ${getDisplayPath(file.path)}`}
+                              className="ai-ins-icon-button ai-ins-change-stage"
+                              disabled={stagingPaths.has(file.path)}
+                              onClick={() => stageChanges([file], !staged)}
+                              title={staged ? t('changes.unstage') : t('changes.stage')}
+                              type="button"
+                            >
+                              <Icon paths={staged ? minusIcon : plusIcon} />
+                            </button>
+                          </div>
+                        )
+                      })}
+                </div>
+              )
+            })
+          )}
+        </div>
+      </>
+    )
+  }
+
+  /**
+   * Stage or unstage files, then re-read the list. The open diff follows its
+   * file into the other section rather than closing.
+   */
+  function stageChanges(files: WorkspaceChange[], stage: boolean) {
+    const paths = files.map((file) => file.path)
+    setStagingPaths((current) => new Set([...current, ...paths]))
+    const selected = files.find((file) => panelChangeKey(file) === selectedChangePath)
+    void onStageFiles(paths, stage).then(() => {
+      setStagingPaths((current) => new Set([...current].filter((path) => !paths.includes(path))))
+      if (selected) setSelectedChangePath(`${stage ? 'staged' : 'unstaged'}:${selected.path}`)
+      refreshWorkspaceChanges()
+    })
+  }
+
+  /** Main area while a file from the Changes list is open: its staged or unstaged diff. */
+  function renderChangeDetail(file: WorkspaceChange) {
+    const displayPath = getDisplayPath(file.path)
+    const [name, directory] = panelSplitPath(displayPath)
+    const owner = file.runId ? runs.find((run) => run.id === file.runId) : undefined
+
+    return (
+      <main className="ai-ins-main ai-ins-chat">
+        <header className="ai-ins-chat-head">
+          <div className="ai-ins-chat-head-copy">
+            <p className="ai-ins-detail-title" title={displayPath}>
+              {name}
+            </p>
+            <div className="ai-ins-detail-subtitle ai-ins-change-subtitle">
+              <span>{[directory, file.staged ? t('changes.stagedVs') : t('changes.unstagedVs')].filter(Boolean).join(' · ')}</span>
+              {owner ? (
+                <>
+                  <span>· {t('changes.fromRun')}</span>
+                  <button
+                    className="ai-ins-msg-link ai-ins-change-owner"
+                    onClick={() => {
+                      setSelectedChangePath(undefined)
+                      onSelectRun(owner.id)
+                    }}
+                    title={panelGetRunTitle(owner, getDisplayPath)}
+                    type="button"
+                  >
+                    {panelGetRunTitle(owner, getDisplayPath)}
+                  </button>
+                </>
+              ) : null}
+            </div>
+          </div>
+          <div className="ai-ins-detail-actions">
+            {file.additions !== undefined && !file.binary ? (
+              <span className="ai-ins-msg-file-stat">
+                {file.additions ? <span className="ai-ins-msg-file-add">+{file.additions}</span> : null}
+                {file.deletions ? <span className="ai-ins-msg-file-del">−{file.deletions}</span> : null}
+              </span>
+            ) : null}
+            {file.status !== 'deleted' ? (
+              <IconButton label={t('files.open', { path: displayPath })} onClick={() => onOpenFile(file.path)}>
+                <Icon paths={externalLinkIcon} />
+              </IconButton>
+            ) : null}
+            <button className="ai-ins-button ai-ins-button-small" onClick={() => setSelectedChangePath(undefined)} type="button">
+              {t('changes.back')}
+            </button>
+          </div>
+          {renderPanelActions()}
+        </header>
+        <div className="ai-ins-change-body">
+          <FileDiff cacheKey={`workspace:${panelChangeKey(file)}:${workspaceChanges.version}`} fill load={() => onLoadWorkspaceFileDiff(file.path, file.staged)} />
+        </div>
+      </main>
+    )
+  }
+
+  function renderPanelActions() {
+    return (
+      <div className="ai-ins-header-actions">
+        {renderHelp()}
+        {renderSettings()}
+        <IconButton label={t('panel.collapse')} onClick={onClose}>
+          <Icon paths={closeIcon} />
+        </IconButton>
+      </div>
+    )
+  }
+
+  function renderRunMenu() {
+    const run = runMenu ? runs.find((candidate) => candidate.id === runMenu.runId) : undefined
+    if (!runMenu || !run) return null
+
+    const close = (restoreFocus: boolean) => {
+      setRunMenu(null)
+      if (restoreFocus) runMenuTriggerRef.current?.focus()
+    }
+
+    return (
+      <div
+        aria-label={t('sidebar.runMenu')}
+        className="ai-ins-context-menu"
+        onKeyDown={(event) => {
+          const items = Array.from(runMenuRef.current?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])
+          const index = items.indexOf(document.activeElement as HTMLButtonElement)
+          if (event.key === 'Escape' || event.key === 'Tab') {
+            // Keep the overlay from closing the whole panel; see the search box.
+            event.preventDefault()
+            event.nativeEvent.stopImmediatePropagation()
+            close(true)
+          } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault()
+            const step = event.key === 'ArrowDown' ? 1 : -1
+            items[(index + step + items.length) % items.length]?.focus()
+          }
+        }}
+        ref={(node) => {
+          runMenuRef.current = node
+          // Focus the first item when the menu opens, like a native context menu.
+          if (node && !node.contains(document.activeElement)) {
+            node.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
+          }
+        }}
+        role="menu"
+        style={{ left: runMenu.x, top: runMenu.y }}
+      >
+        <button
+          className="ai-ins-context-menu-item"
+          onClick={() => {
+            close(true)
+            onPinRun(run, !run.pinnedAt)
+          }}
+          role="menuitem"
+          type="button"
+        >
+          <Icon paths={run.pinnedAt ? pinOffIcon : pinIcon} />
+          {run.pinnedAt ? t('sidebar.unpin') : t('sidebar.pin')}
+        </button>
+        <div className="ai-ins-context-menu-separator" role="separator" />
+        <button
+          className="ai-ins-context-menu-item ai-ins-context-menu-item-danger"
+          onClick={() => {
+            close(false)
+            onDeleteRun(run)
+          }}
+          role="menuitem"
+          type="button"
+        >
+          <Icon paths={trashIcon} />
+          {t('sidebar.delete')}
+        </button>
+      </div>
     )
   }
 
@@ -1011,7 +1629,10 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
           aria-haspopup="dialog"
           aria-label={settingsTitle}
           className={`ai-ins-icon-button ai-ins-settings-trigger${settingsOpen ? ' ai-ins-settings-trigger-open' : ''}`}
-          onClick={() => setSettingsOpen((open) => !open)}
+          onClick={() => {
+            setHelpOpen(false)
+            setSettingsOpen((open) => !open)
+          }}
           ref={settingsTriggerRef}
           title={settingsTitle}
           type="button"
@@ -1027,81 +1648,213 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                 <Icon paths={closeIcon} />
               </IconButton>
             </div>
-            <section className="ai-ins-settings-section">
-              <div className="ai-ins-settings-label">
-                <span>{t('settings.theme')}</span>
-              </div>
-              {renderSegmented<PanelTheme>(
-                'theme',
-                t('settings.theme'),
-                [
-                  { label: t('settings.themeDark'), value: 'dark' },
-                  { label: t('settings.themeLight'), value: 'light' },
-                ],
-                theme,
-                handleThemeChange,
-              )}
-            </section>
-            <section className="ai-ins-settings-section">
-              <div className="ai-ins-settings-label">
-                <span>{t('settings.language')}</span>
-                {locale === 'en' ? null : <span className="ai-ins-label-hint">Language</span>}
-              </div>
-              <PanelSelect
-                ariaLabel={t('settings.language')}
-                block
-                placement="bottom"
-                onChange={(next) => onLocaleChange(next as LocalePreference)}
-                options={[
-                  // Say which language "follow browser" resolves to right now.
-                  { hint: localeNames[detectBrowserLocale()], label: t('settings.languageAuto'), value: 'auto' },
-                  ...locales.map((value) => ({ label: localeNames[value], value })),
-                ]}
-                value={localePreference}
-              />
-            </section>
-            <section className="ai-ins-settings-section">
-              <div className="ai-ins-settings-label">
-                <span>{t('settings.permission')}</span>
-              </div>
-              {renderSegmented<PermissionMode>(
-                'permission',
-                t('settings.permission'),
-                (['ask', 'edit', 'full'] as const).map((value) => ({ label: t(panelPermissionModeKeys[value]), value })),
-                permissionMode,
-                onPermissionModeChange,
-              )}
-              <p className={`ai-ins-settings-note${permissionMode === 'full' ? ' ai-ins-settings-note-warn' : ''}`}>
-                {t(panelPermissionNoteKeys[permissionMode])}
-              </p>
-              {renderPermissionProviderNote()}
-            </section>
-            <section className="ai-ins-settings-section">
-              <div className="ai-ins-settings-label">
-                <span>{t('settings.proxy')}</span>
-                <span className="ai-ins-label-hint">{getProxyModeHint()}</span>
-              </div>
-              {renderSegmented('proxy', t('settings.proxy'), panelGetProxyModeOptions(), proxyMode, onProxyModeChange)}
-              {proxyMode !== 'off' ? (
-                <input
-                  aria-label={t('settings.proxyAddress')}
-                  className="ai-ins-input ai-ins-proxy-input"
-                  disabled={proxyMode !== 'custom'}
-                  onChange={(event) => onProxyChange(event.target.value)}
-                  placeholder={getProxyInputPlaceholder()}
-                  required={proxyMode === 'custom'}
-                  type="url"
-                  value={getProxyInputValue()}
-                />
-              ) : null}
-              <p className="ai-ins-settings-note">{t('settings.proxyNote')}</p>
-            </section>
-            <section className="ai-ins-settings-section">
-              <div className="ai-ins-settings-label">
-                <span>{t('settings.shortcut')}</span>
-              </div>
-              {renderSegmented('shortcut', t('settings.shortcut'), submitShortcutOptions, submitShortcut, handleSubmitShortcutChange)}
-            </section>
+            <div className="ai-ins-settings-body">
+              {/* Grouped like system settings: short choices sit on the row, longer ones below it. */}
+              <section className="ai-ins-settings-group">
+                <h3 className="ai-ins-settings-group-title">{t('settings.general')}</h3>
+                <div className="ai-ins-settings-card">
+                  <div className="ai-ins-settings-row">
+                    <span className="ai-ins-settings-label">{t('settings.theme')}</span>
+                    {renderSegmented<PanelTheme>(
+                      'theme',
+                      t('settings.theme'),
+                      [
+                        { icon: moonIcon, label: t('settings.themeDark'), value: 'dark' },
+                        { icon: sunIcon, label: t('settings.themeLight'), value: 'light' },
+                      ],
+                      theme,
+                      handleThemeChange,
+                      true,
+                    )}
+                  </div>
+                  <div className="ai-ins-settings-row">
+                    <span className="ai-ins-settings-label">
+                      {t('settings.language')}
+                      {locale === 'en' ? null : <span className="ai-ins-label-hint">Language</span>}
+                    </span>
+                    <div className="ai-ins-settings-select">
+                      <PanelSelect
+                        ariaLabel={t('settings.language')}
+                        block
+                        placement="bottom"
+                        onChange={(next) => onLocaleChange(next as LocalePreference)}
+                        options={[
+                          // Say which language "follow browser" resolves to right now.
+                          { hint: localeNames[detectBrowserLocale()], label: t('settings.languageAuto'), value: 'auto' },
+                          ...locales.map((value) => ({ label: localeNames[value], value })),
+                        ]}
+                        value={localePreference}
+                      />
+                    </div>
+                  </div>
+                  <div className="ai-ins-settings-row ai-ins-settings-row-stack ai-ins-settings-row-switch">
+                    <div className="ai-ins-settings-row-line">
+                      <span className="ai-ins-settings-label">{t('settings.notify')}</span>
+                      <button
+                        aria-checked={notifyEnabled}
+                        aria-label={t('settings.notify')}
+                        className="ai-ins-switch"
+                        disabled={notifySupport === 'unsupported' || (notifySupport === 'denied' && !notifyEnabled)}
+                        onClick={() => {
+                          void setNotifyEnabled(!notifyEnabled).then((enabled) => {
+                            setNotifyEnabledState(enabled)
+                            setNotifySupport(getNotifySupport())
+                          })
+                        }}
+                        role="switch"
+                        type="button"
+                      >
+                        <span className="ai-ins-switch-thumb" />
+                      </button>
+                    </div>
+                    <p className={`ai-ins-settings-note${notifySupport === 'denied' ? ' ai-ins-settings-note-warn' : ''}`}>
+                      {notifySupport === 'unsupported'
+                        ? t('settings.notifyUnsupported')
+                        : notifySupport === 'denied'
+                          ? t('settings.notifyDenied')
+                          : t('settings.notifyNote')}
+                    </p>
+                  </div>
+                  <div className="ai-ins-settings-row">
+                    <span className="ai-ins-settings-label">{t('settings.shortcut')}</span>
+                    {renderSegmented('shortcut', t('settings.shortcut'), submitShortcutOptions, submitShortcut, handleSubmitShortcutChange, true)}
+                  </div>
+                </div>
+              </section>
+              <section className="ai-ins-settings-group">
+                <h3 className="ai-ins-settings-group-title">{t('settings.agent')}</h3>
+                <div className="ai-ins-settings-card">
+                  <div className="ai-ins-settings-row ai-ins-settings-row-stack">
+                    <span className="ai-ins-settings-label">{t('settings.permission')}</span>
+                    {renderSegmented<PermissionMode>(
+                      'permission',
+                      t('settings.permission'),
+                      (['ask', 'edit', 'full'] as const).map((value) => ({ label: t(panelPermissionModeKeys[value]), value })),
+                      permissionMode,
+                      onPermissionModeChange,
+                    )}
+                    <p className={`ai-ins-settings-note${permissionMode === 'full' ? ' ai-ins-settings-note-warn' : ''}`}>
+                      {t(panelPermissionNoteKeys[permissionMode])}
+                    </p>
+                    {renderPermissionProviderNote()}
+                  </div>
+                  <div className="ai-ins-settings-row ai-ins-settings-row-stack">
+                    <span className="ai-ins-settings-label">
+                      {t('settings.proxy')}
+                      <span className="ai-ins-label-hint">{getProxyModeHint()}</span>
+                    </span>
+                    {renderSegmented('proxy', t('settings.proxy'), panelGetProxyModeOptions(), proxyMode, onProxyModeChange)}
+                    {proxyMode !== 'off' ? (
+                      <input
+                        aria-label={t('settings.proxyAddress')}
+                        className="ai-ins-input ai-ins-proxy-input"
+                        disabled={proxyMode !== 'custom'}
+                        onChange={(event) => onProxyChange(event.target.value)}
+                        placeholder={getProxyInputPlaceholder()}
+                        required={proxyMode === 'custom'}
+                        type="url"
+                        value={getProxyInputValue()}
+                      />
+                    ) : null}
+                    <p className="ai-ins-settings-note">{t('settings.proxyNote')}</p>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    )
+  }
+
+  /** A short guide to the whole flow, one click away in the header. */
+  function renderHelp() {
+    const steps = [
+      { body: t('help.pick'), title: t('help.pickTitle') },
+      { body: t('help.ask', { send: submitShortcutLabel }), title: t('help.askTitle') },
+      { body: t('help.review'), title: t('help.reviewTitle') },
+      { body: t('help.continue'), title: t('help.continueTitle') },
+      {
+        body: t('help.settings', {
+          ask: t(panelPermissionModeKeys.ask),
+          edit: t(panelPermissionModeKeys.edit),
+          full: t(panelPermissionModeKeys.full),
+        }),
+        title: t('help.settingsTitle'),
+      },
+    ]
+    const shortcuts = [
+      { keys: t('help.keyPickKeys'), label: t('help.keyPick') },
+      { keys: submitShortcutLabel, label: t('help.keySend') },
+      { keys: 'Esc', label: t('help.keyClose') },
+    ]
+
+    return (
+      <div
+        className="ai-ins-settings"
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' && helpOpen) {
+            // Keep the overlay from closing the whole panel; see the search box.
+            event.nativeEvent.stopImmediatePropagation()
+            setHelpOpen(false)
+            helpTriggerRef.current?.focus()
+          }
+        }}
+        ref={helpRef}
+      >
+        <button
+          aria-expanded={helpOpen}
+          aria-haspopup="dialog"
+          aria-label={t('help.triggerTitle')}
+          className={`ai-ins-icon-button ai-ins-settings-trigger${helpOpen ? ' ai-ins-settings-trigger-open' : ''}`}
+          onClick={() => {
+            setSettingsOpen(false)
+            setHelpOpen((open) => !open)
+            if (!helpSeen) {
+              setHelpSeen(true)
+              savePanelHelpSeen()
+            }
+          }}
+          ref={helpTriggerRef}
+          title={t('help.triggerTitle')}
+          type="button"
+        >
+          <Icon paths={helpIcon} />
+          {helpSeen ? null : <span className="ai-ins-settings-dot ai-ins-settings-dot-on" />}
+        </button>
+        {helpOpen ? (
+          <div aria-label={t('help.title')} className="ai-ins-settings-popover ai-ins-help-popover" role="dialog">
+            <div className="ai-ins-settings-head">
+              <span>{t('help.title')}</span>
+              <IconButton label={t('help.close')} onClick={closeHelp}>
+                <Icon paths={closeIcon} />
+              </IconButton>
+            </div>
+            <div className="ai-ins-settings-body">
+              <ol className="ai-ins-help-steps">
+                {steps.map((step, index) => (
+                  <li key={step.title}>
+                    <span className="ai-ins-help-step-index">{index + 1}</span>
+                    <div>
+                      <p className="ai-ins-help-step-title">{step.title}</p>
+                      <p className="ai-ins-help-step-body">{step.body}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+              <section className="ai-ins-settings-group">
+                <h3 className="ai-ins-settings-group-title">{t('help.shortcuts')}</h3>
+                <div className="ai-ins-settings-card">
+                  {shortcuts.map((shortcut) => (
+                    <div className="ai-ins-settings-row ai-ins-help-shortcut" key={shortcut.label}>
+                      <span className="ai-ins-settings-label">{shortcut.label}</span>
+                      <kbd className="ai-ins-help-kbd">{shortcut.keys}</kbd>
+                    </div>
+                  ))}
+                </div>
+              </section>
+              <p className="ai-ins-settings-note">{t('help.dock')}</p>
+            </div>
           </div>
         ) : null}
       </div>
@@ -1191,7 +1944,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
             </button>
           ) : null}
           {pendingPermissions.map((request) => renderPermissionRequest(run, request))}
-          {renderChangedFiles(key, turn)}
+          {renderChangedFiles(key, run, turn)}
           {canRetry ? (
             <div className="ai-ins-msg-actions">
               <span>{t(turn.stopped ? 'turn.stoppedNote' : turn.interrupted ? 'turn.interruptedNote' : 'turn.failedNote')}</span>
@@ -1270,7 +2023,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     )
   }
 
-  function renderChangedFiles(key: string, turn: AgentRunTurn) {
+  function renderChangedFiles(key: string, run: AgentRun, turn: AgentRunTurn) {
     const files = turn.changedFiles
     // Undefined: not a git work tree, or the turn has not settled yet.
     if (!files || !turn.completed) {
@@ -1289,22 +2042,61 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
       <div className="ai-ins-msg-files">
         <div className="ai-ins-msg-files-head">{t('files.changed', { count: files.length })}</div>
         <ul>
-          {visibleFiles.map((file) => (
-            <li key={file.path}>
-              <button
-                className="ai-ins-msg-file"
-                disabled={file.status === 'deleted'}
-                onClick={() => onOpenFile(file.path)}
-                title={file.status === 'deleted' ? t('files.deletedTitle', { path: file.path }) : t('files.open', { path: file.path })}
-                type="button"
-              >
-                <span className={`ai-ins-msg-file-status ai-ins-msg-file-status-${file.status}`} title={t(panelChangeStatusTitleKeys[file.status])}>
-                  {panelChangeStatusLabels[file.status]}
-                </span>
-                <span className="ai-ins-msg-file-path">{getDisplayPath(file.path)}</span>
-              </button>
-            </li>
-          ))}
+          {visibleFiles.map((file) => {
+            const diffKey = `${key}:diff:${file.path}`
+            // Turns recorded before diffs were kept: the row opens the file, as it used to.
+            const hasDiff = file.additions !== undefined || file.binary === true
+            const open = hasDiff && expandedTurns.has(diffKey)
+            const displayPath = getDisplayPath(file.path)
+            return (
+              <li className={open ? 'ai-ins-msg-file-open' : undefined} key={file.path}>
+                <div className="ai-ins-msg-file-row">
+                  <button
+                    aria-expanded={hasDiff ? open : undefined}
+                    className="ai-ins-msg-file"
+                    disabled={!hasDiff && file.status === 'deleted'}
+                    onClick={() => (hasDiff ? toggleTurnExpanded(diffKey) : onOpenFile(file.path))}
+                    title={
+                      hasDiff
+                        ? t('files.showDiff', { path: displayPath })
+                        : file.status === 'deleted'
+                          ? t('files.deletedTitle', { path: file.path })
+                          : t('files.open', { path: file.path })
+                    }
+                    type="button"
+                  >
+                    {hasDiff ? (
+                      <span className="ai-ins-msg-file-chevron">
+                        <Icon paths={chevronRightIcon} />
+                      </span>
+                    ) : null}
+                    <span className={`ai-ins-msg-file-status ai-ins-msg-file-status-${file.status}`} title={t(panelChangeStatusTitleKeys[file.status])}>
+                      {panelChangeStatusLabels[file.status]}
+                    </span>
+                    <span className="ai-ins-msg-file-path">{displayPath}</span>
+                    {file.additions !== undefined && !file.binary ? (
+                      <span className="ai-ins-msg-file-stat">
+                        {file.additions ? <span className="ai-ins-msg-file-add">+{file.additions}</span> : null}
+                        {file.deletions ? <span className="ai-ins-msg-file-del">−{file.deletions}</span> : null}
+                      </span>
+                    ) : null}
+                  </button>
+                  {file.status !== 'deleted' ? (
+                    <button
+                      aria-label={t('files.open', { path: file.path })}
+                      className="ai-ins-icon-button ai-ins-msg-file-ide"
+                      onClick={() => onOpenFile(file.path)}
+                      title={t('files.open', { path: file.path })}
+                      type="button"
+                    >
+                      <Icon paths={externalLinkIcon} />
+                    </button>
+                  ) : null}
+                </div>
+                {open ? <FileDiff cacheKey={diffKey} load={() => onLoadFileDiff(run, turn, file.path)} /> : null}
+              </li>
+            )
+          })}
         </ul>
         {files.length > panelVisibleChangedFiles ? (
           <button className="ai-ins-msg-link" onClick={() => toggleTurnExpanded(filesKey)} type="button">
@@ -1314,6 +2106,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
       </div>
     )
   }
+
 
   function renderTranscript(expandAll: boolean) {
     if (!selectedRun) {
@@ -1352,6 +2145,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     return (
       <div className="ai-ins-chat-empty">
         <span className="ai-ins-brand-mark ai-ins-chat-empty-mark" aria-hidden="true">
+          <span className="ai-ins-brand-diamond" />
           <span className="ai-ins-brand-spark" />
         </span>
         {hasTarget ? (
@@ -1375,128 +2169,41 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   }
 
   return (
-    <div className="ai-ins-panel" data-theme={theme} lang={locale}>
-      <div className="ai-ins-header">
-        <div className="ai-ins-heading">
-          <span className="ai-ins-brand-mark" aria-hidden="true">
-            <span className="ai-ins-brand-spark" />
-          </span>
-          <div className="ai-ins-heading-copy">
-            <div className="ai-ins-title-row">
-              <p className="ai-ins-title">AI Ins</p>
-              <span className="ai-ins-title-badge">DOM Pilot</span>
-            </div>
-            <div className="ai-ins-subtitle">{t('panel.subtitle')}</div>
-          </div>
-        </div>
-        <div className="ai-ins-header-actions">
-          {renderSettings()}
-          <button className="ai-ins-button" onClick={onClose} type="button">
-            {t('panel.collapse')}
-          </button>
-        </div>
-      </div>
-
+    <div className="ai-ins-panel" data-busy={runs.some(panelIsRunWorking)} data-theme={theme} lang={locale}>
       <div className="ai-ins-body">
-        <aside className="ai-ins-sidebar">
-          <div className="ai-ins-sidebar-new">
-            <button
-              className={`ai-ins-new-chat${selectedRun ? '' : ' ai-ins-new-chat-active'}`}
-              onClick={onNewConversation}
-              title={t('sidebar.newConversationTitle')}
-              type="button"
-            >
-              <Icon paths={plusIcon} />
-              <span>{t('sidebar.newConversation')}</span>
-            </button>
-          </div>
-          <div className="ai-ins-sidebar-top">
-            <p className="ai-ins-section-label">{t('sidebar.history')}</p>
-            <div className="ai-ins-sidebar-actions">
-              {finishedRunCount ? (
+        <aside aria-label={t('sidebar.history')} className="ai-ins-sidebar">
+          {/* The brand heads the sidebar; its bottom edge lines up with the chat header's. */}
+          <div className="ai-ins-heading">
+            <span className="ai-ins-brand-mark" aria-hidden="true">
+              <span className="ai-ins-brand-diamond" />
+              <span className="ai-ins-brand-spark" />
+            </span>
+            <p className="ai-ins-title">AI Ins</p>
+            <div aria-label={t('sidebar.view')} className="ai-ins-view-tabs" role="tablist">
+              {(['runs', 'changes'] as const).map((view) => (
                 <button
-                  className="ai-ins-link-button"
+                  aria-selected={sidebarView === view}
+                  className="ai-ins-view-tab"
+                  key={view}
                   onClick={() => {
-                    if (window.confirm(t('sidebar.clearFinishedConfirm', { count: finishedRunCount }))) {
-                      onClearFinishedRuns()
-                    }
+                    setSidebarView(view)
+                    savePanelSidebarView(view)
+                    if (view === 'changes') refreshWorkspaceChanges()
                   }}
-                  title={t('sidebar.clearFinishedTitle')}
+                  role="tab"
                   type="button"
                 >
-                  {t('sidebar.clearFinished')}
+                  {view === 'runs' ? t('sidebar.viewRuns') : t('sidebar.viewChanges')}
+                  {view === 'changes' && changedFileCount ? <span className="ai-ins-view-tab-count">{changedFileCount}</span> : null}
                 </button>
-              ) : null}
-              <span className="ai-ins-count">{runCount}</span>
+              ))}
             </div>
           </div>
-          {runs.length > 1 ? (
-            <div className="ai-ins-run-search">
-              <input
-                aria-label={t('sidebar.search')}
-                className="ai-ins-input"
-                onChange={(event) => setRunQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  // The overlay closes the panel on Escape; with a query typed, Escape
-                  // clears the search first. React's root listener sits on the same
-                  // overlay node and runs first, hence the immediate stop.
-                  if (event.key === 'Escape' && runQuery) {
-                    event.nativeEvent.stopImmediatePropagation()
-                    setRunQuery('')
-                  }
-                }}
-                placeholder={t('sidebar.searchPlaceholder')}
-                type="search"
-                value={runQuery}
-              />
-            </div>
-          ) : null}
-          <div className="ai-ins-list">
-            {runGroups.length ? (
-              runGroups.map((group) => (
-                <div className="ai-ins-run-group" key={group.label}>
-                  <p className="ai-ins-run-group-label">{group.label}</p>
-                  {group.runs.map((run) => {
-                    const stuck = panelIsRunStuck(run)
-                    const tone = panelGetRunTone(run)
-                    const lastPrompt = run.turns.length > 1 ? run.turns[run.turns.length - 1]?.prompt : ''
-                    return (
-                      <button
-                        aria-current={selectedRun?.id === run.id ? 'true' : undefined}
-                        className={`ai-ins-run${selectedRun?.id === run.id ? ' ai-ins-run-active' : ''}`}
-                        key={run.id}
-                        onClick={() => onSelectRun(run.id)}
-                        title={stuck ? panelGetResumeBlockedMessage(run) : undefined}
-                        type="button"
-                      >
-                        <div className="ai-ins-run-top">
-                          <span className={`ai-ins-dot ai-ins-dot-${tone === 'active' ? run.status : tone}`} />
-                          <span className="ai-ins-run-title">{panelGetRunTitle(run, getDisplayPath)}</span>
-                        </div>
-                        <div className="ai-ins-run-focus">
-                          <span className="ai-ins-run-focus-name">{panelGetRunFocusLabel(run, getDisplayPath)}</span>
-                          <span className="ai-ins-run-provider">{run.providerLabel}</span>
-                        </div>
-                        {lastPrompt ? <div className="ai-ins-run-prompt ai-ins-run-prompt-latest">↳ {lastPrompt}</div> : null}
-                        <div className="ai-ins-run-meta">
-                          <span className={`ai-ins-run-status ai-ins-run-status-${tone}`}>{panelGetRunStateLabel(run)}</span>
-                          <span>{panelFormatRunListTime(panelGetRunActivityAt(run), Date.now())}</span>
-                          {run.turns.length > 1 ? <span className="ai-ins-run-turn-count">{t('sidebar.turnCount', { count: run.turns.length })}</span> : null}
-                          {stuck ? <span className="ai-ins-run-stuck-tag">{t('sidebar.cannotContinue')}</span> : null}
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              ))
-            ) : (
-              <div className="ai-ins-detail-empty">
-                {runsLoading ? t('sidebar.loading') : runs.length ? t('sidebar.noMatch') : t('sidebar.empty')}
-              </div>
-            )}
-          </div>
+          {sidebarView === 'changes' ? renderChangesList() : renderRunsSidebar()}
         </aside>
+        {renderRunMenu()}
 
+        {selectedChange ? renderChangeDetail(selectedChange) : (
         <main className="ai-ins-main ai-ins-chat">
           <header className="ai-ins-chat-head">
             {selectedRun ? (
@@ -1544,6 +2251,8 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                 <div className="ai-ins-detail-subtitle">{t('chat.newConversationHint', { provider: provider?.label || 'Agent' })}</div>
               </div>
             )}
+            {/* Panel-wide controls, after the conversation's own, past a hairline. */}
+            {renderPanelActions()}
           </header>
 
           <div className="ai-ins-chat-scroll-wrap">
@@ -1622,17 +2331,37 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                   title={providerSwitchTitle}
                   value={provider?.id || providerId}
                 />
-                <div className="ai-ins-status" title={status}>
-                  {status}
-                </div>
-                <button className="ai-ins-button ai-ins-button-primary" disabled={submitDisabled} title={t('composer.sendTitle', { shortcut: submitShortcutLabel })} type="submit">
+                {provider && !provider.enabled ? (
+                  // Standing problem: say it where the user is about to send, not in a toast.
+                  <span className="ai-ins-proxy-chip ai-ins-proxy-chip-warn ai-ins-composer-warning" title={provider.disabledReason || t('status.agentNotConfigured')}>
+                    <span>{provider.disabledReason || t('status.agentNotConfigured')}</span>
+                  </span>
+                ) : (
+                  renderProxyChip()
+                )}
+                <button
+                  className="ai-ins-button ai-ins-button-primary ai-ins-send-button"
+                  disabled={submitDisabled}
+                  title={`${submitLabel} · ${submitShortcutLabel}`}
+                  type="submit"
+                >
                   {submitLabel}
                   <span className="ai-ins-kbd">{submitShortcutLabel}</span>
                 </button>
               </div>
             </div>
+            {/* Transient news floats over the composer, so nothing below it ever shifts. */}
+            {status ? (
+              <div className="ai-ins-toast" role="status">
+                <span>{status}</span>
+                <button aria-label={t('settings.close')} className="ai-ins-toast-close" onClick={onDismissStatus} type="button">
+                  <Icon paths={closeIcon} />
+                </button>
+              </div>
+            ) : null}
           </form>
         </main>
+        )}
       </div>
       {selectedRun && agentPromptTurn ? (
         <div className="ai-ins-output-modal" onClick={() => setAgentPromptTurnIndex(undefined)}>
@@ -1643,7 +2372,9 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
             onClick={(event) => event.stopPropagation()}
             onKeyDown={(event) => {
               if (event.key === 'Escape') {
+                // Close only this dialog: the overlay's own Escape listener would close the panel.
                 event.stopPropagation()
+                event.nativeEvent.stopImmediatePropagation()
                 setAgentPromptTurnIndex(undefined)
               }
             }}
@@ -1691,6 +2422,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
             onKeyDown={(event) => {
               if (event.key === 'Escape') {
                 event.stopPropagation()
+                event.nativeEvent.stopImmediatePropagation()
                 setOutputExpanded(false)
               }
             }}

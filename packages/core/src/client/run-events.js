@@ -56,6 +56,7 @@ function subscribeAgentRun(run) {
     if (payload.type === 'permission' && payload.permission) {
       if (!run.pendingPermissions.some((request) => request.id === payload.permission.id)) {
         run.pendingPermissions.push(payload.permission)
+        globalThis.aiInsPanelRuntime?.notifyRun(run, 'waiting')
       }
     }
 
@@ -93,7 +94,11 @@ function subscribeAgentRun(run) {
       appendRunOutput(run, payload.message || '', payload.stream, payload.turn)
     }
 
+    // Only a live transition notifies: a settled run replaying its events must not.
+    const wasRunning = !run.completed
+
     if (payload.type === 'error') {
+      if (wasRunning) globalThis.aiInsPanelRuntime?.notifyRun(run, 'failed')
       run.status = 'failed'
       run.completed = true
       run.statusMessage = payload.message || `${run.providerLabel} failed to start`
@@ -112,6 +117,8 @@ function subscribeAgentRun(run) {
 
     if (payload.type === 'done') {
       const succeeded = payload.code === 0 && !payload.stopped
+      // A stop is the user's own action; nothing to tell them.
+      if (wasRunning && !payload.stopped) globalThis.aiInsPanelRuntime?.notifyRun(run, succeeded ? 'done' : 'failed')
       run.completed = true
       run.status = succeeded ? 'done' : 'failed'
       run.stopping = false
@@ -336,6 +343,7 @@ function upsertRunFromSummary(summary) {
     run.lastSeq = isCompleted ? summary.lastSeq : Math.max(run.lastSeq || 0, summary.lastSeq)
   }
   run.outputLoaded = Boolean(run.outputLoaded || summary.detail)
+  run.pinnedAt = typeof summary.pinnedAt === 'number' ? summary.pinnedAt : undefined
   run.pendingPermissions = Array.isArray(summary.pendingPermissions) ? summary.pendingPermissions : []
   run.logDisplayPath = summary.logDisplayPath || run.logDisplayPath
   run.logPath = summary.logPath || run.logPath

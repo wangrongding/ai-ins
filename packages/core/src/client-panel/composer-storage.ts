@@ -88,6 +88,7 @@ export function readPermissionMode(): PermissionMode {
 export function savePermissionMode(value: PermissionMode) {
   try {
     window.localStorage.setItem(permissionModeStorageKey, value)
+    globalThis.aiInsRememberSetting?.(permissionModeStorageKey, value)
   } catch {
     // Ignore storage restrictions in embedded browsers.
   }

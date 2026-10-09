@@ -31,9 +31,28 @@ export type LayerTarget = {
 }
 
 export type ChangedFile = {
+  /** Lines added / removed; undefined for turns recorded before diffs were kept. */
+  additions?: number
+  binary?: boolean
+  deletions?: number
   /** Absolute path. */
   path: string
   status: 'added' | 'deleted' | 'modified'
+  truncated?: boolean
+}
+
+/** An uncommitted file in the work tree, compared with HEAD. */
+export type WorkspaceChange = ChangedFile & {
+  /** The conversation that last changed it, when one did. */
+  runId?: string
+  /** Staged (index vs HEAD) or not (work tree vs index); a file can be both. */
+  staged: boolean
+}
+
+export type WorkspaceChanges = {
+  /** False when the project is not in a git work tree. */
+  available: boolean
+  files: WorkspaceChange[]
 }
 
 export type AgentRunTurn = {
@@ -68,6 +87,8 @@ export type AgentRunTurn = {
 
 export type AgentRun = {
   canResume: boolean
+  /** Pinned to the top of the list since this time. */
+  pinnedAt?: number
   completed: boolean
   createdAt: number
   /** A stop was requested and the process has not exited yet. */

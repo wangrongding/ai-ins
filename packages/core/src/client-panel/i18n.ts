@@ -44,6 +44,11 @@ export const localeNames: Record<Locale, string> = {
   ru: 'Русский',
 }
 
+declare global {
+  /** Also saves the setting to ~/.ai-ins/settings.json (see client/api.js). */
+  var aiInsRememberSetting: ((storageKey: string, value: string) => void) | undefined
+}
+
 const defaultLocale: Locale = 'en'
 const localeStorageKey = 'ai-ins-locale'
 const listeners = new Set<() => void>()
@@ -94,11 +99,21 @@ export function getLocalePreference() {
   return preference
 }
 
+/** Re-read the stored preference (the settings file was just loaded). */
+export function reloadLocalePreference() {
+  const next = readStoredPreference()
+  if (next === preference) return
+  preference = next
+  locale = next === 'auto' ? detectBrowserLocale() : next
+  for (const listener of listeners) listener()
+}
+
 export function setLocalePreference(next: LocalePreference) {
   preference = next
   locale = next === 'auto' ? detectBrowserLocale() : next
   try {
     window.localStorage.setItem(localeStorageKey, next)
+    globalThis.aiInsRememberSetting?.(localeStorageKey, next)
   } catch {
     // Ignore storage restrictions in embedded browsers.
   }

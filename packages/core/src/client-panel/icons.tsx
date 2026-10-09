@@ -48,6 +48,7 @@ export const minimizeIcon = ['M8 3v3a2 2 0 0 1-2 2H3', 'M16 3v3a2 2 0 0 0 2 2h3'
 
 export const arrowDownIcon = ['M12 5v14', 'm19 12-7 7-7-7']
 
+
 export const sunIcon = [
   'M12 4V2',
   'M12 22v-2',
@@ -69,8 +70,36 @@ export const folderIcon = [
 
 export const plusIcon = ['M12 5v14', 'M5 12h14']
 
+export const minusIcon = ['M5 12h14']
+
 export const slidersIcon = ['M4 6h10', 'M18 6h2', 'M16 4v4', 'M4 12h4', 'M12 12h8', 'M10 10v4', 'M4 18h12', 'M20 18h0', 'M18 16v4']
 
 export const chevronDownIcon = ['m6 9 6 6 6-6']
 
+export const chevronRightIcon = ['m9 18 6-6-6-6']
+
+export const externalLinkIcon = ['M15 3h6v6', 'M10 14 21 3', 'M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6']
+
 export const closeIcon = ['M18 6 6 18', 'm6 6 12 12']
+
+export const refreshIcon = ['M21 12a9 9 0 1 1-2.64-6.36L21 8', 'M21 3v5h-5']
+
+export const searchIcon = ['m21 21-4.3-4.3', 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Z']
+
+export const globeIcon = ['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', 'M3 12h18', 'M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z']
+
+export const helpIcon = ['M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z', 'M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3', 'M12 17h.01']
+
+export const pinIcon = [
+  'M12 17v5',
+  'M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z',
+]
+
+export const pinOffIcon = [
+  'M12 17v5',
+  'M15 9.34V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H7.89',
+  'm2 2 20 20',
+  'M9 9v1.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h11',
+]
+
+export const trashIcon = ['M3 6h18', 'M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6', 'M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2']

@@ -198,11 +198,7 @@ function readStoredProviderId() {
 }
 
 function saveStoredProviderId(providerId) {
-  try {
-    window.localStorage.setItem(providerStorageKey, providerId)
-  } catch {
-    // Ignore storage restrictions in embedded browsers.
-  }
+  rememberSetting(providerStorageKey, providerId)
 }
 
 function readStoredProxy() {
@@ -214,15 +210,7 @@ function readStoredProxy() {
 }
 
 function saveStoredProxy(proxy) {
-  try {
-    if (proxy) {
-      window.localStorage.setItem(proxyStorageKey, proxy)
-    } else {
-      window.localStorage.removeItem(proxyStorageKey)
-    }
-  } catch {
-    // Ignore storage restrictions in embedded browsers.
-  }
+  rememberSetting(proxyStorageKey, proxy)
 }
 
 function readStoredProxyMode() {
@@ -234,15 +222,7 @@ function readStoredProxyMode() {
 }
 
 function saveStoredProxyMode(proxyMode) {
-  try {
-    if (proxyMode) {
-      window.localStorage.setItem(proxyModeStorageKey, proxyMode)
-    } else {
-      window.localStorage.removeItem(proxyModeStorageKey)
-    }
-  } catch {
-    // Ignore storage restrictions in embedded browsers.
-  }
+  rememberSetting(proxyModeStorageKey, proxyMode)
 }
 
 function readDockPosition() {

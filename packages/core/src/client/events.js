@@ -81,4 +81,5 @@ window.addEventListener('resize', () => {
   applyDockPosition()
 })
 
+void loadUserSettings()
 void hydrateAgentRuns()

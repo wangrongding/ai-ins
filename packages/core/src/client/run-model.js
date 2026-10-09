@@ -109,6 +109,18 @@ async function deleteRun(run) {
   }
 }
 
+async function pinRun(run, pinned) {
+  try {
+    const result = await pinAgentRun(run.id, pinned)
+    run.pinnedAt = typeof result.pinnedAt === 'number' ? result.pinnedAt : undefined
+    globalThis.aiInsPanelRuntime?.refreshRunList()
+  } catch (error) {
+    if (panelRefs) {
+      panelRefs.status.textContent = error instanceof Error ? error.message : String(error)
+    }
+  }
+}
+
 async function clearFinishedRuns() {
   try {
     const result = await clearFinishedAgentRuns()
