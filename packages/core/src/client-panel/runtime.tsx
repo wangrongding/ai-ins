@@ -19,6 +19,7 @@ declare global {
     | {
         applyUserSettings: () => void
         flushQueuedPrompt: (run: AgentRun) => void
+        restoreLastConversation: () => void
         notifyRun: (run: AgentRun, kind: NotifyKind) => void
         refreshComposer: () => void
         refreshRunDetail: () => void
@@ -135,6 +136,39 @@ function getContinueRun() {
   return getSelectedRun()
 }
 
+/*
+ * The panel reopens on the conversation you last had open — across closing
+ * the panel, reloading the page and restarting the dev server. Only explicit
+ * choices count: opening a conversation, sending in one, or "+ new". An
+ * Option / Alt pick is a passing new conversation and does not overwrite it.
+ * Stored per dev server origin, like the rest of the panel's browser state.
+ */
+const lastConversationStorageKey = 'ai-ins-last-conversation'
+
+function rememberOpenConversation(runId: string | undefined) {
+  try {
+    if (runId) window.localStorage.setItem(lastConversationStorageKey, runId)
+    else window.localStorage.removeItem(lastConversationStorageKey)
+  } catch {
+    // Ignore storage restrictions in embedded browsers.
+  }
+}
+
+/** After history loads: reopen the remembered conversation if it still exists. */
+function restoreLastConversation() {
+  if (selectedRunId || draftTarget) return
+  let runId = ''
+  try {
+    runId = window.localStorage.getItem(lastConversationStorageKey) || ''
+  } catch {
+    return
+  }
+  // Deleted since (here or in another tab): fall back to a new conversation.
+  if (!runId || !runs.some((run) => run.id === runId)) return
+  selectedRunId = runId
+  renderAiInsPanel()
+}
+
 function openConversation(runId: string, target?: { layer: LayerTarget; layers: LayerTarget[] }) {
   const run = runs.find((candidate) => candidate.id === runId)
   if (!run) {
@@ -142,6 +176,7 @@ function openConversation(runId: string, target?: { layer: LayerTarget; layers: 
   }
 
   selectedRunId = runId
+  rememberOpenConversation(runId)
   continueTarget = target
   repointRunId = undefined
   panelStatus = ''
@@ -155,6 +190,7 @@ function openConversation(runId: string, target?: { layer: LayerTarget; layers: 
 /** A blank conversation: the focus only ever comes from an Option / Alt pick. */
 function startNewConversation() {
   selectedRunId = undefined
+  rememberOpenConversation(undefined)
   continueTarget = undefined
   draftTarget = undefined
   repointRunId = undefined
@@ -574,6 +610,7 @@ async function sendTurn(
       permissionModeValue,
     )
 
+    rememberOpenConversation(result.runId)
     if (continueRun) {
       appendRunTurn(result, submitTarget?.layer, provider, prompt)
       continueTarget = undefined
@@ -751,6 +788,11 @@ function showAiInsPanel(layer?: LayerTarget, layers?: LayerTarget[]) {
 
   renderAiInsPanel()
   updateDockButton()
+  // A conversation restored from a previous page load has no transcript yet.
+  const restored = getSelectedRun()
+  if (restored && !restored.outputLoaded) {
+    void loadRunDetail(restored)
+  }
   window.setTimeout(() => {
     const textarea = overlay.querySelector('.ai-ins-textarea')
     if (textarea instanceof HTMLTextAreaElement) {
@@ -809,6 +851,7 @@ function applyUserSettings() {
 
 globalThis.aiInsPanelRuntime = {
   applyUserSettings,
+  restoreLastConversation,
   flushQueuedPrompt,
   notifyRun,
   refreshComposer,

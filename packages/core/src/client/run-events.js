@@ -378,6 +378,7 @@ async function hydrateAgentRuns() {
 
     sortClientRuns()
     globalThis.aiInsPanelRuntime?.restoreQueuedPrompts()
+    globalThis.aiInsPanelRuntime?.restoreLastConversation()
   } catch (error) {
     console.error('[ai-ins] load AI Ins runs failed:', error)
   } finally {
