@@ -133,6 +133,54 @@ function panelSplitPath(path: string): [string, string] {
   return index === -1 ? [path, ''] : [path.slice(index + 1), path.slice(0, index)]
 }
 
+const panelSizeStorageKey = 'ai-ins-panel-size'
+
+/**
+ * Remember the size the user dragged the panel to. Only the size they asked
+ * for is stored (the inline width / height the browser writes while dragging
+ * the grip); CSS max-width / max-height still clamp it to the viewport, so a
+ * smaller window shrinks the panel and a larger one gives the size back.
+ */
+function usePanelRememberedSize() {
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const panel = ref.current
+    if (!panel) return
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(panelSizeStorageKey) || 'null') as { height?: unknown; width?: unknown } | null
+      if (saved && typeof saved.width === 'number' && saved.width > 0) panel.style.width = `${saved.width}px`
+      if (saved && typeof saved.height === 'number' && saved.height > 0) panel.style.height = `${saved.height}px`
+    } catch {
+      // Unreadable or blocked storage: keep the default size.
+    }
+
+    if (typeof ResizeObserver === 'undefined') return
+    let timer: number | undefined
+    const observer = new ResizeObserver(() => {
+      window.clearTimeout(timer)
+      timer = window.setTimeout(() => {
+        const width = Number.parseFloat(panel.style.width)
+        const height = Number.parseFloat(panel.style.height)
+        // No inline size: the panel was never dragged, nothing to remember.
+        if (!Number.isFinite(width) || !Number.isFinite(height)) return
+        try {
+          window.localStorage.setItem(panelSizeStorageKey, JSON.stringify({ height: Math.round(height), width: Math.round(width) }))
+        } catch {
+          // Ignore storage restrictions in embedded browsers.
+        }
+      }, 200)
+    })
+    observer.observe(panel)
+    return () => {
+      window.clearTimeout(timer)
+      observer.disconnect()
+    }
+  }, [])
+
+  return ref
+}
+
 const panelHelpSeenStorageKey = 'ai-ins-help-seen'
 
 function readPanelHelpSeen() {
@@ -276,8 +324,9 @@ function panelIsRunWorking(run: AgentRun) {
 }
 
 /** The element a conversation is about. */
+/** Conversations started without picking an element are about the whole project. */
 function panelGetRunFocusLabel(run: AgentRun, getDisplayPath: (path: string) => string) {
-  return run.sourceName || getDisplayPath(run.sourcePath || '')
+  return run.sourceName || getDisplayPath(run.sourcePath || '') || t('composer.wholeProject')
 }
 
 /**
@@ -809,6 +858,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   const runMenuRef = useRef<HTMLDivElement>(null)
   const runMenuTriggerRef = useRef<HTMLButtonElement | null>(null)
   const closeRunMenu = useCallback(() => setRunMenu(null), [])
+  const panelSizeRef = usePanelRememberedSize()
   usePanelDismiss(Boolean(runMenu), runMenuRef, closeRunMenu)
   const outputShouldFollowRef = useRef(true)
   const outputModalShouldFollowRef = useRef(true)
@@ -924,7 +974,6 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   const submitDisabled =
     submitting ||
     !prompt.trim() ||
-    !hasTarget ||
     !provider?.enabled ||
     customProxyMissing ||
     continueBlocked ||
@@ -2169,7 +2218,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   }
 
   return (
-    <div className="ai-ins-panel" data-busy={runs.some(panelIsRunWorking)} data-theme={theme} lang={locale}>
+    <div className="ai-ins-panel" data-busy={runs.some(panelIsRunWorking)} data-theme={theme} lang={locale} ref={panelSizeRef}>
       <div className="ai-ins-body">
         <aside aria-label={t('sidebar.history')} className="ai-ins-sidebar">
           {/* The brand heads the sidebar; its bottom edge lines up with the chat header's. */}
@@ -2212,13 +2261,9 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                   <p className="ai-ins-detail-title" title={panelGetRunTitle(selectedRun, getDisplayPath)}>
                     {panelGetRunTitle(selectedRun, getDisplayPath)}
                   </p>
-                  <div className="ai-ins-detail-subtitle" title={`${selectedRun.sourcePath}\n${t('chat.logTitle', { log: selectedRun.logPath })}`}>
-                    {t('chat.subtitle', {
-                      focus: panelGetRunFocusLabel(selectedRun, getDisplayPath),
-                      log: selectedRunLogLabel,
-                      provider: selectedRun.providerLabel,
-                      turns: t('sidebar.turnCount', { count: selectedRun.turns.length }),
-                    })}
+                  {/* Just the log path; focus, agent and turn count are on the list row and the cards. */}
+                  <div className="ai-ins-detail-subtitle" title={t('chat.logTitle', { log: selectedRun.logPath })}>
+                    {selectedRunLogLabel}
                   </div>
                 </div>
                 <div className="ai-ins-detail-actions">

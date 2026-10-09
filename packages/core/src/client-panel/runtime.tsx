@@ -62,7 +62,7 @@ declare function appendRunTurn(result: AgentTurnResult, layer: LayerTarget | und
 declare function applyDockPosition(): void
 declare function closeAiInsPanel(): void
 declare function createElement(tag: string, className?: string, text?: string): HTMLElement
-declare function createRun(result: AgentTurnResult, layer: LayerTarget, provider: AgentProvider, prompt: string): void
+declare function createRun(result: AgentTurnResult, layer: LayerTarget | undefined, provider: AgentProvider, prompt: string): void
 declare function clearFinishedRuns(): Promise<void>
 declare function deleteRun(run: AgentRun): Promise<void>
 declare function answerAgentPermission(runId: string, requestId: string, decision: PermissionDecision): Promise<unknown>
@@ -541,11 +541,6 @@ async function sendTurn(
     return
   }
 
-  if (!continueRun && !submitTarget?.layer) {
-    setPanelStatus(t('status.pickFirst'))
-    return
-  }
-
   if (!provider?.enabled) {
     setPanelStatus(provider?.disabledReason || t('status.agentNotConfigured'))
     return
@@ -583,7 +578,7 @@ async function sendTurn(
       appendRunTurn(result, submitTarget?.layer, provider, prompt)
       continueTarget = undefined
     } else {
-      createRun(result, submitTarget!.layer, provider, prompt)
+      createRun(result, submitTarget?.layer, provider, prompt)
     }
 
     panelStatus = ''
@@ -598,11 +593,20 @@ async function sendTurn(
   } finally {
     submitting = false
     renderAiInsPanel()
+    // The send button was disabled mid-request and dropped focus to the page;
+    // put it back so the next message (or Escape) works straight away.
+    focusPanelTextarea()
   }
 }
 
+/**
+ * The dock is the way back into the panel, so it is there whenever the panel
+ * is closed — also in a project with no conversations yet, where it is the
+ * only way to start one without picking an element. It waits for the first
+ * history fetch so it does not flash the empty look before turning into a count.
+ */
 function ensureDockButton() {
-  if (dockButton || !runs.length || aiInsPanel) {
+  if (dockButton || !runsHydrated || aiInsPanel) {
     return
   }
 
@@ -618,6 +622,11 @@ function ensureDockButton() {
 
     showAiInsPanel()
   })
+  // Same mark as the panel header: tile, diamond and spark, animated in CSS.
+  const mark = createElement('span', 'ai-ins-brand-mark')
+  mark.setAttribute('aria-hidden', 'true')
+  mark.append(createElement('span', 'ai-ins-brand-diamond'), createElement('span', 'ai-ins-brand-spark'))
+  dockButton.append(mark, createElement('span', 'ai-ins-dock-label'))
   dockButton.style.visibility = 'hidden'
   installDockDrag()
   document.body.append(dockButton)
@@ -633,23 +642,34 @@ function updateDockButton() {
     return
   }
 
-  if (!runs.length) {
-    dockButton?.remove()
-    dockButton = undefined
-    return
-  }
-
   if (!dockButton) {
     ensureDockButton()
     return
   }
+
+  const dockLabel = dockButton.querySelector('.ai-ins-dock-label')
+  if (!dockLabel) return
+
+  // No conversations yet: just the brand mark, opening a new conversation.
+  dockButton.classList.toggle('ai-ins-dock-empty', !runs.length)
+  if (!runs.length) {
+    dockButton.classList.remove('ai-ins-dock-running', 'ai-ins-dock-waiting')
+    dockLabel.textContent = ''
+    dockButton.title = t('dock.open')
+    dockButton.setAttribute('aria-label', t('dock.open'))
+    window.requestAnimationFrame(() => applyDockPosition())
+    return
+  }
+
+  dockButton.removeAttribute('title')
+  dockButton.removeAttribute('aria-label')
 
   const runningCount = runs.filter((run) => run.status === 'running' || run.status === 'starting').length
   // A conversation blocked on the user matters more than one that is merely busy.
   const waitingCount = runs.filter((run) => run.pendingPermissions?.length).length
   dockButton.classList.toggle('ai-ins-dock-running', runningCount > 0)
   dockButton.classList.toggle('ai-ins-dock-waiting', waitingCount > 0)
-  dockButton.textContent = waitingCount
+  dockLabel.textContent = waitingCount
     ? t('dock.waitingPermission', { count: waitingCount })
     : runningCount
       ? t('dock.running', { count: runningCount })
@@ -744,6 +764,15 @@ function unmountAiInsPanel() {
   panelRoot = undefined
   panelStatus = ''
 }
+
+// Escape closes the panel even when focus has fallen out of it (to <body>):
+// the overlay's own listener only hears keys pressed inside the panel.
+document.addEventListener('keydown', (event) => {
+  const active = document.activeElement
+  if (event.key === 'Escape' && aiInsPanel && (!active || active === document.body)) {
+    closeAiInsPanel()
+  }
+})
 
 // Switching language re-renders everything the runtime draws outside React too.
 onLocaleChange(() => {

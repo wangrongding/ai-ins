@@ -44,6 +44,7 @@ async function runAiInsAgent(layer, layers, providerId, prompt, proxyMode, proxy
     body: JSON.stringify({
       file: layer?.path,
       layers,
+      page: window.location.href,
       permissionMode,
       prompt,
       provider: providerId,

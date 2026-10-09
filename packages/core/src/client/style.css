@@ -3373,7 +3373,7 @@
   border: 1px solid #27272a;
   border-radius: 999px;
   background: rgba(9, 9, 11, 0.92);
-  padding: 0 14px;
+  padding: 0 14px 0 5px;
   color: #ececee;
   cursor: grab;
   box-shadow:
@@ -3386,23 +3386,62 @@
   user-select: none;
 }
 
-.ai-ins-dock::before {
+/* The same animated brand mark as the panel, so the dock reads as its doorway. */
+.ai-ins-dock * {
+  box-sizing: border-box;
+}
+
+.ai-ins-dock .ai-ins-brand-mark {
+  --ai-ins-mark-size: 26px;
+  pointer-events: none;
+}
+
+.ai-ins-dock-label {
+  min-width: 0;
+  overflow: hidden;
+  pointer-events: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Working: the rim light spins faster, as it does in the panel. */
+.ai-ins-dock-running .ai-ins-brand-mark::before {
+  animation-duration: 1.6s;
+}
+
+/* Waiting for the user outranks "busy": an amber dot leads the label. */
+.ai-ins-dock-waiting .ai-ins-dock-label::before {
   content: "";
+  display: inline-block;
   width: 7px;
   height: 7px;
-  flex: 0 0 auto;
+  margin-right: 6px;
   border-radius: 999px;
-  background: #4ade80;
-}
-
-.ai-ins-dock-running::before {
-  background: #fafafa;
-  animation: ai-ins-pulse 1.4s ease-in-out infinite;
-}
-
-.ai-ins-dock-waiting::before {
   background: #fbbf24;
+  vertical-align: 1px;
   animation: ai-ins-pulse 1.4s ease-in-out infinite;
+}
+
+/* No conversations yet: just the mark, a little larger, with no pill around it. */
+.ai-ins-dock-empty {
+  height: auto;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  padding: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.ai-ins-dock-empty .ai-ins-brand-mark {
+  --ai-ins-mark-size: 40px;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 12px 28px -6px rgba(0, 0, 0, 0.5);
+}
+
+.ai-ins-dock-empty .ai-ins-dock-label {
+  display: none;
 }
 
 .ai-ins-dock-dragging {
