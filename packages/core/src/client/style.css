@@ -500,6 +500,22 @@
   gap: 6px;
 }
 
+/* In the composer: a quiet outline button just left of send, which it pushes right. */
+.ai-ins-composer-toolbar .ai-ins-button-stop {
+  margin-left: auto;
+  border-color: var(--ai-ins-border-strong);
+  background: transparent;
+  color: var(--ai-ins-text);
+}
+
+.ai-ins-composer-toolbar .ai-ins-button-stop:hover:not(:disabled) {
+  background: var(--ai-ins-surface-hover);
+}
+
+.ai-ins-composer-toolbar .ai-ins-button-stop + .ai-ins-send-button {
+  margin-left: 0;
+}
+
 .ai-ins-stop-mark {
   width: 8px;
   height: 8px;
@@ -570,7 +586,6 @@
   border-color: var(--ai-ins-focus-border);
 }
 
-
 .ai-ins-link-button {
   border: 0;
   background: none;
@@ -595,40 +610,6 @@
 }
 
 /* Status pill (chat header, transcript modal). */
-.ai-ins-pill {
-  display: inline-flex;
-  height: 22px;
-  align-items: center;
-  border-radius: 999px;
-  background: var(--ai-ins-surface-active);
-  padding: 0 8px;
-  color: var(--ai-ins-text-secondary);
-  font-size: var(--ai-ins-text-xs);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.ai-ins-pill-active {
-  background: var(--ai-ins-accent-soft);
-  color: var(--ai-ins-accent);
-}
-
-.ai-ins-pill-done {
-  background: var(--ai-ins-success-soft);
-  color: var(--ai-ins-success);
-}
-
-.ai-ins-pill-failed,
-.ai-ins-pill-disconnected {
-  background: var(--ai-ins-danger-soft);
-  color: var(--ai-ins-danger);
-}
-
-.ai-ins-pill-waiting,
-.ai-ins-pill-interrupted {
-  background: var(--ai-ins-warning-soft);
-  color: var(--ai-ins-warning);
-}
 
 /* Status dot (conversation list). */
 .ai-ins-dot {
@@ -1338,10 +1319,6 @@
   white-space: nowrap;
 }
 
-.ai-ins-detail-actions .ai-ins-pill {
-  margin-right: var(--ai-ins-space-1);
-}
-
 /* ------------------------------------------------------------ transcript */
 
 .ai-ins-chat-scroll-wrap {
@@ -2043,10 +2020,6 @@
   height: 13px;
 }
 
-.ai-ins-output-follow-expanded {
-  bottom: var(--ai-ins-space-5);
-}
-
 /* Empty conversation / loading transcript. */
 .ai-ins-chat-empty {
   display: flex;
@@ -2643,8 +2616,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-
 
 /* ------------------------------------------------------------- dropdown */
 
@@ -3311,10 +3282,6 @@
   font-size: var(--ai-ins-text-sm);
 }
 
-.ai-ins-output-expanded {
-  padding: var(--ai-ins-space-6);
-}
-
 .ai-ins-agent-prompt-modal-panel {
   width: min(1120px, 100%);
 }
@@ -3358,6 +3325,12 @@
 
 /* ------------------------------------------------------------------ dock */
 
+/*
+ * The dock is the brand mark alone: one 40px tile whose own rounded corners
+ * are the button's, so there is no second shape around it to match. Status
+ * rides on the mark (a faster rim light while working) and a small count
+ * badge on its corner; the full sentence is the tooltip.
+ */
 .ai-ins-dock {
   position: fixed;
   right: 20px;
@@ -3365,43 +3338,34 @@
   z-index: 2147483646;
   /* Hosts that lock body pointer-events (modal libraries) must not freeze the dock. */
   pointer-events: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  max-width: min(300px, calc(100vw - 40px));
+  display: block;
+  width: 36px;
   height: 36px;
-  border: 1px solid #27272a;
-  border-radius: 999px;
-  background: rgba(9, 9, 11, 0.92);
-  padding: 0 14px 0 5px;
-  color: #ececee;
+  border: 0;
+  /* Same curve as the mark (28% of its size). */
+  border-radius: 10px;
+  background: none;
+  padding: 0;
   cursor: grab;
   box-shadow:
-    0 12px 32px rgba(0, 0, 0, 0.35),
-    0 0 0 1px rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(8px);
-  font-size: 12px;
-  font-weight: 600;
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 12px 28px -6px rgba(0, 0, 0, 0.5);
   touch-action: none;
   user-select: none;
+  transition: transform 0.15s ease;
 }
 
-/* The same animated brand mark as the panel, so the dock reads as its doorway. */
+.ai-ins-dock:hover {
+  transform: translateY(-1px);
+}
+
 .ai-ins-dock * {
   box-sizing: border-box;
 }
 
 .ai-ins-dock .ai-ins-brand-mark {
-  --ai-ins-mark-size: 26px;
+  --ai-ins-mark-size: 36px;
   pointer-events: none;
-}
-
-.ai-ins-dock-label {
-  min-width: 0;
-  overflow: hidden;
-  pointer-events: none;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* Working: the rim light spins faster, as it does in the panel. */
@@ -3409,39 +3373,68 @@
   animation-duration: 1.6s;
 }
 
-/* Waiting for the user outranks "busy": an amber dot leads the label. */
-.ai-ins-dock-waiting .ai-ins-dock-label::before {
-  content: "";
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-right: 6px;
-  border-radius: 999px;
-  background: #fbbf24;
-  vertical-align: 1px;
-  animation: ai-ins-pulse 1.4s ease-in-out infinite;
-}
-
-/* No conversations yet: just the mark, a little larger, with no pill around it. */
-.ai-ins-dock-empty {
-  height: auto;
-  border: 0;
-  border-radius: 12px;
-  background: none;
-  padding: 0;
-  box-shadow: none;
-  backdrop-filter: none;
-}
-
-.ai-ins-dock-empty .ai-ins-brand-mark {
-  --ai-ins-mark-size: 40px;
-  box-shadow:
-    0 2px 4px rgba(0, 0, 0, 0.3),
-    0 12px 28px -6px rgba(0, 0, 0, 0.5);
-}
-
-.ai-ins-dock-empty .ai-ins-dock-label {
+/*
+ * One count on the top-right corner, for the most urgent state: needs your
+ * approval (amber, pulsing) > working (white) > new results you have not
+ * opened yet (green, or red if one of them failed).
+ */
+.ai-ins-dock-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
   display: none;
+  min-width: 17px;
+  height: 17px;
+  border: 2px solid #0d0d0d;
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 0 4px;
+  color: #0d0d0d;
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  line-height: 13px;
+  pointer-events: none;
+  text-align: center;
+}
+
+.ai-ins-dock-has-badge .ai-ins-dock-badge {
+  display: block;
+}
+
+.ai-ins-dock-done .ai-ins-dock-badge {
+  background: #40c977;
+}
+
+.ai-ins-dock-failed .ai-ins-dock-badge {
+  background: #ff6764;
+}
+
+/* Waiting for the user outranks "busy": amber, with a ring rippling out of it
+   (the number itself stays solid and readable). */
+.ai-ins-dock-waiting .ai-ins-dock-badge {
+  background: #fbbf24;
+}
+
+.ai-ins-dock-waiting .ai-ins-dock-badge::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.7);
+  animation: ai-ins-dock-ping 1.6s ease-out infinite;
+}
+
+@keyframes ai-ins-dock-ping {
+  to {
+    box-shadow: 0 0 0 7px rgba(251, 191, 36, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-ins-dock-waiting .ai-ins-dock-badge::after {
+    animation: none;
+  }
 }
 
 .ai-ins-dock-dragging {
@@ -3515,8 +3508,7 @@
     height: 52px;
   }
 
-  .ai-ins-chat-scroll,
-  .ai-ins-output-expanded {
+  .ai-ins-chat-scroll {
     padding: var(--ai-ins-space-4);
   }
 

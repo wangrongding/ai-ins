@@ -79,10 +79,8 @@ export const zhTW: MessageCatalog = {
   'chat.newConversation': '新對話',
   'chat.newConversationHint': '{provider} · 傳送後會出現在左側歷史中',
   'chat.logTitle': '記錄 {log}',
-  'chat.expand': '放大對話',
   'chat.stop': '停止',
   'chat.stopTitle': '結束這一回合，對話會保留，可以繼續追問',
-  'chat.delete': '刪除',
   'chat.deleteRunningConfirm': '這個對話還在執行中，要停止並刪除嗎？',
   'chat.followLatest': '查看最新',
 
@@ -265,10 +263,10 @@ export const zhTW: MessageCatalog = {
   'modal.promptFirst': '這是啟動這個對話時實際傳送給 {provider} 的完整 prompt，包含原始碼位置與 DOM source stack。',
   'modal.promptMissing': '這一回合還沒有記錄完整 prompt；請開啟記錄檔 {log} 檢查啟動命令與 prompt 內文。',
   'modal.logFile': '記錄檔：{log}',
-  'modal.transcriptSubtitle': '{provider} · {turns}',
 
   // Dock button
   'dock.running': '{count} 個對話執行中',
+  'dock.unread': '{count} 個對話有新結果',
   'dock.total': '{count} 個 AI Ins 對話',
 
   // Live activity and reasoning

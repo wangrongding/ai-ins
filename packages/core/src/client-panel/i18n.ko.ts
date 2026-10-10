@@ -79,10 +79,8 @@ export const ko: MessageCatalog = {
   'chat.newConversation': '새 대화',
   'chat.newConversationHint': '{provider} · 보내면 왼쪽 기록에 표시됩니다',
   'chat.logTitle': '로그 {log}',
-  'chat.expand': '대화 확대',
   'chat.stop': '중지',
   'chat.stopTitle': '이 턴을 종료합니다. 대화는 유지되어 계속 물어볼 수 있습니다',
-  'chat.delete': '삭제',
   'chat.deleteRunningConfirm': '이 대화는 실행 중입니다. 중지하고 삭제할까요?',
   'chat.followLatest': '최신 보기',
 
@@ -265,10 +263,10 @@ export const ko: MessageCatalog = {
   'modal.promptFirst': '이 대화를 시작할 때 {provider}에 실제로 보낸 전체 prompt입니다. 소스 위치와 DOM source stack이 포함됩니다.',
   'modal.promptMissing': '이 턴의 전체 prompt가 기록되지 않았습니다. 로그 파일 {log} 에서 시작 명령과 prompt 본문을 확인하세요.',
   'modal.logFile': '로그 파일: {log}',
-  'modal.transcriptSubtitle': '{provider} · {turns}',
 
   // Dock button
   'dock.running': '실행 중인 대화 {count}개',
+  'dock.unread': '새 결과가 있는 대화 {count}개',
   'dock.total': 'AI Ins 대화 {count}개',
 
   // Live activity and reasoning

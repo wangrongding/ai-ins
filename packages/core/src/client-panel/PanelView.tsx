@@ -12,8 +12,6 @@ import {
   helpIcon,
   Icon,
   IconButton,
-  maximizeIcon,
-  minimizeIcon,
   pinIcon,
   pinOffIcon,
   moonIcon,
@@ -835,8 +833,6 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   const [expandedTurns, setExpandedTurns] = useState<Set<string>>(() => new Set())
   const [agentPromptTurnIndex, setAgentPromptTurnIndex] = useState<number | undefined>(undefined)
   const [outputDetachedFromBottom, setOutputDetachedFromBottom] = useState(false)
-  const [outputExpanded, setOutputExpanded] = useState(false)
-  const [outputModalDetachedFromBottom, setOutputModalDetachedFromBottom] = useState(false)
   const [theme, setTheme] = useState<PanelTheme>(() => readPanelTheme())
   const [submitShortcut, setSubmitShortcut] = useState<PanelSubmitShortcut>(() => readPanelSubmitShortcut())
   const [, setClockTick] = useState(0)
@@ -861,10 +857,8 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   const panelSizeRef = usePanelRememberedSize()
   usePanelDismiss(Boolean(runMenu), runMenuRef, closeRunMenu)
   const outputShouldFollowRef = useRef(true)
-  const outputModalShouldFollowRef = useRef(true)
   const agentPromptModalRef = useRef<HTMLDivElement>(null)
   const outputRef = useRef<HTMLDivElement>(null)
-  const outputModalRef = useRef<HTMLDivElement>(null)
   const selectedRun = useMemo(() => {
     if (!selectedRunId) {
       return undefined
@@ -1008,15 +1002,10 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
 
   useEffect(() => {
     outputShouldFollowRef.current = true
-    outputModalShouldFollowRef.current = true
     setOutputDetachedFromBottom(false)
-    setOutputModalDetachedFromBottom(false)
 
     if (outputRef.current) {
       panelScrollOutputToBottom(outputRef.current)
-    }
-    if (outputModalRef.current) {
-      panelScrollOutputToBottom(outputModalRef.current)
     }
   }, [selectedRunScrollId])
 
@@ -1036,7 +1025,6 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   useEffect(() => {
     if (!selectedRun) {
       setAgentPromptTurnIndex(undefined)
-      setOutputExpanded(false)
     }
   }, [selectedRun])
 
@@ -1045,41 +1033,6 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
       agentPromptModalRef.current?.focus()
     }
   }, [agentPromptTurn])
-
-  useEffect(() => {
-    if (outputExpanded) {
-      const modalOutput = outputModalRef.current
-      if (!modalOutput) return
-
-      modalOutput.focus()
-      outputModalShouldFollowRef.current = outputShouldFollowRef.current
-      if (outputModalShouldFollowRef.current) {
-        panelScrollOutputToBottom(modalOutput)
-        setOutputModalDetachedFromBottom(false)
-        return
-      }
-
-      const inlineOutput = outputRef.current
-      if (inlineOutput) {
-        modalOutput.scrollTop = Math.min(inlineOutput.scrollTop, Math.max(0, modalOutput.scrollHeight - modalOutput.clientHeight))
-      }
-
-      setOutputModalDetachedFromBottom(!panelIsOutputNearBottom(modalOutput))
-    }
-  }, [outputExpanded, selectedRunScrollId])
-
-  useEffect(() => {
-    const output = outputModalRef.current
-    if (!outputExpanded || !output) return
-
-    if (outputModalShouldFollowRef.current) {
-      panelScrollOutputToBottom(output)
-      setOutputModalDetachedFromBottom(false)
-      return
-    }
-
-    setOutputModalDetachedFromBottom(!panelIsOutputNearBottom(output))
-  }, [outputExpanded, selectedRunOutputSignature])
 
   async function handleCopyTarget() {
     await onCopyTarget()
@@ -1105,27 +1058,12 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     setOutputDetachedFromBottom(!shouldFollow)
   }
 
-  function handleOutputModalScroll() {
-    const output = outputModalRef.current
+  function handleFollowOutputBottom() {
+    const output = outputRef.current
     if (!output) return
 
-    const shouldFollow = panelIsOutputNearBottom(output)
-    outputModalShouldFollowRef.current = shouldFollow
-    setOutputModalDetachedFromBottom(!shouldFollow)
-  }
-
-  function handleFollowOutputBottom(expanded: boolean) {
-    const output = expanded ? outputModalRef.current : outputRef.current
-    if (!output) return
-
-    if (expanded) {
-      outputModalShouldFollowRef.current = true
-      setOutputModalDetachedFromBottom(false)
-    } else {
-      outputShouldFollowRef.current = true
-      setOutputDetachedFromBottom(false)
-    }
-
+    outputShouldFollowRef.current = true
+    setOutputDetachedFromBottom(false)
     panelScrollOutputToBottom(output)
   }
 
@@ -2266,29 +2204,6 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                     {selectedRunLogLabel}
                   </div>
                 </div>
-                <div className="ai-ins-detail-actions">
-                  <span className={`ai-ins-pill ai-ins-pill-${panelGetRunTone(selectedRun)}`}>
-                    {panelGetRunStateLabel(selectedRun)}
-                  </span>
-                  <IconButton label={t('chat.expand')} onClick={() => setOutputExpanded(true)}>
-                    <Icon paths={maximizeIcon} />
-                  </IconButton>
-                  {selectedRunWorking ? (
-                    <button
-                      className="ai-ins-button ai-ins-button-small ai-ins-button-stop"
-                      disabled={selectedRun.stopping}
-                      onClick={() => onStopRun(selectedRun)}
-                      title={t('chat.stopTitle')}
-                      type="button"
-                    >
-                      <span className="ai-ins-stop-mark" aria-hidden="true" />
-                      {selectedRun.stopping ? t('status.stopping') : t('chat.stop')}
-                    </button>
-                  ) : null}
-                  <button className="ai-ins-button ai-ins-button-danger ai-ins-button-small" onClick={() => onDeleteRun(selectedRun)} type="button">
-                    {t('chat.delete')}
-                  </button>
-                </div>
               </>
             ) : (
               <div className="ai-ins-chat-head-copy">
@@ -2305,7 +2220,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
               {selectedRun ? renderTranscript(false) : renderNewConversationIntro()}
             </div>
             {selectedRun && outputDetachedFromBottom ? (
-              <button className="ai-ins-output-follow" onClick={() => handleFollowOutputBottom(false)} type="button">
+              <button className="ai-ins-output-follow" onClick={handleFollowOutputBottom} type="button">
                 <Icon paths={arrowDownIcon} />
                 <span>{t('chat.followLatest')}</span>
               </button>
@@ -2342,14 +2257,17 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                   {continuing ? t('composer.badgeContinue', { index: selectedRunTurns.length + 1 }) : t('composer.badgeNew')}
                 </span>
                 <span className="ai-ins-target-text">{targetLabel}</span>
-                <span className="ai-ins-target-actions">
-                  <IconButton disabled={!hasTarget} label={copied ? t('composer.copied') : t('composer.copyLocation')} onClick={() => void handleCopyTarget()} success={copied}>
-                    <Icon paths={copied ? checkIcon : copyIcon} />
-                  </IconButton>
-                  <IconButton disabled={!hasTarget} label={t('composer.openInIde')} onClick={() => void onOpenInEditor()}>
-                    <Icon paths={codeIcon} />
-                  </IconButton>
-                </span>
+                {/* Only when there is a source location to copy or open (not for the whole project). */}
+                {targetTitle ? (
+                  <span className="ai-ins-target-actions">
+                    <IconButton label={copied ? t('composer.copied') : t('composer.copyLocation')} onClick={() => void handleCopyTarget()} success={copied}>
+                      <Icon paths={copied ? checkIcon : copyIcon} />
+                    </IconButton>
+                    <IconButton label={t('composer.openInIde')} onClick={() => void onOpenInEditor()}>
+                      <Icon paths={codeIcon} />
+                    </IconButton>
+                  </span>
+                ) : null}
               </div>
 
               <textarea
@@ -2384,6 +2302,19 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                 ) : (
                   renderProxyChip()
                 )}
+                {/* While a turn runs: stop it here, where the next message is written. Typing still queues. */}
+                {selectedRun && selectedRunWorking ? (
+                  <button
+                    className="ai-ins-button ai-ins-button-stop"
+                    disabled={selectedRun.stopping}
+                    onClick={() => onStopRun(selectedRun)}
+                    title={t('chat.stopTitle')}
+                    type="button"
+                  >
+                    <span className="ai-ins-stop-mark" aria-hidden="true" />
+                    {selectedRun.stopping ? t('status.stopping') : t('chat.stop')}
+                  </button>
+                ) : null}
                 <button
                   className="ai-ins-button ai-ins-button-primary ai-ins-send-button"
                   disabled={submitDisabled}
@@ -2454,55 +2385,6 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                 </pre>
               </div>
             </div>
-          </div>
-        </div>
-      ) : null}
-      {selectedRun && outputExpanded ? (
-        <div className="ai-ins-output-modal" onClick={() => setOutputExpanded(false)}>
-          <div
-            aria-label={t('chat.expand')}
-            aria-modal="true"
-            className="ai-ins-output-modal-panel"
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                event.stopPropagation()
-                event.nativeEvent.stopImmediatePropagation()
-                setOutputExpanded(false)
-              }
-            }}
-            role="dialog"
-          >
-            <div className="ai-ins-output-modal-head">
-              <div>
-                <p className="ai-ins-output-modal-title">{panelGetRunTitle(selectedRun, getDisplayPath)}</p>
-                <div className="ai-ins-output-modal-subtitle">
-                  {t('modal.transcriptSubtitle', { provider: selectedRun.providerLabel, turns: t('sidebar.turnCount', { count: selectedRun.turns.length }) })}
-                </div>
-              </div>
-              <div className="ai-ins-detail-actions">
-                <span className={`ai-ins-pill ai-ins-pill-${panelGetRunTone(selectedRun)}`}>
-                  {panelGetRunStateLabel(selectedRun)}
-                </span>
-                <IconButton label={t('panel.collapse')} onClick={() => setOutputExpanded(false)}>
-                  <Icon paths={minimizeIcon} />
-                </IconButton>
-              </div>
-            </div>
-            <div
-              className="ai-ins-chat-scroll ai-ins-output-expanded"
-              onScroll={handleOutputModalScroll}
-              ref={outputModalRef}
-              tabIndex={-1}
-            >
-              {renderTranscript(true)}
-            </div>
-            {outputModalDetachedFromBottom ? (
-              <button className="ai-ins-output-follow ai-ins-output-follow-expanded" onClick={() => handleFollowOutputBottom(true)} type="button">
-                <Icon paths={arrowDownIcon} />
-                <span>{t('chat.followLatest')}</span>
-              </button>
-            ) : null}
           </div>
         </div>
       ) : null}

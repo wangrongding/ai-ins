@@ -84,10 +84,8 @@ export const en: MessageCatalog = {
   'chat.newConversation': 'New conversation',
   'chat.newConversationHint': '{provider} · appears in the history on the left after you send',
   'chat.logTitle': 'Log {log}',
-  'chat.expand': 'Expand conversation',
   'chat.stop': 'Stop',
   'chat.stopTitle': 'End this turn; the conversation is kept so you can keep asking',
-  'chat.delete': 'Delete',
   'chat.deleteRunningConfirm': 'This conversation is still running. Stop and delete it?',
   'chat.followLatest': 'Jump to latest',
 
@@ -270,10 +268,10 @@ export const en: MessageCatalog = {
   'modal.promptFirst': 'The full prompt sent to {provider} when this conversation started, including source locations and the DOM source stack.',
   'modal.promptMissing': 'No full prompt was recorded for this turn; open the log file {log} to check the start command and the prompt text.',
   'modal.logFile': 'Log file: {log}',
-  'modal.transcriptSubtitle': '{provider} · {turns}',
 
   // Dock button
   'dock.running': { one: '{count} conversation running', other: '{count} conversations running' },
+  'dock.unread': { one: '{count} conversation has new results', other: '{count} conversations have new results' },
   'dock.total': { one: '{count} AI Ins conversation', other: '{count} AI Ins conversations' },
 
   // Live activity and reasoning

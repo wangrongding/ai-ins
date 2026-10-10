@@ -84,10 +84,8 @@ export const de: MessageCatalog = {
   'chat.newConversation': 'Neue Unterhaltung',
   'chat.newConversationHint': '{provider} · erscheint nach dem Senden im Verlauf links',
   'chat.logTitle': 'Protokoll {log}',
-  'chat.expand': 'Unterhaltung vergrößern',
   'chat.stop': 'Beenden',
   'chat.stopTitle': 'Beendet diese Runde; die Unterhaltung bleibt erhalten, damit Sie weiterfragen können',
-  'chat.delete': 'Löschen',
   'chat.deleteRunningConfirm': 'Diese Unterhaltung wird noch ausgeführt. Beenden und löschen?',
   'chat.followLatest': 'Zum Neuesten springen',
 
@@ -270,10 +268,10 @@ export const de: MessageCatalog = {
   'modal.promptFirst': 'Der vollständige Prompt, der beim Start dieser Unterhaltung an {provider} gesendet wurde, einschließlich Quellpositionen und DOM source stack.',
   'modal.promptMissing': 'Für diese Runde wurde kein vollständiger Prompt aufgezeichnet; öffnen Sie die Protokolldatei {log}, um Startbefehl und Prompt-Text zu prüfen.',
   'modal.logFile': 'Protokolldatei: {log}',
-  'modal.transcriptSubtitle': '{provider} · {turns}',
 
   // Dock button
   'dock.running': { one: '{count} Unterhaltung wird ausgeführt', other: '{count} Unterhaltungen werden ausgeführt' },
+  'dock.unread': { one: '{count} Unterhaltung mit neuem Ergebnis', other: '{count} Unterhaltungen mit neuem Ergebnis' },
   'dock.total': { one: '{count} AI Ins-Unterhaltung', other: '{count} AI Ins-Unterhaltungen' },
 
   // Live activity and reasoning

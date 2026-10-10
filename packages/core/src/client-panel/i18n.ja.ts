@@ -79,10 +79,8 @@ export const ja: MessageCatalog = {
   'chat.newConversation': '新しい会話',
   'chat.newConversationHint': '{provider} · 送信すると左側の履歴に表示されます',
   'chat.logTitle': 'ログ {log}',
-  'chat.expand': '会話を拡大',
   'chat.stop': '停止',
   'chat.stopTitle': 'このターンを終了します。会話は残るため、そのまま質問を続けられます',
-  'chat.delete': '削除',
   'chat.deleteRunningConfirm': 'この会話は実行中です。停止して削除しますか？',
   'chat.followLatest': '最新を表示',
 
@@ -265,10 +263,10 @@ export const ja: MessageCatalog = {
   'modal.promptFirst': 'これはこの会話の開始時に {provider} に実際に送信された完全な prompt です。ソース位置と DOM source stack を含みます。',
   'modal.promptMissing': 'このターンの完全な prompt は記録されていません。ログファイル {log} を開いて、起動コマンドと prompt の本文を確認してください。',
   'modal.logFile': 'ログファイル:{log}',
-  'modal.transcriptSubtitle': '{provider} · {turns}',
 
   // Dock button
   'dock.running': '{count} 件の会話が実行中',
+  'dock.unread': '{count} 件の会話に新しい結果',
   'dock.total': 'AI Ins 会話 {count} 件',
 
   // Live activity and reasoning

@@ -42,10 +42,6 @@ export const checkIcon = ['M20 6 9 17l-5-5']
 
 export const codeIcon = ['M7 8 3 12l4 4', 'm17 8 4 4-4 4', 'm14 4-4 16']
 
-export const maximizeIcon = ['M8 3H5a2 2 0 0 0-2 2v3', 'M21 8V5a2 2 0 0 0-2-2h-3', 'M16 21h3a2 2 0 0 0 2-2v-3', 'M3 16v3a2 2 0 0 0 2 2h3']
-
-export const minimizeIcon = ['M8 3v3a2 2 0 0 1-2 2H3', 'M16 3v3a2 2 0 0 0 2 2h3', 'M16 21v-3a2 2 0 0 1 2-2h3', 'M8 21v-3a2 2 0 0 0-2-2H3']
-
 export const arrowDownIcon = ['M12 5v14', 'm19 12-7 7-7-7']
 
 

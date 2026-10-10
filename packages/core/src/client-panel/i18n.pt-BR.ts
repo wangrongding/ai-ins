@@ -84,10 +84,8 @@ export const ptBR: MessageCatalog = {
   'chat.newConversation': 'Nova conversa',
   'chat.newConversationHint': '{provider} · aparece no histórico à esquerda depois do envio',
   'chat.logTitle': 'Log {log}',
-  'chat.expand': 'Expandir conversa',
   'chat.stop': 'Parar',
   'chat.stopTitle': 'Encerra esta rodada; a conversa é mantida para você continuar perguntando',
-  'chat.delete': 'Excluir',
   'chat.deleteRunningConfirm': 'Essa conversa ainda está em execução. Parar e excluir?',
   'chat.followLatest': 'Ir para o mais recente',
 
@@ -270,10 +268,10 @@ export const ptBR: MessageCatalog = {
   'modal.promptFirst': 'O prompt completo enviado para {provider} quando esta conversa começou, incluindo locais no código-fonte e o DOM source stack.',
   'modal.promptMissing': 'Nenhum prompt completo foi registrado nesta rodada; abra o arquivo de log {log} para conferir o comando de início e o texto do prompt.',
   'modal.logFile': 'Arquivo de log: {log}',
-  'modal.transcriptSubtitle': '{provider} · {turns}',
 
   // Dock button
   'dock.running': { one: '{count} conversa em execução', other: '{count} conversas em execução' },
+  'dock.unread': { one: '{count} conversa com resultado novo', other: '{count} conversas com resultado novo' },
   'dock.total': { one: '{count} conversa do AI Ins', other: '{count} conversas do AI Ins' },
 
   // Live activity and reasoning

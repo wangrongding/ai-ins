@@ -84,10 +84,8 @@ export const fr: MessageCatalog = {
   'chat.newConversation': 'Nouvelle conversation',
   'chat.newConversationHint': '{provider} · apparaît dans l’historique à gauche après l’envoi',
   'chat.logTitle': 'Journal {log}',
-  'chat.expand': 'Agrandir la conversation',
   'chat.stop': 'Arrêter',
   'chat.stopTitle': 'Termine ce tour ; la conversation est conservée pour continuer à poser des questions',
-  'chat.delete': 'Supprimer',
   'chat.deleteRunningConfirm': 'Cette conversation est toujours en cours. L’arrêter et la supprimer ?',
   'chat.followLatest': 'Aller au plus récent',
 
@@ -270,10 +268,10 @@ export const fr: MessageCatalog = {
   'modal.promptFirst': 'Le prompt complet envoyé à {provider} au démarrage de cette conversation, avec les emplacements dans la source et le DOM source stack.',
   'modal.promptMissing': 'Aucun prompt complet n’a été enregistré pour ce tour ; ouvrez le fichier de journal {log} pour vérifier la commande de démarrage et le texte du prompt.',
   'modal.logFile': 'Fichier de journal : {log}',
-  'modal.transcriptSubtitle': '{provider} · {turns}',
 
   // Dock button
   'dock.running': { one: '{count} conversation en cours', other: '{count} conversations en cours' },
+  'dock.unread': { one: '{count} conversation a un nouveau résultat', other: '{count} conversations ont un nouveau résultat' },
   'dock.total': { one: '{count} conversation AI Ins', other: '{count} conversations AI Ins' },
 
   // Live activity and reasoning

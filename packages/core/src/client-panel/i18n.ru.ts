@@ -88,10 +88,8 @@ export const ru: MessageCatalog = {
   'chat.newConversation': 'Новый диалог',
   'chat.newConversationHint': '{provider} · появится в истории слева после отправки',
   'chat.logTitle': 'Журнал {log}',
-  'chat.expand': 'Развернуть диалог',
   'chat.stop': 'Остановить',
   'chat.stopTitle': 'Завершает этот шаг; диалог сохранится, и можно будет продолжить',
-  'chat.delete': 'Удалить',
   'chat.deleteRunningConfirm': 'Этот диалог ещё выполняется. Остановить и удалить его?',
   'chat.followLatest': 'Перейти к последнему',
 
@@ -284,10 +282,10 @@ export const ru: MessageCatalog = {
   'modal.promptFirst': 'Полный prompt, отправленный в {provider} при запуске этого диалога, включая расположения в исходном коде и DOM source stack.',
   'modal.promptMissing': 'Полный prompt для этого шага не записан; откройте файл журнала {log} и проверьте команду запуска и текст prompt.',
   'modal.logFile': 'Файл журнала: {log}',
-  'modal.transcriptSubtitle': '{provider} · {turns}',
 
   // Dock button
   'dock.running': { one: 'Выполняется {count} диалог', few: 'Выполняется {count} диалога', many: 'Выполняется {count} диалогов', other: 'Выполняется {count} диалога' },
+  'dock.unread': { one: '{count} диалог с новым результатом', few: '{count} диалога с новым результатом', many: '{count} диалогов с новым результатом', other: '{count} диалога с новым результатом' },
   'dock.total': { one: '{count} диалог AI Ins', few: '{count} диалога AI Ins', many: '{count} диалогов AI Ins', other: '{count} диалога AI Ins' },
 
   // Live activity and reasoning

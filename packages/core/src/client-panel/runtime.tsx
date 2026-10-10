@@ -368,6 +368,7 @@ function renderAiInsPanel() {
   }
 
   syncPromptDraft()
+  markOpenConversationSeen()
 
   const continueRun = getContinueRun()
   const activeTarget = continueRun ? continueTarget : draftTarget
@@ -375,10 +376,13 @@ function renderAiInsPanel() {
   const { targetLabel, targetTitle } = continueRun
     ? continueTarget
       ? getTargetLabels(continueTarget)
-      : {
-          targetLabel: t('composer.keepFocus', { focus: continueRun.sourceName || getDisplayPath(continueRun.sourcePath) }),
-          targetTitle: continueRun.sourcePath,
-        }
+      : continueRun.sourcePath
+        ? {
+            targetLabel: t('composer.keepFocus', { focus: continueRun.sourceName || getDisplayPath(continueRun.sourcePath) }),
+            targetTitle: continueRun.sourcePath,
+          }
+        : // A conversation about the whole project has no element to keep.
+          { targetLabel: t('composer.keepFocus', { focus: t('composer.wholeProject') }), targetTitle: '' }
     : getTargetLabels(draftTarget)
 
   panelRoot.render(
@@ -636,6 +640,58 @@ async function sendTurn(
   }
 }
 
+/*
+ * "New result" = a conversation that finished since you last looked at it.
+ * Looking means having it open in the panel. Kept in localStorage so a result
+ * that came in while the page reloaded, or in another tab, still counts; runs
+ * that finished before this feature first ran count as seen.
+ */
+const seenRunsStorageKey = 'ai-ins-seen-runs'
+type SeenRuns = { runs: Record<string, number>; since: number }
+
+function readSeenRuns(): SeenRuns {
+  try {
+    const value = JSON.parse(window.localStorage.getItem(seenRunsStorageKey) || 'null') as SeenRuns | null
+    if (value && typeof value.since === 'number' && value.runs && typeof value.runs === 'object') return value
+  } catch {
+    // Unreadable: start over below.
+  }
+  const fresh = { runs: {}, since: Date.now() }
+  writeSeenRuns(fresh)
+  return fresh
+}
+
+function writeSeenRuns(value: SeenRuns) {
+  try {
+    window.localStorage.setItem(seenRunsStorageKey, JSON.stringify(value))
+  } catch {
+    // Ignore storage restrictions in embedded browsers.
+  }
+}
+
+function getRunFinishedAt(run: AgentRun) {
+  const turn = run.turns[run.turns.length - 1]
+  return run.completed ? turn?.completedAt || turn?.createdAt || 0 : 0
+}
+
+function isRunUnread(run: AgentRun, seen: SeenRuns) {
+  const finishedAt = getRunFinishedAt(run)
+  return finishedAt > 0 && finishedAt > (seen.runs[run.id] ?? seen.since)
+}
+
+/** The conversation open in the panel is being looked at: its result is seen. */
+function markOpenConversationSeen() {
+  const run = aiInsPanel ? getSelectedRun() : undefined
+  if (!run) return
+  const seen = readSeenRuns()
+  if (!isRunUnread(run, seen)) return
+  // Drop entries for runs that no longer exist while writing.
+  const runs_: Record<string, number> = {}
+  for (const candidate of runs) if (seen.runs[candidate.id]) runs_[candidate.id] = seen.runs[candidate.id]
+  runs_[run.id] = Date.now()
+  writeSeenRuns({ runs: runs_, since: seen.since })
+}
+
 /**
  * The dock is the way back into the panel, so it is there whenever the panel
  * is closed — also in a project with no conversations yet, where it is the
@@ -663,7 +719,7 @@ function ensureDockButton() {
   const mark = createElement('span', 'ai-ins-brand-mark')
   mark.setAttribute('aria-hidden', 'true')
   mark.append(createElement('span', 'ai-ins-brand-diamond'), createElement('span', 'ai-ins-brand-spark'))
-  dockButton.append(mark, createElement('span', 'ai-ins-dock-label'))
+  dockButton.append(mark, createElement('span', 'ai-ins-dock-badge'))
   dockButton.style.visibility = 'hidden'
   installDockDrag()
   document.body.append(dockButton)
@@ -684,33 +740,33 @@ function updateDockButton() {
     return
   }
 
-  const dockLabel = dockButton.querySelector('.ai-ins-dock-label')
-  if (!dockLabel) return
+  const badge = dockButton.querySelector('.ai-ins-dock-badge')
+  if (!badge) return
 
-  // No conversations yet: just the brand mark, opening a new conversation.
-  dockButton.classList.toggle('ai-ins-dock-empty', !runs.length)
-  if (!runs.length) {
-    dockButton.classList.remove('ai-ins-dock-running', 'ai-ins-dock-waiting')
-    dockLabel.textContent = ''
-    dockButton.title = t('dock.open')
-    dockButton.setAttribute('aria-label', t('dock.open'))
-    window.requestAnimationFrame(() => applyDockPosition())
-    return
-  }
-
-  dockButton.removeAttribute('title')
-  dockButton.removeAttribute('aria-label')
-
-  const runningCount = runs.filter((run) => run.status === 'running' || run.status === 'starting').length
-  // A conversation blocked on the user matters more than one that is merely busy.
+  const seen = readSeenRuns()
   const waitingCount = runs.filter((run) => run.pendingPermissions?.length).length
-  dockButton.classList.toggle('ai-ins-dock-running', runningCount > 0)
-  dockButton.classList.toggle('ai-ins-dock-waiting', waitingCount > 0)
-  dockLabel.textContent = waitingCount
-    ? t('dock.waitingPermission', { count: waitingCount })
-    : runningCount
-      ? t('dock.running', { count: runningCount })
-      : t('dock.total', { count: runs.length })
+  const runningCount = runs.filter((run) => (run.status === 'running' || run.status === 'starting') && !run.pendingPermissions?.length).length
+  const unreadRuns = runs.filter((run) => isRunUnread(run, seen))
+  const unreadFailed = unreadRuns.some((run) => run.status === 'failed' && !run.turns[run.turns.length - 1]?.stopped)
+
+  // One badge, the most urgent state wins: needs you > working > new result.
+  const badgeState = waitingCount ? 'waiting' : runningCount ? 'running' : unreadRuns.length ? (unreadFailed ? 'failed' : 'done') : ''
+  dockButton.classList.toggle('ai-ins-dock-running', runningCount + waitingCount > 0)
+  for (const state of ['waiting', 'done', 'failed']) dockButton.classList.toggle(`ai-ins-dock-${state}`, badgeState === state)
+  dockButton.classList.toggle('ai-ins-dock-has-badge', Boolean(badgeState))
+  badge.textContent = String(
+    badgeState === 'waiting' ? waitingCount : badgeState === 'running' ? runningCount : badgeState ? unreadRuns.length : '',
+  )
+
+  // The tooltip names every state that applies, in the same order.
+  const parts = [
+    waitingCount ? t('dock.waitingPermission', { count: waitingCount }) : '',
+    runningCount ? t('dock.running', { count: runningCount }) : '',
+    unreadRuns.length ? t('dock.unread', { count: unreadRuns.length }) : '',
+  ].filter(Boolean)
+  const label = parts.length ? parts.join(' · ') : runs.length ? t('dock.total', { count: runs.length }) : t('dock.open')
+  dockButton.title = label
+  dockButton.setAttribute('aria-label', label)
   window.requestAnimationFrame(() => applyDockPosition())
 }
 

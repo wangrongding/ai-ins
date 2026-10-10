@@ -84,10 +84,8 @@ export const zhCN = {
   'chat.newConversation': '新会话',
   'chat.newConversationHint': '{provider} · 发送后出现在左侧历史里',
   'chat.logTitle': '日志 {log}',
-  'chat.expand': '放大对话',
   'chat.stop': '停止',
   'chat.stopTitle': '结束这一轮，会话保留，可以接着追问',
-  'chat.delete': '删除',
   'chat.deleteRunningConfirm': '这条会话还在运行，停止并删除它？',
   'chat.followLatest': '查看最新',
 
@@ -270,10 +268,10 @@ export const zhCN = {
   'modal.promptFirst': '这里是启动这条会话时真正发送给 {provider} 的完整 prompt，包含源码位置和 DOM source stack。',
   'modal.promptMissing': '这一轮还没有记录完整 prompt；请打开日志文件 {log} 检查启动命令和 prompt 正文。',
   'modal.logFile': '日志文件：{log}',
-  'modal.transcriptSubtitle': '{provider} · {turns}',
 
   // Dock button
   'dock.running': '{count} 个会话运行中',
+  'dock.unread': '{count} 个会话有新结果',
   'dock.total': '{count} 个 AI Ins 会话',
 
   // Live activity and reasoning
