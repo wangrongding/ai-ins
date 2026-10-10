@@ -2147,8 +2147,26 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
         ) : (
           <>
             <p className="ai-ins-chat-empty-title">{runsLoading ? t('sidebar.loading') : t('empty.startTitle')}</p>
-            <p>{t('empty.pickHint')}</p>
-            {runs.length ? <p>{t('empty.historyHint')}</p> : null}
+            {/* The two ways in, side by side; each card is also the shortcut to start it. */}
+            <div className="ai-ins-empty-options">
+              <button className="ai-ins-empty-option" onClick={onClose} type="button">
+                <span className="ai-ins-empty-option-index">1</span>
+                <span className="ai-ins-empty-option-title">{t('empty.pickTitle')}</span>
+                <span className="ai-ins-empty-option-body">{t('empty.pickBody', { key: panelIsMacPlatform() ? 'Option' : 'Alt' })}</span>
+                <span className="ai-ins-empty-option-action">{t('empty.pickAction')} →</span>
+              </button>
+              <button
+                className="ai-ins-empty-option"
+                onClick={(event) => event.currentTarget.closest('.ai-ins-panel')?.querySelector<HTMLTextAreaElement>('.ai-ins-textarea')?.focus()}
+                type="button"
+              >
+                <span className="ai-ins-empty-option-index">2</span>
+                <span className="ai-ins-empty-option-title">{t('empty.projectTitle')}</span>
+                <span className="ai-ins-empty-option-body">{t('empty.projectBody')}</span>
+                <span className="ai-ins-empty-option-action">{t('empty.projectAction')} ↓</span>
+              </button>
+            </div>
+            {runs.length ? <p className="ai-ins-empty-history">{t('empty.historyHint')}</p> : null}
           </>
         )}
       </div>

@@ -2067,6 +2067,77 @@
   margin-bottom: var(--ai-ins-space-4);
 }
 
+/* Empty new conversation: the two ways to start, as clickable cards. */
+.ai-ins-empty-options {
+  display: grid;
+  width: min(640px, 100%);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--ai-ins-space-3);
+  margin-top: var(--ai-ins-space-4);
+}
+
+.ai-ins-empty-option {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  border: 1px solid var(--ai-ins-border);
+  border-radius: var(--ai-ins-radius-md);
+  background: var(--ai-ins-surface-hover);
+  padding: var(--ai-ins-space-4);
+  color: var(--ai-ins-text-secondary);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.ai-ins-empty-option:hover {
+  border-color: var(--ai-ins-border-strong);
+  background: var(--ai-ins-surface-active);
+}
+
+.ai-ins-empty-option-index {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--ai-ins-surface-active);
+  color: var(--ai-ins-text);
+  font-size: var(--ai-ins-text-xs);
+  font-weight: 600;
+}
+
+.ai-ins-empty-option-title {
+  color: var(--ai-ins-text);
+  font-size: var(--ai-ins-text-lg);
+  font-weight: 600;
+}
+
+.ai-ins-empty-option-body {
+  font-size: var(--ai-ins-text-sm);
+  line-height: 1.6;
+}
+
+.ai-ins-empty-option-action {
+  margin-top: auto;
+  padding-top: var(--ai-ins-space-1);
+  color: var(--ai-ins-text);
+  font-size: var(--ai-ins-text-sm);
+  font-weight: 550;
+}
+
+.ai-ins-empty-history {
+  margin-top: var(--ai-ins-space-4) !important;
+  color: var(--ai-ins-text-tertiary);
+  font-size: var(--ai-ins-text-sm);
+}
+
 /* -------------------------------------------------------------- markdown */
 
 .ai-ins-output-markdown {
