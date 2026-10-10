@@ -225,21 +225,28 @@ function saveStoredProxyMode(proxyMode) {
   rememberSetting(proxyModeStorageKey, proxyMode)
 }
 
+/*
+ * The dock remembers which corner it was dragged towards and how far from
+ * those two edges: { right | left, bottom | top }. A resize keeps it the same
+ * distance from its edges, so a corner dock stays in the corner whatever the
+ * window does. Without a saved anchor the stylesheet places it bottom-right.
+ */
 function readDockPosition() {
   try {
-    const rawPosition = window.localStorage.getItem(dockPositionStorageKey)
-    const position = rawPosition ? JSON.parse(rawPosition) : null
-    if (position && Number.isFinite(position.x) && Number.isFinite(position.y)) {
-      return position
+    const anchor = JSON.parse(window.localStorage.getItem(dockPositionStorageKey) || 'null')
+    const horizontal = anchor && (Number.isFinite(anchor.left) || Number.isFinite(anchor.right))
+    const vertical = anchor && (Number.isFinite(anchor.top) || Number.isFinite(anchor.bottom))
+    if (horizontal && vertical) {
+      return anchor
     }
   } catch {
     // Ignore malformed storage values.
   }
 }
 
-function saveDockPosition(position) {
+function saveDockPosition(anchor) {
   try {
-    window.localStorage.setItem(dockPositionStorageKey, JSON.stringify(position))
+    window.localStorage.setItem(dockPositionStorageKey, JSON.stringify(anchor))
   } catch {
     // Ignore storage restrictions in embedded browsers.
   }
@@ -248,7 +255,7 @@ function saveDockPosition(position) {
 function clampDockPosition(position, element = dockButton) {
   const margin = 8
   const rect = element?.getBoundingClientRect()
-  const width = rect?.width || 180
+  const width = rect?.width || 36
   const height = rect?.height || 36
   const maxX = Math.max(margin, window.innerWidth - width - margin)
   const maxY = Math.max(margin, window.innerHeight - height - margin)
@@ -259,17 +266,31 @@ function clampDockPosition(position, element = dockButton) {
   }
 }
 
-function applyDockPosition(position = readDockPosition()) {
-  if (!dockButton || !position) {
+/** Top-left point (from a drag) → distances from the two nearest edges. */
+function toDockAnchor(position) {
+  const rect = dockButton.getBoundingClientRect()
+  const right = window.innerWidth - position.x - rect.width
+  const bottom = window.innerHeight - position.y - rect.height
+  return {
+    ...(position.x + rect.width / 2 > window.innerWidth / 2 ? { right: Math.round(right) } : { left: Math.round(position.x) }),
+    ...(position.y + rect.height / 2 > window.innerHeight / 2 ? { bottom: Math.round(bottom) } : { top: Math.round(position.y) }),
+  }
+}
+
+/** Saved anchor → top-left point in the current window, kept on screen. Never writes back. */
+function applyDockPosition(anchor = readDockPosition()) {
+  if (!dockButton || !anchor) {
     return
   }
 
-  const nextPosition = clampDockPosition(position)
+  const rect = dockButton.getBoundingClientRect()
+  const x = Number.isFinite(anchor.right) ? window.innerWidth - rect.width - anchor.right : anchor.left
+  const y = Number.isFinite(anchor.bottom) ? window.innerHeight - rect.height - anchor.bottom : anchor.top
+  const nextPosition = clampDockPosition({ x, y })
   dockButton.style.left = `${nextPosition.x}px`
   dockButton.style.top = `${nextPosition.y}px`
   dockButton.style.right = 'auto'
   dockButton.style.bottom = 'auto'
-  saveDockPosition(nextPosition)
 }
 
 function installDockDrag() {
@@ -330,7 +351,7 @@ function installDockDrag() {
 
     if (didDrag) {
       const rect = dockButton.getBoundingClientRect()
-      saveDockPosition(clampDockPosition({ x: rect.left, y: rect.top }))
+      saveDockPosition(toDockAnchor(clampDockPosition({ x: rect.left, y: rect.top })))
       window.setTimeout(() => {
         suppressDockClick = false
       }, 0)

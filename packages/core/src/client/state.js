@@ -6,7 +6,9 @@ const defaultAgentProviderId = __AI_INS_DEFAULT_AGENT_PROVIDER__
 const targetAttribute = 'data-ai-ins-target'
 const sourceAttribute = 'data-ai-ins-source'
 const sourceRangeAttribute = 'data-ai-ins-source-range'
-const dockPositionStorageKey = 'ai-ins-dock-position'
+// v2: anchored to the nearest edges. The old key held a top-left point that
+// window resizes overwrote; it is ignored, so docks moved by that return to the corner.
+const dockPositionStorageKey = 'ai-ins-dock-anchor'
 const proxyStorageKey = 'ai-ins-proxy'
 const proxyModeStorageKey = 'ai-ins-proxy-mode'
 const providerStorageKey = 'ai-ins-provider'
