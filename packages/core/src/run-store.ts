@@ -298,6 +298,15 @@ export function getAiInsTurnOutput(run: AiInsRun, turnIndex: number) {
  * `detail` adds each turn's output and full agent prompt. The task list only
  * needs the light shape; a settled run's transcript is fetched when opened.
  */
+/**
+ * `file:line` for the panel, like the locations it builds from picked
+ * elements, so "copy location" and "open in IDE" land on the right line.
+ * Empty for conversations about the whole project.
+ */
+function toSourceLocation(sourcePath: string, lineNumber: number) {
+  return sourcePath && lineNumber > 0 ? `${sourcePath}:${lineNumber}` : sourcePath
+}
+
 export function getAiInsRunSummary(runId: string, run: AiInsRun, root: string, detail = true) {
   const resumeBlockedCode = getAiInsRunResumeBlockedCode(run)
 
@@ -322,7 +331,7 @@ export function getAiInsRunSummary(runId: string, run: AiInsRun, root: string, d
     sessionMode: run.sessionMode,
     signal: run.signal,
     sourceName: run.sourceName,
-    sourcePath: run.sourcePath,
+    sourcePath: toSourceLocation(run.sourcePath, run.lineNumber),
     status: run.status,
     statusMessage: run.statusMessage,
     turns: run.turns.map((turn) => ({
@@ -339,7 +348,7 @@ export function getAiInsRunSummary(runId: string, run: AiInsRun, root: string, d
       prompt: turn.prompt,
       resumed: turn.resumed,
       sourceName: turn.sourceName,
-      sourcePath: turn.sourcePath,
+      sourcePath: toSourceLocation(turn.sourcePath, turn.lineNumber),
       status: turn.status,
       statusMessage: turn.statusMessage,
       stopped: turn.stopped === true,
