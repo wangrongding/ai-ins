@@ -1,5 +1,11 @@
 # @ai-ins/playground-panel-react
 
+## 0.1.16
+
+### Patch Changes
+
+- @ai-ins/vite@1.0.4
+
 ## 0.1.15
 
 ### Patch Changes

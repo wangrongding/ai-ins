@@ -1,6 +1,6 @@
 {
   "name": "ai-ins",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Initialize AI Ins in Astro, Next.js, Vite and Webpack projects.",
   "author": "Rongding Wang <wangrongding@qq.com> (https://github.com/wangrongding)",
   "repository": {
