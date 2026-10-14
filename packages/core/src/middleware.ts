@@ -736,16 +736,23 @@ export function revealInFolderMiddleware(root: string): AiInsMiddleware {
   }
 }
 
-/** Which conversation last touched each file, by turn end time. */
+/**
+ * Which conversation last touched each file, by turn end time. A turn that
+ * only possibly changed it (a shell edit while another ran) loses to one
+ * that certainly did.
+ */
 function getChangeAttribution(root: string) {
-  const owners = new Map<string, { at: number; runId: string }>()
+  const owners = new Map<string, { at: number; certain: boolean; runId: string }>()
   for (const [runId, run] of aiInsRuns) {
     if (run.root !== root) continue
     for (const turn of run.turns) {
       const at = turn.completedAt ?? turn.createdAt
       for (const file of turn.changedFiles ?? []) {
+        const certain = file.attribution !== 'uncertain'
         const owner = owners.get(file.path)
-        if (!owner || owner.at < at) owners.set(file.path, { at, runId })
+        if (!owner || (certain && !owner.certain) || (certain === owner.certain && owner.at < at)) {
+          owners.set(file.path, { at, certain, runId })
+        }
       }
     }
   }

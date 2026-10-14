@@ -80,6 +80,13 @@ export type ResolvedAiInsAgentSession = {
 export type AiInsChangedFile = {
   /** Lines added / removed by the turn; undefined when no diff was taken. */
   additions?: number
+  /**
+   * Set when another conversation ran at the same time in this project:
+   * `shared` — both edited this file, so the diff holds both turns' changes;
+   * `uncertain` — changed by a shell command, possibly the other conversation's.
+   * Absent when the file is certainly this turn's.
+   */
+  attribution?: 'shared' | 'uncertain'
   binary?: boolean
   deletions?: number
   /**

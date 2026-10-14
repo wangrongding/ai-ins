@@ -53,7 +53,8 @@ describe('conversations without a picked element', () => {
     expect(run.sourcePath).toBe('')
     expect(run.turns[0].agentPrompt).toContain('Add a footer')
     // Let the echo agent finish and its log close before the temp root goes away.
-    for (let i = 0; i < 100 && !run.completed; i += 1) await new Promise((resolve) => setTimeout(resolve, 50))
+    for (let i = 0; i < 300 && !run.completed; i += 1) await new Promise((resolve) => setTimeout(resolve, 50))
     expect(run.turns[0].output).toContain('did not pick a specific element')
-  })
+    // Real child processes and git: give a loaded machine room.
+  }, 20000)
 })

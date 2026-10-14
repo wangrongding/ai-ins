@@ -307,6 +307,31 @@ function toSourceLocation(sourcePath: string, lineNumber: number) {
   return sourcePath && lineNumber > 0 ? `${sourcePath}:${lineNumber}` : sourcePath
 }
 
+// Interactive resume commands of the built-in agents, keyed by provider id.
+const terminalResumeCommands: Record<string, (sessionId: string) => string> = {
+  claude: (id) => `claude --resume ${id}`,
+  codex: (id) => `codex resume ${id}`,
+  copilot: (id) => `copilot --resume ${id}`,
+  cursor: (id) => `cursor-agent --resume ${id}`,
+}
+
+/**
+ * Shell line that picks this conversation up in the agent's own terminal UI.
+ * It changes into the project first: Claude keeps sessions per directory.
+ * macOS / Linux get POSIX sh (also fine in zsh, bash and fish); Windows gets
+ * PowerShell, the default shell of Windows Terminal, in a form that works in
+ * both 5.1 (no `&&`) and 7. Undefined until a session really exists, or for
+ * agents without one.
+ */
+export function getTerminalResumeCommand(run: AiInsRun, platform: NodeJS.Platform = process.platform) {
+  const build = terminalResumeCommands[run.providerId]
+  if (!build || !run.sessionId || (run.sessionMode === 'assign' && !run.sessionStarted)) return undefined
+  if (platform === 'win32') {
+    return `Set-Location -LiteralPath '${run.root.replaceAll("'", "''")}'; ${build(run.sessionId)}`
+  }
+  return `cd '${run.root.replaceAll("'", `'\\''`)}' && ${build(run.sessionId)}`
+}
+
 export function getAiInsRunSummary(runId: string, run: AiInsRun, root: string, detail = true) {
   const resumeBlockedCode = getAiInsRunResumeBlockedCode(run)
 
@@ -328,6 +353,7 @@ export function getAiInsRunSummary(runId: string, run: AiInsRun, root: string, d
     providerId: run.providerId,
     providerLabel: run.providerLabel,
     resumeBlockedCode,
+    resumeCommand: getTerminalResumeCommand(run),
     sessionMode: run.sessionMode,
     signal: run.signal,
     sourceName: run.sourceName,

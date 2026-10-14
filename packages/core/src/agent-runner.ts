@@ -4,11 +4,12 @@ import { getAgentEnv } from './proxy'
 import { cancelPendingPermissions } from './permissions'
 import { appendAiInsEvent, setAiInsRunSessionId } from './run-store'
 import { shouldUseShellForCommand } from './editor'
+import { addTurnClaims, beginTurnClaims, endTurnClaims, getEditedPaths } from './turn-claims'
 import { addWorkspacePatches, diffWorkspaceSnapshots, takeWorkspaceBaseline, takeWorkspaceSnapshot } from './workspace-changes'
 import { spawn } from 'child_process'
 import { createWriteStream } from 'fs'
 import { StringDecoder } from 'string_decoder'
-import type { AiInsRun, ResolvedAiInsAgentProvider } from './types'
+import type { AiInsChangedFile, AiInsRun, ResolvedAiInsAgentProvider } from './types'
 
 const heartbeatIntervalMs = 5000
 
@@ -34,6 +35,9 @@ export type AgentTurnOptions = {
  */
 export async function startAgentTurn(options: AgentTurnOptions) {
   const { agentCommand, args, input, logPath, prompt, provider, proxy, proxyModeSet, root, run, runId } = options
+  // Registered before the snapshot, so a turn starting meanwhile counts as overlapping.
+  const claimsKey = `${runId}:${run.turns.length - 1}`
+  beginTurnClaims(claimsKey, root)
   // Taken before the process exists, so every edit the agent makes shows up in
   // the diff at exit. Undefined outside a git work tree: no file list then.
   const workspaceBefore = await takeWorkspaceSnapshot(root)
@@ -134,6 +138,7 @@ export async function startAgentTurn(options: AgentTurnOptions) {
     try {
       const parsed = JSON.parse(line)
       captureSessionId(parsed)
+      addTurnClaims(claimsKey, getEditedPaths(parsed, root))
       appendOutput(formatJsonLine(parsed), 'stdout')
     } catch {
       appendOutput(`${line}\n`, 'stdout')
@@ -207,6 +212,8 @@ export async function startAgentTurn(options: AgentTurnOptions) {
   child.on('error', (error) => {
     completed = true
     clearInterval(heartbeatTimer)
+    // Never started: it changed nothing, and must not hold other turns' attribution open.
+    endTurnClaims(claimsKey, [])
 
     logStream.write(`\n[ai-ins] ${provider.label} failed to start: ${error.message}\n`)
     appendAiInsEvent(runId, {
@@ -234,11 +241,17 @@ export async function startAgentTurn(options: AgentTurnOptions) {
     logStream.write(`\n[ai-ins] ${provider.label} exited with code=${code ?? 'null'} signal=${signal ?? 'null'}\n`)
     void takeWorkspaceSnapshot(root)
       .then((workspaceAfter) => (workspaceBefore && workspaceAfter ? diffWorkspaceSnapshots(workspaceBefore, workspaceAfter) : undefined))
+      // Drop files that a conversation running alongside edited, before diffing them.
+      .then((changedFiles) => (changedFiles ? endTurnClaims(claimsKey, changedFiles) : (endTurnClaims(claimsKey, []), undefined)))
       .then((changedFiles) => (changedFiles ? addWorkspacePatches(root, workspaceBaseline, changedFiles) : undefined))
-      .catch(() => undefined)
+      .catch(() => {
+        endTurnClaims(claimsKey, [])
+        return undefined
+      })
       .then((changedFiles) => {
         if (changedFiles?.length) {
-          logStream.write(`[ai-ins] changed files:\n${changedFiles.map((file) => `  ${file.status} ${file.path}`).join('\n')}\n`)
+          const note = (file: AiInsChangedFile) => (file.attribution ? ` (${file.attribution})` : '')
+          logStream.write(`[ai-ins] changed files:\n${changedFiles.map((file) => `  ${file.status} ${file.path}${note(file)}`).join('\n')}\n`)
         }
 
         appendAiInsEvent(runId, {

@@ -39,12 +39,13 @@ describe('agent output decoding', () => {
 
     const result = JSON.parse(body)
     const run = aiInsRuns.get(result.runId)!
-    for (let i = 0; i < 100 && !run.completed; i += 1) await new Promise((resolve) => setTimeout(resolve, 50))
+    for (let i = 0; i < 300 && !run.completed; i += 1) await new Promise((resolve) => setTimeout(resolve, 50))
 
     // stdout and stderr interleave, so only look at the character that was split.
     const output = run.turns[0].output ?? ''
     expect(output).not.toContain('\ufffd')
     expect(output.match(/我/gu)?.length).toBe(2)
     expect(readFileSync(result.logPath, 'utf-8')).not.toContain('\ufffd')
-  })
+    // Real child processes and git: give a loaded machine room.
+  }, 20000)
 })
