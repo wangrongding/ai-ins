@@ -20,7 +20,9 @@ import {
   refreshIcon,
   searchIcon,
   slidersIcon,
+  shieldIcon,
   sunIcon,
+  terminalIcon,
   trashIcon,
 } from './icons'
 import { detectBrowserLocale, getLocale, isMessageKey, type Locale, type LocalePreference, localeNames, locales, t } from './i18n'
@@ -815,6 +817,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     targetTitle,
   } = props
   const [copied, setCopied] = useState(false)
+  const [resumeCopied, setResumeCopied] = useState(false)
   const [runQuery, setRunQuery] = useState('')
   // Sidebar shows either the conversations or the work tree's uncommitted changes.
   const [sidebarView, setSidebarView] = useState<PanelSidebarView>(() => readPanelSidebarView())
@@ -1071,6 +1074,36 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     if (proxyMode === 'custom') return proxy.trim() ? t('settings.proxyCustom') : t('settings.proxyNeedsUrl')
     if (proxyMode === 'system') return defaultProxy ? t('settings.proxyDetected') : t('settings.proxyNotDetected')
     return t('settings.proxyOff')
+  }
+
+  /**
+   * The permission the next turn runs with, switchable in place. Shows what
+   * the agent will actually use: an unsupported level falls back to a stricter one.
+   */
+  function renderPermissionPicker() {
+    if (!provider?.permissionModes?.length) return null
+    const actual = panelResolvePermissionMode(provider, permissionMode) ?? permissionMode
+    const options = (['ask', 'edit', 'full'] as const).map((value) => {
+      const resolved = panelResolvePermissionMode(provider, value)
+      return {
+        hint: resolved && resolved !== value ? t('composer.permissionFallback', { actual: t(panelPermissionModeKeys[resolved]), provider: provider.label }) : undefined,
+        label: t(panelPermissionModeKeys[value]),
+        value,
+      }
+    })
+    return (
+      <span className={`ai-ins-permission-picker ai-ins-permission-picker-${actual}`}>
+        <Icon paths={shieldIcon} />
+        <PanelSelect
+          ariaLabel={t('composer.permission')}
+          onChange={(next) => onPermissionModeChange(next as PermissionMode)}
+          options={options}
+          title={t('composer.permissionTitle', { mode: t(panelPermissionModeKeys[actual]) })}
+          // What will really run, even when the saved choice falls back for this agent.
+          value={actual}
+        />
+      </span>
+    )
   }
 
   /** Composer chip for a proxy in use; nothing when the proxy is off. */
@@ -2061,6 +2094,14 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                       {panelChangeStatusLabels[file.status]}
                     </span>
                     <span className="ai-ins-msg-file-path">{displayPath}</span>
+                    {file.attribution ? (
+                      <span
+                        className={`ai-ins-msg-file-note ai-ins-msg-file-note-${file.attribution}`}
+                        title={t(file.attribution === 'shared' ? 'files.sharedTitle' : 'files.uncertainTitle')}
+                      >
+                        {t(file.attribution === 'shared' ? 'files.shared' : 'files.uncertain')}
+                      </span>
+                    ) : null}
                     {file.additions !== undefined && !file.binary ? (
                       <span className="ai-ins-msg-file-stat">
                         {file.additions ? <span className="ai-ins-msg-file-add">+{file.additions}</span> : null}
@@ -2312,6 +2353,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                   title={providerSwitchTitle}
                   value={provider?.id || providerId}
                 />
+                {renderPermissionPicker()}
                 {provider && !provider.enabled ? (
                   // Standing problem: say it where the user is about to send, not in a toast.
                   <span className="ai-ins-proxy-chip ai-ins-proxy-chip-warn ai-ins-composer-warning" title={provider.disabledReason || t('status.agentNotConfigured')}>
@@ -2320,6 +2362,34 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                 ) : (
                   renderProxyChip()
                 )}
+                {/* Pick the same session up in the agent's own terminal UI. */}
+                {selectedRun?.resumeCommand ? (
+                  <span className="ai-ins-resume">
+                    <button
+                      aria-describedby="ai-ins-resume-tip"
+                      aria-label={resumeCopied ? t('chat.copiedResume') : t('chat.copyResume')}
+                      className={`ai-ins-resume-copy${resumeCopied ? ' ai-ins-resume-copy-done' : ''}`}
+                      onClick={() => {
+                        const command = selectedRun.resumeCommand
+                        if (!command) return
+                        void navigator.clipboard?.writeText(command).then(() => {
+                          setResumeCopied(true)
+                          window.setTimeout(() => setResumeCopied(false), 1800)
+                        })
+                      }}
+                      type="button"
+                    >
+                      <Icon paths={resumeCopied ? checkIcon : terminalIcon} />
+                      <span>{resumeCopied ? t('composer.copied') : t('chat.resumeShort')}</span>
+                    </button>
+                    {/* Our own tooltip: the command in full, readable, in the panel's style. */}
+                    <span className="ai-ins-resume-tip" id="ai-ins-resume-tip" role="tooltip">
+                      <span className="ai-ins-resume-tip-title">{t('chat.copyResumeTitle')}</span>
+                      <code>{selectedRun.resumeCommand}</code>
+                      <span className="ai-ins-resume-tip-hint">{resumeCopied ? t('chat.copiedResume') : t('chat.resumeHint')}</span>
+                    </span>
+                  </span>
+                ) : null}
                 {/* While a turn runs: stop it here, where the next message is written. Typing still queues. */}
                 {selectedRun && selectedRunWorking ? (
                   <button

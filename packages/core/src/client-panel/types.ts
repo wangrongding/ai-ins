@@ -33,6 +33,8 @@ export type LayerTarget = {
 export type ChangedFile = {
   /** Lines added / removed; undefined for turns recorded before diffs were kept. */
   additions?: number
+  /** Another conversation ran alongside: both edited it (`shared`) or it may be theirs (`uncertain`). */
+  attribution?: 'shared' | 'uncertain'
   binary?: boolean
   deletions?: number
   /** Absolute path. */
@@ -87,6 +89,8 @@ export type AgentRunTurn = {
 
 export type AgentRun = {
   canResume: boolean
+  /** Shell line to continue this conversation in the agent's own terminal UI. */
+  resumeCommand?: string
   /** Pinned to the top of the list since this time. */
   pinnedAt?: number
   completed: boolean

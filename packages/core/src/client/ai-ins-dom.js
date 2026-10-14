@@ -293,6 +293,41 @@ function applyDockPosition(anchor = readDockPosition()) {
   dockButton.style.bottom = 'auto'
 }
 
+/*
+ * Magnet: while the dock is tucked, the closer the pointer gets to its tab
+ * (within ~140px), the further the tab leans out. Written as a CSS variable
+ * once per frame; the stylesheet does the rest.
+ */
+let dockPeekFrame = 0
+let dockPeekPointer
+
+function updateDockPeek() {
+  dockPeekFrame = 0
+  if (!dockButton) return
+  let peek = 0
+  if (dockPeekPointer && dockButton.classList.contains('ai-ins-dock-tucked')) {
+    const rect = dockButton.getBoundingClientRect()
+    const toEdge = dockButton.dataset.edge === 'left' ? dockPeekPointer.x : window.innerWidth - dockPeekPointer.x
+    const toMiddle = Math.max(0, Math.abs(dockPeekPointer.y - (rect.top + rect.height / 2)) - rect.height / 2)
+    peek = Math.max(0, Math.min(1, 1 - Math.hypot(toEdge, toMiddle) / 140))
+  }
+  dockButton.style.setProperty('--ai-ins-dock-peek', peek.toFixed(3))
+}
+
+window.addEventListener(
+  'pointermove',
+  (event) => {
+    dockPeekPointer = { x: event.clientX, y: event.clientY }
+    if (!dockPeekFrame) dockPeekFrame = window.requestAnimationFrame(updateDockPeek)
+  },
+  { passive: true },
+)
+
+document.addEventListener('pointerleave', () => {
+  dockPeekPointer = undefined
+  if (!dockPeekFrame) dockPeekFrame = window.requestAnimationFrame(updateDockPeek)
+})
+
 function installDockDrag() {
   if (!dockButton) {
     return
@@ -304,9 +339,12 @@ function installDockDrag() {
     }
 
     const rect = dockButton.getBoundingClientRect()
+    // A tucked dock is slid sideways by a transform; drag from where it really sits.
+    const transform = getComputedStyle(dockButton).transform
+    const shiftX = transform && transform !== 'none' ? new DOMMatrixReadOnly(transform).m41 : 0
     dockPointerState = {
       didDrag: false,
-      offsetX: event.clientX - rect.left,
+      offsetX: event.clientX - (rect.left - shiftX),
       offsetY: event.clientY - rect.top,
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -352,6 +390,8 @@ function installDockDrag() {
     if (didDrag) {
       const rect = dockButton.getBoundingClientRect()
       saveDockPosition(toDockAnchor(clampDockPosition({ x: rect.left, y: rect.top })))
+      // Dropped by an edge or away from one: re-decide whether it tucks.
+      globalThis.aiInsPanelRuntime?.updateDockButton()
       window.setTimeout(() => {
         suppressDockClick = false
       }, 0)

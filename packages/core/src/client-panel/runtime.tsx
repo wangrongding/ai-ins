@@ -71,6 +71,7 @@ declare function deleteAgentRun(runId: string): Promise<unknown>
 declare function getDisplayPath(layerPath: string): string
 declare function getProvider(providerId: string): AgentProvider
 declare function installDockDrag(): void
+declare function readDockPosition(): { bottom?: number; left?: number; right?: number; top?: number } | undefined
 declare function loadRunDetail(run: AgentRun): Promise<void>
 declare function scheduleRunListSync(delay?: number): void
 declare function stopRun(run: AgentRun): Promise<void>
@@ -754,6 +755,15 @@ function updateDockButton() {
   dockButton.classList.toggle('ai-ins-dock-running', runningCount + waitingCount > 0)
   for (const state of ['waiting', 'done', 'failed']) dockButton.classList.toggle(`ai-ins-dock-${state}`, badgeState === state)
   dockButton.classList.toggle('ai-ins-dock-has-badge', Boolean(badgeState))
+
+  // Nothing to report and parked by a side edge: tuck it away, leaving a sliver
+  // to hover. Anything worth a badge keeps it fully in view.
+  const anchor = readDockPosition() ?? { bottom: 20, right: 20 }
+  const edge = Number.isFinite(anchor.left) ? 'left' : 'right'
+  const gap = (edge === 'left' ? anchor.left : anchor.right) ?? 20
+  dockButton.dataset.edge = edge
+  dockButton.style.setProperty('--ai-ins-dock-gap', `${gap}px`)
+  dockButton.classList.toggle('ai-ins-dock-tucked', !badgeState && gap <= 48)
   badge.textContent = String(
     badgeState === 'waiting' ? waitingCount : badgeState === 'running' ? runningCount : badgeState ? unreadRuns.length : '',
   )

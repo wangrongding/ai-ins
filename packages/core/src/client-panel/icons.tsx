@@ -78,6 +78,10 @@ export const externalLinkIcon = ['M15 3h6v6', 'M10 14 21 3', 'M18 13v6a2 2 0 0 1
 
 export const closeIcon = ['M18 6 6 18', 'm6 6 12 12']
 
+export const shieldIcon = ['M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z']
+
+export const terminalIcon = ['m4 17 6-6-6-6', 'M12 19h8']
+
 export const refreshIcon = ['M21 12a9 9 0 1 1-2.64-6.36L21 8', 'M21 3v5h-5']
 
 export const searchIcon = ['m21 21-4.3-4.3', 'M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14Z']

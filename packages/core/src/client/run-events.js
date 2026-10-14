@@ -253,6 +253,7 @@ async function refreshRunResumability(run) {
     run.canResume = Boolean(summary.canResume)
     run.resumeBlockedCode = summary.resumeBlockedCode || ''
     run.sessionMode = summary.sessionMode || run.sessionMode
+    run.resumeCommand = summary.resumeCommand || run.resumeCommand
     globalThis.aiInsPanelRuntime?.refreshRunList()
     globalThis.aiInsPanelRuntime?.refreshRunDetail()
     globalThis.aiInsPanelRuntime?.refreshComposer()
@@ -351,6 +352,7 @@ function upsertRunFromSummary(summary) {
   run.providerLabel = summary.providerLabel || run.providerLabel
   run.resumeBlockedCode = summary.resumeBlockedCode || ''
   run.sessionMode = summary.sessionMode || run.sessionMode
+  run.resumeCommand = summary.resumeCommand || run.resumeCommand
   run.sourceName = summary.sourceName || run.sourceName
   run.sourcePath = summary.sourcePath || run.sourcePath
   run.status = summary.status || run.status

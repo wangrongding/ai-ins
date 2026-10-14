@@ -1301,6 +1301,105 @@
   white-space: nowrap;
 }
 
+/* "Continue in terminal": a flat 32px control in the composer toolbar, like the proxy chip. */
+.ai-ins-resume {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.ai-ins-resume-copy {
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  border-radius: var(--ai-ins-radius-sm);
+  background: none;
+  padding: 0 var(--ai-ins-space-2);
+  color: var(--ai-ins-text-secondary);
+  cursor: pointer;
+  font-size: var(--ai-ins-text-sm);
+  white-space: nowrap;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease;
+}
+
+.ai-ins-resume-copy:hover,
+.ai-ins-resume-copy:focus-visible {
+  background: var(--ai-ins-surface-hover);
+  color: var(--ai-ins-text);
+}
+
+.ai-ins-resume-copy svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.ai-ins-resume-copy-done,
+.ai-ins-resume-copy-done:hover {
+  color: var(--ai-ins-success);
+}
+
+/* Tooltip card above the control (the composer is at the bottom), opening rightwards over the composer. */
+.ai-ins-resume-tip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  z-index: 50;
+  display: flex;
+  width: max-content;
+  max-width: min(440px, 50vw);
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--ai-ins-border);
+  border-radius: var(--ai-ins-radius-md);
+  background: var(--ai-ins-surface-raised);
+  padding: 10px 12px;
+  box-shadow: var(--ai-ins-shadow-md);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(4px);
+  transition:
+    opacity 0.14s ease,
+    transform 0.14s ease;
+  visibility: hidden;
+}
+
+.ai-ins-resume:hover .ai-ins-resume-tip,
+.ai-ins-resume-copy:focus-visible + .ai-ins-resume-tip {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.25s;
+  visibility: visible;
+}
+
+.ai-ins-resume-tip-title {
+  color: var(--ai-ins-text);
+  font-size: var(--ai-ins-text-sm);
+  font-weight: 600;
+}
+
+.ai-ins-resume-tip code {
+  border: 1px solid var(--ai-ins-border);
+  border-radius: 6px;
+  background: var(--ai-ins-bg-subtle);
+  padding: 6px 8px;
+  color: var(--ai-ins-text);
+  font-family: var(--ai-ins-mono);
+  font-size: var(--ai-ins-text-xs);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.ai-ins-resume-tip-hint {
+  color: var(--ai-ins-text-tertiary);
+  font-size: var(--ai-ins-text-xs);
+}
+
 .ai-ins-detail-subtitle {
   margin-top: 2px;
   overflow: hidden;
@@ -1668,6 +1767,26 @@
   font-size: var(--ai-ins-text-sm);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Attribution note when another conversation ran at the same time. */
+.ai-ins-msg-file-note {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  padding: 0 7px;
+  font-size: var(--ai-ins-text-xs);
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.ai-ins-msg-file-note-shared {
+  background: var(--ai-ins-warning-soft);
+  color: var(--ai-ins-warning);
+}
+
+.ai-ins-msg-file-note-uncertain {
+  background: var(--ai-ins-surface-active);
+  color: var(--ai-ins-text-tertiary);
 }
 
 .ai-ins-msg-file-stat {
@@ -2549,6 +2668,37 @@
   gap: var(--ai-ins-space-2);
 }
 
+/* Permission picker: same quiet trigger as the agent picker; "full access" reads as a warning. */
+.ai-ins-permission-picker {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+/* Shield in front of the level, inside the trigger's hit area. */
+.ai-ins-permission-picker > svg {
+  position: absolute;
+  left: 8px;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  color: var(--ai-ins-text-tertiary);
+  pointer-events: none;
+}
+
+.ai-ins-composer-toolbar .ai-ins-permission-picker .ai-ins-dropdown-trigger {
+  padding-left: 28px;
+}
+
+.ai-ins-permission-picker-full > svg {
+  color: var(--ai-ins-warning);
+}
+
+.ai-ins-permission-picker-full .ai-ins-dropdown-trigger {
+  color: var(--ai-ins-warning);
+}
+
 /* Proxy in use: a quiet 32px chip beside the agent picker; opens settings. */
 .ai-ins-proxy-chip {
   display: inline-flex;
@@ -3428,6 +3578,188 @@
 
 .ai-ins-dock:hover {
   transform: translateY(-1px);
+}
+
+/*
+ * Idle by a side edge, the dock becomes a drawer tab: the mark's own tile,
+ * clipped to a slim rounded strip flush with the screen edge (its rim light
+ * still turning inside), with a small breathing grip. One element, one shape:
+ * - the pointer getting close pulls the tab out a little (`--ai-ins-dock-peek`,
+ *   0 → 1, set from the pointer distance), so it follows you like a magnet;
+ * - pointing at it unfurls the strip into the full tile — slide and reshape on
+ *   the same spring, the drop shadow arriving last;
+ * - leaving folds it back along the same path.
+ */
+.ai-ins-dock {
+  --ai-ins-dock-gap: 20px;
+  --ai-ins-dock-peek: 0;
+  /* Tab: as tall as the dock, 12px wide at rest and 24px as the pointer nears. */
+  --ai-ins-dock-visible: calc(12px + var(--ai-ins-dock-peek) * 12px);
+  --ai-ins-dock-tab-inset: 0px;
+  --ai-ins-dock-grip: 3px;
+  --ai-ins-dock-open: 0.52s cubic-bezier(0.2, 1.25, 0.35, 1);
+  --ai-ins-dock-fold: 0.34s cubic-bezier(0.5, 0, 0.3, 1);
+}
+
+.ai-ins-dock-tucked {
+  box-shadow: none;
+  transition:
+    transform var(--ai-ins-dock-fold),
+    box-shadow 0.15s ease;
+}
+
+.ai-ins-dock-tucked[data-edge="right"] {
+  transform: translateX(calc(var(--ai-ins-dock-gap) + 100% - var(--ai-ins-dock-visible)));
+}
+
+.ai-ins-dock-tucked[data-edge="left"] {
+  transform: translateX(calc(-1 * (var(--ai-ins-dock-gap) + 100% - var(--ai-ins-dock-visible))));
+}
+
+/* The tile is clipped to the strip that shows; the round side faces the page. */
+.ai-ins-dock-tucked .ai-ins-brand-mark {
+  transition: clip-path var(--ai-ins-dock-fold);
+}
+
+.ai-ins-dock-tucked[data-edge="right"] .ai-ins-brand-mark {
+  clip-path: inset(var(--ai-ins-dock-tab-inset) calc(100% - var(--ai-ins-dock-visible)) var(--ai-ins-dock-tab-inset) 0 round 8px 0 0 8px);
+}
+
+.ai-ins-dock-tucked[data-edge="left"] .ai-ins-brand-mark {
+  clip-path: inset(var(--ai-ins-dock-tab-inset) 0 var(--ai-ins-dock-tab-inset) calc(100% - var(--ai-ins-dock-visible)) round 0 8px 8px 0);
+}
+
+/*
+ * The tab is a plain dark tab with the grip in it, nothing else: the rim
+ * light, the inner highlight, the diamond and the spark all wait inside and
+ * come back as it opens.
+ */
+.ai-ins-dock-tucked .ai-ins-brand-mark {
+  background: #1c1c1c;
+}
+
+.ai-ins-dock-tucked .ai-ins-brand-mark::before,
+.ai-ins-dock-tucked .ai-ins-brand-mark::after {
+  transition: opacity 0.2s ease;
+}
+
+.ai-ins-dock-tucked:not(:hover, :focus-visible, .ai-ins-dock-dragging) .ai-ins-brand-mark::before,
+.ai-ins-dock-tucked:not(:hover, :focus-visible, .ai-ins-dock-dragging) .ai-ins-brand-mark::after {
+  opacity: 0;
+}
+
+.ai-ins-dock-tucked:is(:hover, :focus-visible, .ai-ins-dock-dragging) .ai-ins-brand-mark::before,
+.ai-ins-dock-tucked:is(:hover, :focus-visible, .ai-ins-dock-dragging) .ai-ins-brand-mark::after {
+  transition: opacity 0.25s ease 0.08s;
+}
+
+.ai-ins-dock-tucked :is(.ai-ins-brand-diamond, .ai-ins-brand-spark) {
+  transition:
+    opacity 0.15s ease,
+    scale 0.3s ease-in;
+}
+
+.ai-ins-dock-tucked:not(:hover, :focus-visible, .ai-ins-dock-dragging) :is(.ai-ins-brand-diamond, .ai-ins-brand-spark) {
+  opacity: 0;
+  scale: 0.4;
+}
+
+.ai-ins-dock-tucked:is(:hover, :focus-visible, .ai-ins-dock-dragging) :is(.ai-ins-brand-diamond, .ai-ins-brand-spark) {
+  transition:
+    opacity 0.2s ease 0.12s,
+    scale 0.55s var(--ai-ins-dock-spring, cubic-bezier(0.34, 1.56, 0.64, 1)) 0.1s;
+}
+
+/* Open: everything on one spring, shadow last. */
+.ai-ins-dock-tucked:is(:hover, :focus-visible, .ai-ins-dock-dragging) {
+  transform: none;
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.3),
+    0 12px 28px -6px rgba(0, 0, 0, 0.5);
+  transition:
+    transform var(--ai-ins-dock-open),
+    box-shadow 0.3s ease 0.22s;
+}
+
+.ai-ins-dock-tucked:is(:hover, :focus-visible, .ai-ins-dock-dragging) .ai-ins-brand-mark {
+  clip-path: inset(0 0 0 0 round 10px);
+  transition: clip-path var(--ai-ins-dock-open);
+}
+
+/* Grip: a crisp white bar centred in the tab (equal space either side), breathing. */
+.ai-ins-dock-tucked::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  width: var(--ai-ins-dock-grip);
+  height: calc(16px + var(--ai-ins-dock-peek) * 6px);
+  margin-top: calc(-8px - var(--ai-ins-dock-peek) * 3px);
+  border-radius: 999px;
+  background: #ffffff;
+  pointer-events: none;
+  transition:
+    opacity 0.18s ease,
+    left var(--ai-ins-dock-fold),
+    right var(--ai-ins-dock-fold);
+  animation: ai-ins-dock-breathe 2.8s ease-in-out infinite;
+}
+
+.ai-ins-dock-tucked[data-edge="right"]::before {
+  left: calc((var(--ai-ins-dock-visible) - var(--ai-ins-dock-grip)) / 2);
+}
+
+.ai-ins-dock-tucked[data-edge="left"]::before {
+  right: calc((var(--ai-ins-dock-visible) - var(--ai-ins-dock-grip)) / 2);
+}
+
+.ai-ins-dock-tucked:is(:hover, :focus-visible, .ai-ins-dock-dragging)::before {
+  opacity: 0;
+  animation: none;
+}
+
+/* Brightness and length swell together; edges stay sharp. */
+@keyframes ai-ins-dock-breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scaleY(0.75);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+/* Hover strip: the visible tab plus the gap out to the screen edge. */
+.ai-ins-dock-tucked::after {
+  content: "";
+  position: absolute;
+  top: -8px;
+  bottom: -8px;
+}
+
+.ai-ins-dock-tucked[data-edge="right"]::after {
+  left: -8px;
+  right: calc(-1 * var(--ai-ins-dock-gap) - 2px);
+}
+
+.ai-ins-dock-tucked[data-edge="left"]::after {
+  left: calc(-1 * var(--ai-ins-dock-gap) - 2px);
+  right: -8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-ins-dock-tucked,
+  .ai-ins-dock-tucked .ai-ins-brand-mark,
+  .ai-ins-dock-tucked:is(:hover, :focus-visible, .ai-ins-dock-dragging),
+  .ai-ins-dock-tucked:is(:hover, :focus-visible, .ai-ins-dock-dragging) .ai-ins-brand-mark {
+    transition: none;
+  }
+
+  .ai-ins-dock-tucked::before {
+    animation: none;
+  }
 }
 
 .ai-ins-dock * {
