@@ -38,13 +38,15 @@
     "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean --shims && pnpm copy-build",
     "dev": "tsup src/index.ts --format esm,cjs --dts --sourcemap --shims --watch --onSuccess \"pnpm copy-build\"",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
     "next": "^16.0.10",
     "tsup": "^8.4.0",
     "typescript": "^5.8.3",
+    "vitest": "^3.2.7",
     "webpack": "^5.99.0"
   },
   "peerDependencies": {

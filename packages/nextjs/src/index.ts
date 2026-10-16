@@ -43,6 +43,8 @@ type WebpackContext = {
 }
 
 type AiInsServerState = {
+  /** Every route the middleware server answers, for the rewrites. */
+  paths: string[]
   port: number
   server: Server
 }
@@ -136,7 +138,7 @@ function startAiInsServer(root: string, options: AiInsNextPluginOptions) {
         return
       }
 
-      resolve({ port: address.port, server })
+      resolve({ paths: routes.map((route) => route.path), port: address.port, server })
     })
   })
 
@@ -208,25 +210,23 @@ async function resolveRewrites(rewrites: NextRewrites | undefined) {
   return value
 }
 
-async function mergeRewrites(rewrites: NextRewrites | undefined, middlewarePort: number) {
-  const aiInsRewrites: Rewrite[] = [
-    {
-      source: '/__ai-ins/:path*',
-      destination: `http://127.0.0.1:${middlewarePort}/__ai-ins/:path*`,
-    },
-    {
-      source: '/__ai-ins-agent/:path*',
-      destination: `http://127.0.0.1:${middlewarePort}/__ai-ins-agent/:path*`,
-    },
-    {
-      source: '/__open-in-editor',
-      destination: `http://127.0.0.1:${middlewarePort}/__open-in-editor`,
-    },
-    {
-      source: '/__reveal-in-folder',
-      destination: `http://127.0.0.1:${middlewarePort}/__reveal-in-folder`,
-    },
-  ]
+/**
+ * Forward every AI Ins route to the middleware server. The list comes from the
+ * routes the server really serves, so a route added to core is forwarded too;
+ * each path also covers what is under it (`/__ai-ins-agent/runs?…`).
+ */
+export function getAiInsRewrites(paths: string[], middlewarePort: number): Rewrite[] {
+  const target = `http://127.0.0.1:${middlewarePort}`
+  return [...new Set(paths)]
+    .sort((left, right) => right.length - left.length)
+    .flatMap((path) => [
+      { destination: `${target}${path}`, source: path },
+      { destination: `${target}${path}/:path*`, source: `${path}/:path*` },
+    ])
+}
+
+async function mergeRewrites(rewrites: NextRewrites | undefined, paths: string[], middlewarePort: number) {
+  const aiInsRewrites = getAiInsRewrites(paths, middlewarePort)
   const existing = await resolveRewrites(rewrites)
 
   if (Array.isArray(existing)) {
@@ -249,13 +249,13 @@ export function withAiIns(nextConfig: NextConfigExport = {}, options: AiInsNextP
       return config
     }
 
-    const { port } = await startAiInsServer(root, options)
+    const { paths, port } = await startAiInsServer(root, options)
     const previousRewrites = config.rewrites
 
     return {
       ...config,
       async rewrites() {
-        return mergeRewrites(previousRewrites, port)
+        return mergeRewrites(previousRewrites, paths, port)
       },
     }
   }

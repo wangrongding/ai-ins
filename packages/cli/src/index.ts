@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
-import { isAbsolute, join, relative } from 'node:path'
+import { dirname, isAbsolute, join, relative } from 'node:path'
 import process from 'node:process'
 
 type Bundler = 'astro' | 'nextjs' | 'vite' | 'webpack'
@@ -300,17 +300,44 @@ function parseInitOptions(args: string[]): InitOptions {
   return options
 }
 
-function getPackageManager(root: string, packageJson: PackageJson) {
-  const declared = packageJson.packageManager?.split('@')[0]
-  if (declared === 'pnpm' || declared === 'yarn' || declared === 'npm' || declared === 'bun') {
-    return declared
+type PackageManager = 'bun' | 'npm' | 'pnpm' | 'yarn'
+
+function isPackageManager(value: string | undefined): value is PackageManager {
+  return value === 'pnpm' || value === 'yarn' || value === 'npm' || value === 'bun'
+}
+
+function getLockfileManager(dir: string): PackageManager | undefined {
+  if (existsSync(join(dir, 'pnpm-lock.yaml'))) return 'pnpm'
+  if (existsSync(join(dir, 'yarn.lock'))) return 'yarn'
+  if (existsSync(join(dir, 'bun.lockb')) || existsSync(join(dir, 'bun.lock'))) return 'bun'
+  if (existsSync(join(dir, 'package-lock.json'))) return 'npm'
+  return undefined
+}
+
+/**
+ * The project's package manager: its `packageManager` field or lockfile, looked
+ * up from `root` towards the filesystem root — a package inside a monorepo has
+ * neither, the workspace root has them. Falls back to whatever ran `npx`.
+ */
+function getPackageManager(root: string, packageJson: PackageJson): PackageManager {
+  let dir = root
+  let manifest: PackageJson | undefined = packageJson
+  for (;;) {
+    const declared = manifest?.packageManager?.split('@')[0]
+    if (isPackageManager(declared)) return declared
+    const fromLockfile = getLockfileManager(dir)
+    if (fromLockfile) return fromLockfile
+    // Stop at the workspace root: anything above it is another project.
+    if (existsSync(join(dir, 'pnpm-workspace.yaml'))) return 'pnpm'
+    const parent = dirname(dir)
+    if (parent === dir) break
+    dir = parent
+    const parentManifest = join(dir, 'package.json')
+    manifest = existsSync(parentManifest) ? readJsonFile<PackageJson>(parentManifest) : undefined
   }
 
-  if (existsSync(join(root, 'pnpm-lock.yaml'))) return 'pnpm'
-  if (existsSync(join(root, 'yarn.lock'))) return 'yarn'
-  if (existsSync(join(root, 'bun.lockb')) || existsSync(join(root, 'bun.lock'))) return 'bun'
   const userAgent = process.env.npm_config_user_agent?.split(' ')[0]?.split('/')[0]
-  if (userAgent === 'pnpm' || userAgent === 'yarn' || userAgent === 'npm' || userAgent === 'bun') {
+  if (isPackageManager(userAgent)) {
     return userAgent
   }
 
@@ -351,6 +378,19 @@ function installPackage(root: string, packageJson: PackageJson, packageName: str
   if (result.status !== 0) {
     fail(`failed to install ${packageSpec}`)
   }
+}
+
+/** What init did to each file, for the summary. */
+const fileOutcomes = new Map<string, 'created' | 'unchanged' | 'updated'>()
+
+function writeConfig(fileName: string, code: string) {
+  fileOutcomes.set(fileName, existsSync(fileName) ? 'updated' : 'created')
+  writeFileSync(fileName, code)
+}
+
+function keepConfig(fileName: string) {
+  fileOutcomes.set(fileName, 'unchanged')
+  return fileName
 }
 
 function getLineIndent(code: string, index: number) {
@@ -505,7 +545,7 @@ function addToArrayProperty(code: string, propertyName: string, expression: stri
 }
 
 function addArrayProperty(code: string, propertyName: string, expression: string) {
-  const objectPatterns = [/defineConfig\s*\(\s*\{/u, /export\s+default\s+\{/u, /module\.exports\s*=\s*\{/u]
+  const objectPatterns = [/defineConfig\s*\(\s*(?:\([^)]*\)\s*=>\s*\(\s*)?\{/u, /export\s+default\s+\{/u, /module\.exports\s*=\s*\{/u]
 
   for (const pattern of objectPatterns) {
     const match = pattern.exec(code)
@@ -513,14 +553,72 @@ function addArrayProperty(code: string, propertyName: string, expression: string
 
     const openIndex = match.index + match[0].lastIndexOf('{')
     const indent = getLineIndent(code, openIndex)
+    const closeIndex = findMatchingBracket(code, openIndex, '{', '}')
+    // `{}`: give the new property its own lines instead of `{\n  x: [y],}`.
+    if (closeIndex !== -1 && !code.slice(openIndex + 1, closeIndex).trim()) {
+      return `${code.slice(0, openIndex + 1)}\n${indent}  ${propertyName}: [${expression}],\n${indent}${code.slice(closeIndex)}`
+    }
     return `${code.slice(0, openIndex + 1)}\n${indent}  ${propertyName}: [${expression}],${code.slice(openIndex + 1)}`
   }
 
   return null
 }
 
+/** Index just past an expression starting at `start`: the next `,` or closing bracket at depth 0. */
+function findExpressionEnd(code: string, start: number) {
+  const pairs: Record<string, string> = { '(': ')', '[': ']', '{': '}' }
+  for (let index = start; index < code.length; index += 1) {
+    const char = code[index]
+    if (pairs[char]) {
+      const close = findMatchingBracket(code, index, char, pairs[char])
+      if (close === -1) return -1
+      index = close
+      continue
+    }
+    if (char === '"' || char === "'" || char === '`') {
+      const end = code.indexOf(char, index + 1)
+      if (end === -1) return -1
+      index = end
+      continue
+    }
+    if (char === ',' || char === ')' || char === ']' || char === '}') return index
+  }
+  return -1
+}
+
+/**
+ * The property exists but is not an array literal — `plugins: getPlugins()` or
+ * the shorthand `{ plugins }`. Adding a second `plugins` key would silently
+ * override one of them, so spread the existing value into a new array instead.
+ */
+function wrapExistingProperty(code: string, propertyName: string, expression: string, position: 'start' | 'end') {
+  const wrap = (value: string) => (position === 'start' ? `[${expression}, ...${value}]` : `[...${value}, ${expression}]`)
+
+  const keyed = new RegExp(`([{,]\\s*)${propertyName}\\s*:\\s*`, 'u').exec(code)
+  if (keyed) {
+    const valueStart = keyed.index + keyed[0].length
+    const valueEnd = findExpressionEnd(code, valueStart)
+    if (valueEnd === -1) return null
+    const value = code.slice(valueStart, valueEnd).trim()
+    const needsParens = /\s|\?/u.test(value)
+    return `${code.slice(0, valueStart)}${wrap(needsParens ? `(${value})` : value)}${code.slice(valueStart + code.slice(valueStart, valueEnd).trimEnd().length)}`
+  }
+
+  const shorthand = new RegExp(`([{,]\\s*)${propertyName}(\\s*[,}])`, 'u').exec(code)
+  if (shorthand) {
+    const nameStart = shorthand.index + shorthand[1].length
+    return `${code.slice(0, nameStart)}${propertyName}: ${wrap(propertyName)}${code.slice(nameStart + propertyName.length)}`
+  }
+
+  return null
+}
+
 function patchArrayConfig(code: string, propertyName: string, expression: string, position: 'start' | 'end' = 'end') {
-  return addToArrayProperty(code, propertyName, expression, position) ?? addArrayProperty(code, propertyName, expression)
+  return (
+    addToArrayProperty(code, propertyName, expression, position) ??
+    wrapExistingProperty(code, propertyName, expression, position) ??
+    addArrayProperty(code, propertyName, expression)
+  )
 }
 
 function patchPluginConfig(code: string, expression: string, position: 'start' | 'end' = 'end') {
@@ -530,7 +628,7 @@ function patchPluginConfig(code: string, expression: string, position: 'start' |
 function patchViteConfig(root: string, requestedConfig?: string) {
   const configFile = resolveConfigFile(root, 'vite', requestedConfig)
   if (!existsSync(configFile)) {
-    writeFileSync(
+    writeConfig(
       configFile,
       `import aiIns from '@ai-ins/vite'\nimport { defineConfig } from 'vite'\n\nexport default defineConfig({\n  plugins: [aiIns()],\n})\n`,
     )
@@ -539,7 +637,7 @@ function patchViteConfig(root: string, requestedConfig?: string) {
 
   const code = readFileSync(configFile, 'utf-8')
   if (code.includes('@ai-ins/vite')) {
-    return configFile
+    return keepConfig(configFile)
   }
 
   const importName = uniqueIdentifier(code, 'aiIns')
@@ -549,14 +647,14 @@ function patchViteConfig(root: string, requestedConfig?: string) {
     fail(`could not update ${configFile}. Add ${importName}() to the Vite plugins array manually.`)
   }
 
-  writeFileSync(configFile, patched)
+  writeConfig(configFile, patched)
   return configFile
 }
 
 function patchAstroConfig(root: string, requestedConfig?: string) {
   const configFile = resolveConfigFile(root, 'astro', requestedConfig)
   if (!existsSync(configFile)) {
-    writeFileSync(
+    writeConfig(
       configFile,
       `import aiIns from '@ai-ins/astro'\nimport { defineConfig } from 'astro/config'\n\nexport default defineConfig({\n  integrations: [aiIns()],\n})\n`,
     )
@@ -565,7 +663,7 @@ function patchAstroConfig(root: string, requestedConfig?: string) {
 
   const code = readFileSync(configFile, 'utf-8')
   if (code.includes('@ai-ins/astro')) {
-    return configFile
+    return keepConfig(configFile)
   }
 
   const importName = uniqueIdentifier(code, 'aiIns')
@@ -575,14 +673,14 @@ function patchAstroConfig(root: string, requestedConfig?: string) {
     fail(`could not update ${configFile}. Add ${importName}() to the Astro integrations array manually.`)
   }
 
-  writeFileSync(configFile, patched)
+  writeConfig(configFile, patched)
   return configFile
 }
 
 function patchWebpackConfig(root: string, requestedConfig?: string) {
   const configFile = resolveConfigFile(root, 'webpack', requestedConfig)
   if (!existsSync(configFile)) {
-    writeFileSync(
+    writeConfig(
       configFile,
       `const { AiInsWebpackPlugin } = require('@ai-ins/webpack')\n\nmodule.exports = {\n  devServer: {},\n  plugins: [new AiInsWebpackPlugin()],\n}\n`,
     )
@@ -591,7 +689,7 @@ function patchWebpackConfig(root: string, requestedConfig?: string) {
 
   const code = readFileSync(configFile, 'utf-8')
   if (code.includes('@ai-ins/webpack')) {
-    return configFile
+    return keepConfig(configFile)
   }
 
   const className = uniqueIdentifier(code, 'AiInsWebpackPlugin')
@@ -609,14 +707,14 @@ function patchWebpackConfig(root: string, requestedConfig?: string) {
     fail(`could not update ${configFile}. Add new ${className}() to the Webpack plugins array manually.`)
   }
 
-  writeFileSync(configFile, patched)
+  writeConfig(configFile, patched)
   return configFile
 }
 
 function patchNextConfig(root: string, requestedConfig?: string) {
   const configFile = resolveConfigFile(root, 'nextjs', requestedConfig)
   if (!existsSync(configFile)) {
-    writeFileSync(
+    writeConfig(
       configFile,
       `import { withAiIns } from '@ai-ins/nextjs'\nimport type { NextConfig } from 'next'\n\nconst nextConfig: NextConfig = {}\n\nexport default withAiIns(nextConfig)\n`,
     )
@@ -625,7 +723,7 @@ function patchNextConfig(root: string, requestedConfig?: string) {
 
   const code = readFileSync(configFile, 'utf-8')
   if (code.includes('@ai-ins/nextjs')) {
-    return configFile
+    return keepConfig(configFile)
   }
 
   const helperName = uniqueIdentifier(code, 'withAiIns')
@@ -647,18 +745,18 @@ function patchNextConfig(root: string, requestedConfig?: string) {
       const start = commonJsObjectMatch.index
       const end = closeIndex + (withImport[closeIndex + 1] === ';' ? 2 : 1)
       const expression = withImport.slice(openIndex, closeIndex + 1)
-      writeFileSync(configFile, `${withImport.slice(0, start)}module.exports = ${helperName}(${expression})${withImport.slice(end)}`)
+      writeConfig(configFile, `${withImport.slice(0, start)}module.exports = ${helperName}(${expression})${withImport.slice(end)}`)
       return configFile
     }
   }
 
-  const commonJsMatch = /module\.exports\s*=\s*([^\n]+?);?\s*$/mu.exec(withImport)
+  const commonJsMatch = /module\.exports\s*=\s*([^\n]+?);?[ \t]*$/mu.exec(withImport)
   if (commonJsMatch?.index !== undefined) {
     const expression = commonJsMatch[1].trim()
     const start = commonJsMatch.index
     const end = commonJsMatch.index + commonJsMatch[0].length
     const replacement = `module.exports = ${helperName}(${expression})`
-    writeFileSync(configFile, `${withImport.slice(0, start)}${replacement}${withImport.slice(end)}`)
+    writeConfig(configFile, `${withImport.slice(0, start)}${replacement}${withImport.slice(end)}`)
     return configFile
   }
 
@@ -670,18 +768,18 @@ function patchNextConfig(root: string, requestedConfig?: string) {
       const start = exportObjectMatch.index
       const end = closeIndex + (withImport[closeIndex + 1] === ';' ? 2 : 1)
       const expression = withImport.slice(openIndex, closeIndex + 1)
-      writeFileSync(configFile, `${withImport.slice(0, start)}export default ${helperName}(${expression})${withImport.slice(end)}`)
+      writeConfig(configFile, `${withImport.slice(0, start)}export default ${helperName}(${expression})${withImport.slice(end)}`)
       return configFile
     }
   }
 
-  const exportMatch = /export\s+default\s+([^\n]+?);?\s*$/mu.exec(withImport)
+  const exportMatch = /export\s+default\s+([^\n]+?);?[ \t]*$/mu.exec(withImport)
   if (exportMatch?.index !== undefined) {
     const expression = exportMatch[1].trim()
     const start = exportMatch.index
     const end = exportMatch.index + exportMatch[0].length
     const replacement = `export default ${helperName}(${expression})`
-    writeFileSync(configFile, `${withImport.slice(0, start)}${replacement}${withImport.slice(end)}`)
+    writeConfig(configFile, `${withImport.slice(0, start)}${replacement}${withImport.slice(end)}`)
     return configFile
   }
 
@@ -691,16 +789,16 @@ function patchNextConfig(root: string, requestedConfig?: string) {
 function patchNextClientInstrumentation(root: string) {
   const configFile = findExistingFile(root, nextClientInstrumentationFiles) ?? join(root, 'instrumentation-client.ts')
   if (!existsSync(configFile)) {
-    writeFileSync(configFile, `import '@ai-ins/nextjs/client'\n`)
+    writeConfig(configFile, `import '@ai-ins/nextjs/client'\n`)
     return configFile
   }
 
   const code = readFileSync(configFile, 'utf-8')
   if (code.includes('@ai-ins/nextjs/client')) {
-    return configFile
+    return keepConfig(configFile)
   }
 
-  writeFileSync(configFile, insertImport(code, `import '@ai-ins/nextjs/client'`))
+  writeConfig(configFile, insertImport(code, `import '@ai-ins/nextjs/client'`))
   return configFile
 }
 
@@ -733,11 +831,15 @@ function runInit(args: string[]) {
   }
   const configFile = configPatchers[bundler](options.cwd, options.config)
   const clientFile = bundler === 'nextjs' ? patchNextClientInstrumentation(options.cwd) : undefined
-  console.log(`- Updated ${configFile}`)
-  if (clientFile) {
-    console.log(`- Updated ${clientFile}`)
+  const report = (fileName: string) => {
+    const outcome = fileOutcomes.get(fileName) ?? 'updated'
+    const label = { created: 'Created', unchanged: 'Already configured', updated: 'Updated' }[outcome]
+    console.log(`- ${label} ${formatDisplayPath(options.cwd, fileName)}`)
   }
-  console.log('Done. Restart your dev server to load AI Ins.')
+  report(configFile)
+  if (clientFile) report(clientFile)
+  const changed = [...fileOutcomes.values()].some((outcome) => outcome !== 'unchanged')
+  console.log(changed ? 'Done. Restart your dev server to load AI Ins.' : 'Done. AI Ins was already set up; nothing to change.')
 }
 
 function main(args: string[]) {
