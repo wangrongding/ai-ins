@@ -294,10 +294,12 @@ function applyDockPosition(anchor = readDockPosition()) {
 }
 
 /*
- * Magnet: while the dock is tucked, the closer the pointer gets to its tab
- * (within ~140px), the further the tab leans out. Written as a CSS variable
- * once per frame; the stylesheet does the rest.
+ * Magnet: while the dock is tucked, a pointer right by its tab (within
+ * `dockPeekRadius`) makes the tab lean out. Kept small so that moving away
+ * tucks it straight back. Written as a CSS variable once per frame; the
+ * stylesheet does the rest.
  */
+const dockPeekRadius = 32
 let dockPeekFrame = 0
 let dockPeekPointer
 
@@ -309,7 +311,7 @@ function updateDockPeek() {
     const rect = dockButton.getBoundingClientRect()
     const toEdge = dockButton.dataset.edge === 'left' ? dockPeekPointer.x : window.innerWidth - dockPeekPointer.x
     const toMiddle = Math.max(0, Math.abs(dockPeekPointer.y - (rect.top + rect.height / 2)) - rect.height / 2)
-    peek = Math.max(0, Math.min(1, 1 - Math.hypot(toEdge, toMiddle) / 140))
+    peek = Math.max(0, Math.min(1, 1 - Math.hypot(toEdge, toMiddle) / dockPeekRadius))
   }
   dockButton.style.setProperty('--ai-ins-dock-peek', peek.toFixed(3))
 }

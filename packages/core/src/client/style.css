@@ -3585,7 +3585,9 @@
  * clipped to a slim rounded strip flush with the screen edge (its rim light
  * still turning inside), with a small breathing grip. One element, one shape:
  * - the pointer getting close pulls the tab out a little (`--ai-ins-dock-peek`,
- *   0 → 1, set from the pointer distance), so it follows you like a magnet;
+ *   0 → 1, set from the pointer distance), so it follows you like a magnet.
+ *   The lean is its own `translate` on a short transition, so it never fights
+ *   the fold's `transform`;
  * - pointing at it unfurls the strip into the full tile — slide and reshape on
  *   the same spring, the drop shadow arriving last;
  * - leaving folds it back along the same path.
@@ -3593,8 +3595,9 @@
 .ai-ins-dock {
   --ai-ins-dock-gap: 20px;
   --ai-ins-dock-peek: 0;
-  /* Tab: as tall as the dock, 12px wide at rest and 24px as the pointer nears. */
-  --ai-ins-dock-visible: calc(12px + var(--ai-ins-dock-peek) * 12px);
+  /* Tab: a capsule as tall as the dock and 12px wide, sliding up to 10px off the edge as the pointer nears. */
+  --ai-ins-dock-visible: 12px;
+  --ai-ins-dock-lean: calc(var(--ai-ins-dock-peek) * 10px);
   --ai-ins-dock-tab-inset: 0px;
   --ai-ins-dock-grip: 3px;
   --ai-ins-dock-open: 0.52s cubic-bezier(0.2, 1.25, 0.35, 1);
@@ -3605,28 +3608,37 @@
   box-shadow: none;
   transition:
     transform var(--ai-ins-dock-fold),
+    translate 0.12s ease-out,
     box-shadow 0.15s ease;
 }
 
 .ai-ins-dock-tucked[data-edge="right"] {
   transform: translateX(calc(var(--ai-ins-dock-gap) + 100% - var(--ai-ins-dock-visible)));
+  translate: calc(-1 * var(--ai-ins-dock-lean)) 0;
 }
 
 .ai-ins-dock-tucked[data-edge="left"] {
   transform: translateX(calc(-1 * (var(--ai-ins-dock-gap) + 100% - var(--ai-ins-dock-visible))));
+  translate: var(--ai-ins-dock-lean) 0;
 }
 
-/* The tile is clipped to the strip that shows; the round side faces the page. */
+/*
+ * The tile is clipped to a capsule the width of the strip that shows, its
+ * radius the grip's plus the space around it, so the two are concentric. The
+ * lean slides the whole capsule off the edge; the clip itself never moves.
+ */
 .ai-ins-dock-tucked .ai-ins-brand-mark {
-  transition: clip-path var(--ai-ins-dock-fold);
+  transition:
+    clip-path var(--ai-ins-dock-fold),
+    border-radius var(--ai-ins-dock-fold);
 }
 
 .ai-ins-dock-tucked[data-edge="right"] .ai-ins-brand-mark {
-  clip-path: inset(var(--ai-ins-dock-tab-inset) calc(100% - var(--ai-ins-dock-visible)) var(--ai-ins-dock-tab-inset) 0 round 8px 0 0 8px);
+  clip-path: inset(var(--ai-ins-dock-tab-inset) calc(100% - var(--ai-ins-dock-visible)) var(--ai-ins-dock-tab-inset) 0 round calc(var(--ai-ins-dock-visible) / 2));
 }
 
 .ai-ins-dock-tucked[data-edge="left"] .ai-ins-brand-mark {
-  clip-path: inset(var(--ai-ins-dock-tab-inset) 0 var(--ai-ins-dock-tab-inset) calc(100% - var(--ai-ins-dock-visible)) round 0 8px 8px 0);
+  clip-path: inset(var(--ai-ins-dock-tab-inset) 0 var(--ai-ins-dock-tab-inset) calc(100% - var(--ai-ins-dock-visible)) round calc(var(--ai-ins-dock-visible) / 2));
 }
 
 /*
@@ -3636,6 +3648,15 @@
  */
 .ai-ins-dock-tucked .ai-ins-brand-mark {
   background: #1c1c1c;
+}
+
+/*
+ * The tile's own corners and shadow would show past the capsule (a rounder
+ * corner on one side, a grey rim), so the tile takes the capsule's radius.
+ */
+.ai-ins-dock-tucked:not(:hover, :focus-visible, .ai-ins-dock-dragging) .ai-ins-brand-mark {
+  border-radius: calc(var(--ai-ins-dock-visible) / 2);
+  box-shadow: none;
 }
 
 .ai-ins-dock-tucked .ai-ins-brand-mark::before,
@@ -3673,44 +3694,60 @@
 /* Open: everything on one spring, shadow last. */
 .ai-ins-dock-tucked:is(:hover, :focus-visible, .ai-ins-dock-dragging) {
   transform: none;
+  translate: none;
   box-shadow:
     0 2px 4px rgba(0, 0, 0, 0.3),
     0 12px 28px -6px rgba(0, 0, 0, 0.5);
   transition:
     transform var(--ai-ins-dock-open),
+    translate 0.12s ease-out,
     box-shadow 0.3s ease 0.22s;
 }
 
 .ai-ins-dock-tucked:is(:hover, :focus-visible, .ai-ins-dock-dragging) .ai-ins-brand-mark {
   clip-path: inset(0 0 0 0 round 10px);
-  transition: clip-path var(--ai-ins-dock-open);
+  transition:
+    clip-path var(--ai-ins-dock-open),
+    border-radius var(--ai-ins-dock-open);
 }
 
-/* Grip: a crisp white bar centred in the tab (equal space either side), breathing. */
+/*
+ * Grip: a crisp white bar in the tab, at full length with the same space on
+ * all four sides (half of what the tab shows beside it). Each breath it grows
+ * from its middle, a brighter core runs down through it, and a faint halo
+ * comes up at the top of the breath; the bar itself never blurs.
+ */
 .ai-ins-dock-tucked::before {
+  --ai-ins-dock-grip-space: calc((var(--ai-ins-dock-visible) - var(--ai-ins-dock-grip)) / 2);
   content: "";
   position: absolute;
-  top: 50%;
+  top: var(--ai-ins-dock-grip-space);
+  bottom: var(--ai-ins-dock-grip-space);
   z-index: 1;
   width: var(--ai-ins-dock-grip);
-  height: calc(16px + var(--ai-ins-dock-peek) * 6px);
-  margin-top: calc(-8px - var(--ai-ins-dock-peek) * 3px);
   border-radius: 999px;
-  background: #ffffff;
+  background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.72) 0%,
+      rgba(255, 255, 255, 0.72) 38%,
+      #ffffff 50%,
+      rgba(255, 255, 255, 0.72) 62%,
+      rgba(255, 255, 255, 0.72) 100%
+    )
+    0 100% / 100% 300% no-repeat;
   pointer-events: none;
-  transition:
-    opacity 0.18s ease,
-    left var(--ai-ins-dock-fold),
-    right var(--ai-ins-dock-fold);
-  animation: ai-ins-dock-breathe 2.8s ease-in-out infinite;
+  transition: opacity 0.18s ease;
+  animation:
+    ai-ins-dock-breathe 2.6s cubic-bezier(0.45, 0, 0.55, 1) infinite,
+    ai-ins-dock-flow 2.6s linear infinite;
 }
 
 .ai-ins-dock-tucked[data-edge="right"]::before {
-  left: calc((var(--ai-ins-dock-visible) - var(--ai-ins-dock-grip)) / 2);
+  left: var(--ai-ins-dock-grip-space);
 }
 
 .ai-ins-dock-tucked[data-edge="left"]::before {
-  right: calc((var(--ai-ins-dock-visible) - var(--ai-ins-dock-grip)) / 2);
+  right: var(--ai-ins-dock-grip-space);
 }
 
 .ai-ins-dock-tucked:is(:hover, :focus-visible, .ai-ins-dock-dragging)::before {
@@ -3718,20 +3755,36 @@
   animation: none;
 }
 
-/* Brightness and length swell together; edges stay sharp. */
+/* In: longer, brighter, haloed; out: back to a short dim bar. */
 @keyframes ai-ins-dock-breathe {
   0%,
   100% {
     opacity: 0.5;
-    transform: scaleY(0.75);
+    transform: scaleY(0.55);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
   }
   50% {
     opacity: 1;
     transform: scaleY(1);
+    box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.45);
   }
 }
 
-/* Hover strip: the visible tab plus the gap out to the screen edge. */
+/* The bright core runs top to bottom, crossing the middle at the top of the breath. */
+@keyframes ai-ins-dock-flow {
+  from {
+    background-position: 0 100%;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+/*
+ * Hover strip: the visible tab plus the gap out to the screen edge, a little
+ * larger while tucked so the slim tab is easy to hit. Once open it is just the
+ * tile and that gap, so leaving the tile folds it at once.
+ */
 .ai-ins-dock-tucked::after {
   content: "";
   position: absolute;
@@ -3747,6 +3800,19 @@
 .ai-ins-dock-tucked[data-edge="left"]::after {
   left: calc(-1 * var(--ai-ins-dock-gap) - 2px);
   right: -8px;
+}
+
+.ai-ins-dock-tucked:is(:hover, .ai-ins-dock-dragging)::after {
+  top: 0;
+  bottom: 0;
+}
+
+.ai-ins-dock-tucked[data-edge="right"]:is(:hover, .ai-ins-dock-dragging)::after {
+  left: 0;
+}
+
+.ai-ins-dock-tucked[data-edge="left"]:is(:hover, .ai-ins-dock-dragging)::after {
+  right: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
