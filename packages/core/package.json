@@ -1,6 +1,6 @@
 {
   "name": "@ai-ins/core",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Core runtime for AI Ins bundler plugins.",
   "author": "Rongding Wang <wangrongding@qq.com> (https://github.com/wangrongding)",
   "repository": {

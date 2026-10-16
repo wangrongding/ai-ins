@@ -1,5 +1,20 @@
 # @ai-ins/nextjs
 
+## 1.0.6
+
+### Patch Changes
+
+- `npx ai-ins` 能正确接入更多写法的项目；Next.js 下设置相关接口不再 404；悬浮按钮贴边更利落。
+
+  - CLI：`plugins` 写成变量（`defineConfig({ plugins })`）或表达式（`plugins: getPlugins()`）时，改成 `[aiIns(), ...原值]`，不再追加一个重复的 `plugins` 把原有插件覆盖掉。
+  - CLI：在 monorepo 的子包里运行时，沿用根目录的包管理器（`packageManager` 字段或 lockfile），不再退回 npm。
+  - CLI：空配置改写后正确换行，保留文件末尾换行；输出区分「新建 / 已配置 / 已修改」，重复运行时提示无需改动。
+  - Next.js：转发规则改由实际注册的路由生成，修复 `/__ai-ins-config`、`/__ai-ins-settings` 返回 404。
+  - 悬浮按钮：贴边后移开立即收回（磁吸范围从 140px 缩到 32px，不再卡顿）；贴边标签改为同心胶囊，呼吸条四边留白一致，呼吸时伸缩、光芯流过并带淡光晕。
+
+- Updated dependencies
+  - @ai-ins/core@1.0.6
+
 ## 1.0.5
 
 ### Patch Changes

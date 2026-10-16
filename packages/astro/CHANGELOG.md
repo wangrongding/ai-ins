@@ -1,5 +1,13 @@
 # @ai-ins/astro
 
+## 1.0.6
+
+### Patch Changes
+
+- Updated dependencies
+  - @ai-ins/core@1.0.6
+  - @ai-ins/vite@1.0.6
+
 ## 1.0.5
 
 ### Patch Changes
