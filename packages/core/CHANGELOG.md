@@ -1,5 +1,23 @@
 # @ai-ins/core
 
+## 1.0.7
+
+### Patch Changes
+
+- 11f9969: Option / Alt 点选的高亮改为独立浮层：带 `mask-image`、`clip-path`、`outline: none !important` 或处在 `overflow: hidden` 容器里的元素（如渐隐的地址栏输入框）也能看到完整边框，并且浮在页面的模态框和 popover 之上；面板打开时自动收起。
+- 2908c0e: 点选时按住 Option / Alt 再按 ↑ / ↓，可以把高亮切到父元素 / 回到子元素，再点击就以当前这一层为准。光标点不到的容器也能选中了：被子元素占满的，或者是 Electron 窗口拖拽区（`-webkit-app-region: drag`，收不到鼠标事件）的。
+
+  - 高亮框上的标签显示当前元素和源码文件，↑ / ↓ 到头时变灰；没有盒子的 `display: contents` 包装层会被跳过。
+  - 只在已有高亮时接管 Option + 方向键，其他时候照常交给页面。
+  - 贴着视口边缘的元素，高亮环改画在框内侧，四条边都看得见。
+
+- bc5c081: 设置的「版本」区新增「自动检查更新」开关，所有项目共用，保存在 `~/.ai-ins/settings.json`。关掉后不再联网查询、不再提示新版本；插件配置 `updateCheck: false` 或环境变量关闭时，开关置灰并说明原因。
+- 2f77134: 面板提示新版本，并可一键升级。
+
+  - 有新版本时，面板顶部出现「vX 可用」，设置里显示升级命令（按项目实际的适配包和包管理器生成，monorepo 下带 `cd` / `-w`），可复制，也可「让 Agent 升级」：新开对话由 Agent 运行命令并对照更新日志检查配置；「自动编辑」权限这一轮自动提到「询问我」，不支持询问的 Agent 需确认「完全访问」。
+  - 可跳过某个版本；开发服务器终端也会提示一次。
+  - 版本检查在 dev server 里进行：结果缓存 6 小时（失败 30 分钟后重试）、4 秒超时、npm 与 npmmirror 并行，失败不影响使用；CI、本地 link/workspace 依赖、`updateCheck: false`、`AI_INS_UPDATE_CHECK=0` 或 `NO_UPDATE_NOTIFIER=1` 时不检查。
+
 ## 1.0.6
 
 ### Patch Changes

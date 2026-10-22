@@ -1,5 +1,15 @@
 # @ai-ins/vite
 
+## 1.0.7
+
+### Patch Changes
+
+- Updated dependencies [11f9969]
+- Updated dependencies [2908c0e]
+- Updated dependencies [bc5c081]
+- Updated dependencies [2f77134]
+  - @ai-ins/core@1.0.7
+
 ## 1.0.6
 
 ### Patch Changes
