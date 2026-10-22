@@ -223,6 +223,8 @@ export const en: MessageCatalog = {
   'help.shortcuts': 'Shortcuts',
   'help.keyPick': 'Pick an element',
   'help.keyPickKeys': 'Option / Alt + click',
+  'help.keyWalk': 'Walk to the parent / child',
+  'help.keyWalkKeys': 'While picking: Option / Alt + ↑ / ↓',
   'help.keySend': 'Send',
   'help.keyClose': 'Close the panel',
   'help.dock': 'After closing the panel, click the floating button in the page corner to reopen it. You can drag the button.',

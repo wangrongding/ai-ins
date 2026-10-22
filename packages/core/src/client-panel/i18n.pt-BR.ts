@@ -223,6 +223,8 @@ export const ptBR: MessageCatalog = {
   'help.shortcuts': 'Atalhos',
   'help.keyPick': 'Escolher um elemento',
   'help.keyPickKeys': 'Option / Alt + clique',
+  'help.keyWalk': 'Ir para o elemento pai / filho',
+  'help.keyWalkKeys': 'Ao selecionar: Option / Alt + ↑ / ↓',
   'help.keySend': 'Enviar',
   'help.keyClose': 'Fechar o painel',
   'help.dock': 'Depois de fechar o painel, clique no botão flutuante no canto da página para reabri-lo. Dá para arrastar o botão.',

@@ -2019,6 +2019,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     ]
     const shortcuts = [
       { keys: t('help.keyPickKeys'), label: t('help.keyPick') },
+      { keys: t('help.keyWalkKeys'), label: t('help.keyWalk') },
       { keys: submitShortcutLabel, label: t('help.keySend') },
       { keys: 'Esc', label: t('help.keyClose') },
     ]

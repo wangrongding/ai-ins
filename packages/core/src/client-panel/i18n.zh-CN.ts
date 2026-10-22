@@ -223,6 +223,8 @@ export const zhCN = {
   'help.shortcuts': '快捷键',
   'help.keyPick': '选中元素',
   'help.keyPickKeys': 'Option / Alt + 点击',
+  'help.keyWalk': '切换到父 / 子元素',
+  'help.keyWalkKeys': '点选时按住 Option / Alt + ↑ / ↓',
   'help.keySend': '发送',
   'help.keyClose': '关闭面板',
   'help.dock': '面板关闭后，点页面角落的悬浮按钮就能重新打开，按钮可以拖动。',

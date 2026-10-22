@@ -218,6 +218,8 @@ export const ja: MessageCatalog = {
   'help.shortcuts': 'ショートカット',
   'help.keyPick': '要素を選ぶ',
   'help.keyPickKeys': 'Option / Alt + クリック',
+  'help.keyWalk': '親 / 子要素に切り替え',
+  'help.keyWalkKeys': '選択中に Option / Alt + ↑ / ↓',
   'help.keySend': '送信',
   'help.keyClose': 'パネルを閉じる',
   'help.dock': 'パネルを閉じた後は、ページの隅にあるフローティングボタンで再び開けます。ボタンはドラッグで移動できます。',

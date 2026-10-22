@@ -6,8 +6,25 @@
  * shows above the host's modals and popovers.
  */
 let pickOverlay
+let pickOverlayLabel
 let pickOverlayFrame
 let pickOverlayBox = ''
+
+/*
+ * Option / Alt + ↑ / ↓ walks the highlight from the element under the pointer
+ * up to its ancestors and back. That reaches containers the pointer cannot:
+ * ones whose children cover them, or whose own area is an Electron window-drag
+ * region (`-webkit-app-region: drag`), which never gets mouse events.
+ * `pickChain[0]` is the element under the pointer; `currentTarget` is
+ * `pickChain[pickDepth]`.
+ */
+let pickChain = []
+let pickDepth = 0
+
+// Label height plus its gap: a box closer than this to the viewport edge gets the label inside.
+const pickLabelSpace = 26
+// How far the ring reaches outside the box (outline offset + width, matching style.css).
+const pickRingOutset = 4
 
 function getPickOverlay() {
   if (pickOverlay?.isConnected) {
@@ -20,15 +37,69 @@ function getPickOverlay() {
   if (typeof pickOverlay.showPopover === 'function') {
     pickOverlay.popover = 'manual'
   }
+  pickOverlayLabel = document.createElement('div')
+  pickOverlayLabel.className = 'ai-ins-pick-label'
+  pickOverlay.append(pickOverlayLabel)
   // Outside <body>, so a transform or filter on the body cannot become its containing block.
   document.documentElement.append(pickOverlay)
   return pickOverlay
+}
+
+/**
+ * The nearest pickable ancestor that has a box to highlight, stopping below
+ * <body>: the page itself is not a component. Wrappers without a box
+ * (`display: contents`) are skipped, since nothing would show; they still
+ * appear in the layers sent with the pick.
+ */
+function getParentPickTarget(element) {
+  let current = element
+  while (true) {
+    const parent = current.parentElement
+    if (!parent || parent === document.body || parent === document.documentElement) {
+      return undefined
+    }
+
+    const target = getPickTarget(parent)
+    if (!(target instanceof Element) || target === document.body || target === document.documentElement) {
+      return undefined
+    }
+
+    if (target.getClientRects().length) {
+      return target
+    }
+    current = target
+  }
+}
+
+function getPickLabelText(target) {
+  const tag = target.tagName.toLowerCase()
+  const path = getLayersForElement(target)[0]?.path
+  const file = path ? path.split(/[\\/]/u).pop() : ''
+  return file ? `${tag} · ${file}` : tag
+}
+
+function renderPickLabel(target) {
+  const label = pickOverlayLabel
+  const modifier = isMacPlatform() ? '⌥' : 'Alt+'
+  const name = document.createElement('span')
+  name.className = 'ai-ins-pick-label-name'
+  name.textContent = getPickLabelText(target)
+  const up = document.createElement('span')
+  up.className = 'ai-ins-pick-label-key'
+  up.textContent = `${modifier}↑`
+  up.dataset.disabled = String(!getParentPickTarget(target))
+  const down = document.createElement('span')
+  down.className = 'ai-ins-pick-label-key'
+  down.textContent = `${modifier}↓`
+  down.dataset.disabled = String(pickDepth === 0)
+  label.replaceChildren(name, up, down)
 }
 
 function showPickOverlay(target) {
   const overlay = getPickOverlay()
   overlay.style.display = ''
   overlay.style.borderRadius = getComputedStyle(target).borderRadius
+  renderPickLabel(target)
   if (overlay.popover) {
     // Re-enter the top layer, above any modal or popover the host opened since the last pick.
     if (overlay.matches(':popover-open')) {
@@ -39,6 +110,26 @@ function showPickOverlay(target) {
   pickOverlayBox = ''
   window.cancelAnimationFrame(pickOverlayFrame)
   positionPickOverlay()
+}
+
+/** Above the box, else below it, else inside its top edge; kept within the viewport horizontally. */
+function placePickLabel(rect) {
+  const label = pickOverlayLabel
+  const style = label.style
+  style.top = ''
+  style.bottom = ''
+  if (rect.top >= pickLabelSpace) {
+    style.bottom = `calc(100% + 6px)`
+  } else if (rect.bottom + pickLabelSpace <= window.innerHeight) {
+    style.top = `calc(100% + 6px)`
+  } else {
+    style.top = '4px'
+  }
+
+  const width = label.offsetWidth
+  const minLeft = 4 - rect.left
+  const maxLeft = window.innerWidth - 4 - width - rect.left
+  style.left = `${Math.max(minLeft, Math.min(-2, maxLeft))}px`
 }
 
 /** Follow the target through scrolling, layout changes and transitions while the pick is shown. */
@@ -55,7 +146,7 @@ function positionPickOverlay() {
   }
 
   const rect = currentTarget.getBoundingClientRect()
-  const box = `${rect.left} ${rect.top} ${rect.width} ${rect.height}`
+  const box = `${rect.left} ${rect.top} ${rect.width} ${rect.height} ${window.innerWidth} ${window.innerHeight}`
   if (box !== pickOverlayBox) {
     pickOverlayBox = box
     const style = pickOverlay.style
@@ -63,6 +154,11 @@ function positionPickOverlay() {
     style.transform = `translate(${rect.left}px, ${rect.top}px)`
     style.width = `${rect.width}px`
     style.height = `${rect.height}px`
+    // The ring sits outside the box; at a viewport edge that part is off screen, so draw it inside instead.
+    const edge = pickRingOutset
+    const atEdge = rect.top < edge || rect.left < edge || rect.right > window.innerWidth - edge || rect.bottom > window.innerHeight - edge
+    pickOverlay.dataset.inset = String(atEdge)
+    placePickLabel(rect)
   }
   pickOverlayFrame = window.requestAnimationFrame(positionPickOverlay)
 }
@@ -80,7 +176,63 @@ function hidePickOverlay() {
   pickOverlay.style.display = 'none'
 }
 
+function highlightPickTarget(target) {
+  if (currentTarget && currentTarget !== target) {
+    delete currentTarget.dataset.aiInsTarget
+  }
+  currentTarget = target
+  currentTarget.dataset.aiInsTarget = 'true'
+  showPickOverlay(currentTarget)
+}
+
+/** The pointer moved: a new element under it starts the chain over; the same one keeps the level walked to. */
+function hoverPickTarget(target) {
+  if (target === pickChain[0] && currentTarget?.isConnected) {
+    return
+  }
+
+  pickChain = [target]
+  pickDepth = 0
+  highlightPickTarget(target)
+}
+
+/** `1` goes to the parent, `-1` back to the child. Returns false when nothing is highlighted to walk from. */
+function walkPickTarget(step) {
+  if (!currentTarget?.isConnected) {
+    return false
+  }
+
+  if (step > 0) {
+    const parent = getParentPickTarget(currentTarget)
+    if (!parent) {
+      return true
+    }
+    // Re-derive the parent each time: the DOM may have changed since the chain was built.
+    pickChain = [...pickChain.slice(0, pickDepth + 1), parent]
+    pickDepth += 1
+  } else {
+    if (pickDepth === 0) {
+      return true
+    }
+    pickDepth -= 1
+    if (!pickChain[pickDepth]?.isConnected) {
+      clearOverlay()
+      return true
+    }
+  }
+
+  highlightPickTarget(pickChain[pickDepth])
+  return true
+}
+
+/** What a click picks: the walked-to level while the pointer is still over the element the walk started from. */
+function getChosenPickTarget(target) {
+  return target === pickChain[0] && currentTarget?.isConnected ? currentTarget : target
+}
+
 function clearOverlay() {
+  pickChain = []
+  pickDepth = 0
   if (!currentTarget) {
     return
   }

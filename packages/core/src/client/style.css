@@ -37,6 +37,52 @@
   will-change: transform;
 }
 
+/* Against a viewport edge the outside ring would be cut off: the same ring, drawn inside. */
+.ai-ins-pick-overlay[data-inset='true'] {
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.85);
+}
+
+/* What is highlighted, and that ⌥↑ / ⌥↓ walk to the parent / child. */
+.ai-ins-pick-label {
+  all: initial;
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  max-width: min(360px, calc(100vw - 8px));
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgba(24, 24, 27, 0.92);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85);
+  color: #fafafa;
+  font: 500 11px/20px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.ai-ins-pick-label-name {
+  all: initial;
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font: inherit;
+  text-overflow: ellipsis;
+}
+
+.ai-ins-pick-label-key {
+  all: initial;
+  flex: none;
+  color: rgba(250, 250, 250, 0.72);
+  font: inherit;
+}
+
+.ai-ins-pick-label-key[data-disabled='true'] {
+  color: rgba(250, 250, 250, 0.3);
+}
+
 .ai-ins-dialog,
 .ai-ins-dialog *,
 .ai-ins-dock {

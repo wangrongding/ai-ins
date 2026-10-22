@@ -223,6 +223,8 @@ export const de: MessageCatalog = {
   'help.shortcuts': 'Tastenkürzel',
   'help.keyPick': 'Element auswählen',
   'help.keyPickKeys': 'Option / Alt + Klick',
+  'help.keyWalk': 'Zum Eltern- / Kindelement wechseln',
+  'help.keyWalkKeys': 'Beim Auswählen: Option / Alt + ↑ / ↓',
   'help.keySend': 'Senden',
   'help.keyClose': 'Panel schließen',
   'help.dock': 'Nach dem Schließen öffnet der schwebende Button in der Seitenecke das Panel wieder. Der Button lässt sich verschieben.',

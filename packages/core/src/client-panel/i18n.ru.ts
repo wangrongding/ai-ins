@@ -237,6 +237,8 @@ export const ru: MessageCatalog = {
   'help.shortcuts': 'Сочетания клавиш',
   'help.keyPick': 'Выбрать элемент',
   'help.keyPickKeys': 'Option / Alt + щелчок',
+  'help.keyWalk': 'Перейти к родительскому / дочернему элементу',
+  'help.keyWalkKeys': 'При выборе: Option / Alt + ↑ / ↓',
   'help.keySend': 'Отправить',
   'help.keyClose': 'Закрыть панель',
   'help.dock': 'Закрыв панель, нажмите плавающую кнопку в углу страницы, чтобы открыть её снова. Кнопку можно перетаскивать.',

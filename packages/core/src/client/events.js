@@ -24,15 +24,28 @@ window.addEventListener('mousemove', (event) => {
     return
   }
 
-  if (sourceTarget === currentTarget) {
-    return
-  }
-
-  clearOverlay()
-  currentTarget = sourceTarget
-  currentTarget.dataset.aiInsTarget = 'true'
-  showPickOverlay(currentTarget)
+  hoverPickTarget(sourceTarget)
 })
+
+// Option / Alt + ↑ / ↓ while a pick is highlighted: walk to the parent / back to the child.
+// Only then, so Option + arrow keeps its usual meaning (caret moves, scrolling) everywhere else.
+window.addEventListener(
+  'keydown',
+  (event) => {
+    if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) {
+      return
+    }
+
+    if (!walkPickTarget(event.key === 'ArrowUp' ? 1 : -1)) {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+    event.stopImmediatePropagation?.()
+  },
+  true,
+)
 
 window.addEventListener(
   'click',
@@ -46,11 +59,13 @@ window.addEventListener(
       return
     }
 
-    const sourceTarget = getPickTarget(target)
-    if (!(sourceTarget instanceof Element)) {
+    const hovered = getPickTarget(target)
+    if (!(hovered instanceof Element)) {
       cleanUp()
       return
     }
+
+    const sourceTarget = getChosenPickTarget(hovered)
 
     const layers = getLayersForElement(sourceTarget)
     const preferredLayer = getPreferredLayer(layers)

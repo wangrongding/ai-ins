@@ -218,6 +218,8 @@ export const ko: MessageCatalog = {
   'help.shortcuts': '단축키',
   'help.keyPick': '요소 선택',
   'help.keyPickKeys': 'Option / Alt + 클릭',
+  'help.keyWalk': '부모 / 자식 요소로 전환',
+  'help.keyWalkKeys': '선택 중에 Option / Alt + ↑ / ↓',
   'help.keySend': '보내기',
   'help.keyClose': '패널 닫기',
   'help.dock': '패널을 닫은 뒤에는 페이지 모서리의 플로팅 버튼으로 다시 열 수 있습니다. 버튼은 드래그로 옮길 수 있습니다.',

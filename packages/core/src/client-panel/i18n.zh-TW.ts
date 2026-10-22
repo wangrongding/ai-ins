@@ -218,6 +218,8 @@ export const zhTW: MessageCatalog = {
   'help.shortcuts': '快捷鍵',
   'help.keyPick': '選取元素',
   'help.keyPickKeys': 'Option / Alt + 點擊',
+  'help.keyWalk': '切換到父 / 子元素',
+  'help.keyWalkKeys': '點選時按住 Option / Alt + ↑ / ↓',
   'help.keySend': '傳送',
   'help.keyClose': '關閉面板',
   'help.dock': '面板關閉後，點頁面角落的浮動按鈕就能重新開啟，按鈕可以拖動。',
