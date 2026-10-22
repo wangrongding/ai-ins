@@ -55,7 +55,7 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 6px;
-  background: rgba(24, 24, 27, 0.92);
+  background: #18181b;
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.85);
   color: #fafafa;
   font: 500 11px/20px ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -63,20 +63,43 @@
   pointer-events: none;
 }
 
+/* `all: initial` also resets inherited properties, so nowrap must be restated on each part. */
+.ai-ins-pick-label-text {
+  all: initial;
+  display: flex;
+  min-width: 0;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+}
+
+.ai-ins-pick-label-position {
+  all: initial;
+  display: block;
+  flex: none;
+  color: inherit;
+  font: inherit;
+  white-space: nowrap;
+}
+
 .ai-ins-pick-label-name {
   all: initial;
+  display: block;
   min-width: 0;
   overflow: hidden;
   color: inherit;
   font: inherit;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ai-ins-pick-label-key {
   all: initial;
+  display: block;
   flex: none;
   color: rgba(250, 250, 250, 0.72);
   font: inherit;
+  white-space: nowrap;
 }
 
 .ai-ins-pick-label-key[data-disabled='true'] {

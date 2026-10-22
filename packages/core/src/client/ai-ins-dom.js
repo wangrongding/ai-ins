@@ -71,19 +71,25 @@ function getParentPickTarget(element) {
   }
 }
 
-function getPickLabelText(target) {
+/** `tag · File.tsx` and its `:line:column`, kept apart so a long file name never truncates the position. */
+function getPickLabelParts(target) {
   const tag = target.tagName.toLowerCase()
   const path = getLayersForElement(target)[0]?.path
   const file = path ? path.split(/[\\/]/u).pop() : ''
-  return file ? `${tag} · ${file}` : tag
+  const position = file.match(/(?::\d+)+$/u)?.[0] || ''
+  return { name: file ? `${tag} · ${file.slice(0, file.length - position.length)}` : tag, position }
 }
 
 function renderPickLabel(target) {
   const label = pickOverlayLabel
   const modifier = isMacPlatform() ? '⌥' : 'Alt+'
+  const parts = getPickLabelParts(target)
   const name = document.createElement('span')
   name.className = 'ai-ins-pick-label-name'
-  name.textContent = getPickLabelText(target)
+  name.textContent = parts.name
+  const position = document.createElement('span')
+  position.className = 'ai-ins-pick-label-position'
+  position.textContent = parts.position
   const up = document.createElement('span')
   up.className = 'ai-ins-pick-label-key'
   up.textContent = `${modifier}↑`
@@ -92,7 +98,11 @@ function renderPickLabel(target) {
   down.className = 'ai-ins-pick-label-key'
   down.textContent = `${modifier}↓`
   down.dataset.disabled = String(pickDepth === 0)
-  label.replaceChildren(name, up, down)
+  // Name and position share one flex item: only the name shrinks, the position stays whole.
+  const text = document.createElement('span')
+  text.className = 'ai-ins-pick-label-text'
+  text.append(name, position)
+  label.replaceChildren(text, up, down)
 }
 
 function showPickOverlay(target) {
