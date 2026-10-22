@@ -260,6 +260,8 @@ export const fr: MessageCatalog = {
   'update.checking': 'Vérification…',
   'update.check': 'Rechercher des mises à jour',
   'update.checkFailed': 'Impossible de joindre npm pour le moment ; nouvel essai automatique plus tard.',
+  'update.autoCheck': 'Rechercher les mises à jour automatiquement',
+  'update.autoCheckNote': 'Le serveur de développement interroge npm et garde la réponse 6 heures ; un échec ne gêne pas l’utilisation. Commun à tous les projets.',
   'update.disabledOption': 'La recherche de mises à jour est désactivée dans les options du plugin (updateCheck: false).',
   'update.disabledEnv': 'La recherche de mises à jour est désactivée par une variable d’environnement.',
   'update.disabledCi': 'Pas de recherche de mises à jour en CI.',

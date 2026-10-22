@@ -301,6 +301,7 @@ type PanelViewProps = {
   onCopyUpgradeCommand: (command: string) => Promise<void>
   /** An empty version clears the skip. */
   onSkipUpdate: (version: string) => void
+  onUpdateCheckEnabledChange: (enabled: boolean) => void
   onUpgradeWithAgent: () => void
 }
 
@@ -830,6 +831,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     onCheckUpdate,
     onCopyUpgradeCommand,
     onSkipUpdate,
+    onUpdateCheckEnabledChange,
     onUpgradeWithAgent,
   } = props
   const [copied, setCopied] = useState(false)
@@ -1823,8 +1825,35 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   }
 
   function getUpdateDisabledNote(reason: NonNullable<UpdateInfo['disabledReason']>) {
+    // Turned off with the switch below: the switch already says so.
+    if (reason === 'user') return ''
     const keys = { ci: 'update.disabledCi', env: 'update.disabledEnv', local: 'update.disabledLocal', option: 'update.disabledOption' } as const
     return t(keys[reason])
+  }
+
+  /** The panel's own on/off for update checks. Plugin options and environment variables outrank it, so it is locked then. */
+  function renderUpdateCheckSwitch(info: UpdateInfo) {
+    const locked = info.disabledReason === 'option' || info.disabledReason === 'env'
+    const enabled = info.userEnabled && !locked
+    return (
+      <div className="ai-ins-settings-row ai-ins-settings-row-stack ai-ins-settings-row-switch">
+        <div className="ai-ins-settings-row-line">
+          <span className="ai-ins-settings-label">{t('update.autoCheck')}</span>
+          <button
+            aria-checked={enabled}
+            aria-label={t('update.autoCheck')}
+            className="ai-ins-switch"
+            disabled={locked || updateChecking}
+            onClick={() => onUpdateCheckEnabledChange(!info.userEnabled)}
+            role="switch"
+            type="button"
+          >
+            <span className="ai-ins-switch-thumb" />
+          </button>
+        </div>
+        <p className="ai-ins-settings-note">{t('update.autoCheckNote')}</p>
+      </div>
+    )
   }
 
   /** The upgrade is a new conversation, so it goes to the picker's agent even while another conversation is open. */
@@ -1909,6 +1938,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
               </div>
               {note ? <p className="ai-ins-settings-note">{note}</p> : null}
             </div>
+            {renderUpdateCheckSwitch(update)}
           </div>
         </section>
       )
@@ -1965,6 +1995,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
             {renderUpgradePermissionNote()}
             {update.skipped ? <p className="ai-ins-settings-note">{t('update.skippedNote', { latest })}</p> : null}
           </div>
+          {renderUpdateCheckSwitch(update)}
         </div>
       </section>
     )

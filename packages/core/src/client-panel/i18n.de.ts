@@ -260,6 +260,8 @@ export const de: MessageCatalog = {
   'update.checking': 'Wird geprüft…',
   'update.check': 'Nach Updates suchen',
   'update.checkFailed': 'npm ist gerade nicht erreichbar; es wird automatisch erneut versucht.',
+  'update.autoCheck': 'Automatisch nach Updates suchen',
+  'update.autoCheckNote': 'Der Dev-Server fragt npm ab und speichert die Antwort 6 Stunden; eine fehlgeschlagene Prüfung stört nicht. Gilt für alle Projekte.',
   'update.disabledOption': 'Die Update-Prüfung ist in den Plugin-Optionen deaktiviert (updateCheck: false).',
   'update.disabledEnv': 'Die Update-Prüfung ist per Umgebungsvariable deaktiviert.',
   'update.disabledCi': 'In CI wird nicht nach Updates gesucht.',

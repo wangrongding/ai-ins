@@ -80,6 +80,7 @@ declare function pinRun(run: AgentRun, pinned: boolean): Promise<void>
 declare function openInEditor(layerPath: string): Promise<void>
 declare function loadAgentFileDiff(runId: string, turnIndex: number, path: string): Promise<FileDiffData>
 declare function loadUpdateInfo(refresh?: boolean): Promise<UpdateInfo>
+declare function saveUpdateCheckEnabled(enabled: boolean): Promise<void>
 declare function loadWorkspaceChanges(): Promise<WorkspaceChanges>
 declare function loadWorkspaceFileDiff(path: string, staged: boolean): Promise<FileDiffData>
 declare function stageWorkspaceFiles(paths: string[], staged: boolean): Promise<unknown>
@@ -169,6 +170,25 @@ async function refreshUpdateInfo(refresh = false) {
     updateLoadedAt = Date.now()
   } catch (error) {
     console.warn('[ai-ins] update check failed:', error)
+  } finally {
+    updateChecking = false
+    renderAiInsPanel()
+  }
+}
+
+/** The switch moves at once; the saved setting decides what the server answers next, so reload after saving. */
+async function setUpdateCheckEnabled(enabled: boolean) {
+  const previous = updateInfo
+  if (updateInfo) updateInfo = { ...updateInfo, userEnabled: enabled }
+  updateChecking = true
+  renderAiInsPanel()
+  try {
+    await saveUpdateCheckEnabled(enabled)
+    updateInfo = await loadUpdateInfo()
+    updateLoadedAt = Date.now()
+  } catch (error) {
+    updateInfo = previous
+    setPanelStatus(error instanceof Error ? error.message : String(error))
   } finally {
     updateChecking = false
     renderAiInsPanel()
@@ -566,6 +586,9 @@ function renderAiInsPanel() {
         }
       }}
       onSkipUpdate={skipUpdate}
+      onUpdateCheckEnabledChange={(enabled) => {
+        void setUpdateCheckEnabled(enabled)
+      }}
       onUpgradeWithAgent={upgradeWithAgent}
       update={getUpdateInfo()}
       updateChecking={updateChecking}

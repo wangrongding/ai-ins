@@ -2,7 +2,7 @@ import { mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { afterAll, describe, expect, it } from 'vitest'
-import { getUserSettingsPath, readUserSettings, writeUserSettings } from '../src/user-settings'
+import { getUserSettingsPath, readUserSettings, sanitizeUserSettings, writeUserSettings } from '../src/user-settings'
 
 const directory = mkdtempSync(join(tmpdir(), 'ai-ins-settings-'))
 const fileName = join(directory, 'nested', 'settings.json')
@@ -27,6 +27,11 @@ describe('user settings file', () => {
   it('clears a key with an empty string and ignores unknown or mistyped values', () => {
     writeUserSettings({ proxy: '', ...({ evil: 'x', theme: 42 } as object) }, fileName)
     expect(readUserSettings(fileName).settings).toEqual({ notify: true, theme: 'light' })
+  })
+
+  it('keeps the update-check switch only as a boolean', () => {
+    expect(sanitizeUserSettings({ updateCheck: false })).toEqual({ updateCheck: false })
+    expect(sanitizeUserSettings({ updateCheck: 'off' })).toEqual({})
   })
 
   it('is owner-only, since a proxy URL can hold credentials', () => {

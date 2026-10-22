@@ -260,6 +260,8 @@ export const en: MessageCatalog = {
   'update.checking': 'Checking…',
   'update.check': 'Check for updates',
   'update.checkFailed': "Can't reach npm right now; it will retry automatically.",
+  'update.autoCheck': 'Check for updates automatically',
+  'update.autoCheckNote': 'The dev server asks npm and caches the answer for 6 hours; a failed check never gets in the way. Shared by all projects.',
   'update.disabledOption': 'Update checks are turned off in the plugin options (updateCheck: false).',
   'update.disabledEnv': 'Update checks are turned off by an environment variable.',
   'update.disabledCi': 'Update checks are skipped in CI.',

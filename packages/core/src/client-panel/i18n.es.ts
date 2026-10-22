@@ -260,6 +260,8 @@ export const es: MessageCatalog = {
   'update.checking': 'Comprobando…',
   'update.check': 'Buscar actualizaciones',
   'update.checkFailed': 'No se puede conectar con npm ahora; se reintentará automáticamente.',
+  'update.autoCheck': 'Buscar actualizaciones automáticamente',
+  'update.autoCheckNote': 'El servidor de desarrollo consulta npm y guarda la respuesta 6 horas; si la consulta falla, no afecta al uso. Se aplica a todos los proyectos.',
   'update.disabledOption': 'La búsqueda de actualizaciones está desactivada en las opciones del plugin (updateCheck: false).',
   'update.disabledEnv': 'La búsqueda de actualizaciones está desactivada por una variable de entorno.',
   'update.disabledCi': 'En CI no se buscan actualizaciones.',

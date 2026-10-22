@@ -30,6 +30,7 @@ describe('upgrade with agent', () => {
       current: '1.0.6',
       latest: '1.1.0',
       status: 'available',
+      userEnabled: true,
       upgrade: { command: 'pnpm add -D @ai-ins/vite@latest', directory: '', packageManager: 'pnpm', packages: ['@ai-ins/vite'] },
     })
     expect(prompt).toContain('`pnpm add -D @ai-ins/vite@latest`')
@@ -40,7 +41,7 @@ describe('upgrade with agent', () => {
   })
 
   it('asks the agent to find the packages itself when none were detected', () => {
-    const prompt = buildUpgradePrompt({ changelogUrl: 'https://example.test/CHANGELOG.md', current: '1.0.6', latest: '1.1.0', status: 'available' })
+    const prompt = buildUpgradePrompt({ changelogUrl: 'https://example.test/CHANGELOG.md', current: '1.0.6', latest: '1.1.0', status: 'available', userEnabled: true })
     expect(prompt).toContain('@ai-ins/')
     expect(prompt).not.toMatch(/\{\w+\}/u)
   })

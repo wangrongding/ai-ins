@@ -185,6 +185,30 @@ describe('getAiInsUpdateInfo', () => {
     expect(await getAiInsUpdateInfo(root)).toMatchObject({ skipped: true, status: 'available' })
   })
 
+  it('follows the panel switch, which plugin options and environment variables outrank', async () => {
+    const fetchMock = stubRegistry('99.0.0')
+    const root = project({ 'package.json': { devDependencies: { '@ai-ins/vite': '1.0.6' } } })
+    expect(await getAiInsUpdateInfo(root)).toMatchObject({ status: 'available', userEnabled: true })
+    fetchMock.mockClear()
+    resetAiInsUpdateCheckForTests()
+
+    writeUserSettings({ updateCheck: false })
+    expect(await getAiInsUpdateInfo(root, {}, true)).toMatchObject({ disabledReason: 'user', status: 'disabled', userEnabled: false })
+    // `AI_INS_UPDATE_CHECK=1` forces checks past CI and local source, not past the user's own "off".
+    process.env.AI_INS_UPDATE_CHECK = '1'
+    expect((await getAiInsUpdateInfo(root)).disabledReason).toBe('user')
+    delete process.env.AI_INS_UPDATE_CHECK
+    expect(fetchMock).not.toHaveBeenCalled()
+
+    writeUserSettings({ updateCheck: true })
+    expect((await getAiInsUpdateInfo(root, { updateCheck: false })).disabledReason).toBe('option')
+    process.env.NO_UPDATE_NOTIFIER = '1'
+    expect(await getAiInsUpdateInfo(root)).toMatchObject({ disabledReason: 'env', userEnabled: true })
+    delete process.env.NO_UPDATE_NOTIFIER
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(await getAiInsUpdateInfo(root)).toMatchObject({ status: 'available', userEnabled: true })
+  })
+
   it('does not touch the network when turned off, in CI, or for local source', async () => {
     const fetchMock = stubRegistry('99.0.0')
     const installed = project({ 'package.json': { devDependencies: { '@ai-ins/vite': '1.0.6' } } })

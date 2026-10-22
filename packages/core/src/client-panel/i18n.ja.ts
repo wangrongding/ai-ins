@@ -255,6 +255,8 @@ export const ja: MessageCatalog = {
   'update.checking': '確認中…',
   'update.check': '更新を確認',
   'update.checkFailed': 'npm に接続できません。しばらくすると自動で再試行します。',
+  'update.autoCheck': '更新を自動で確認',
+  'update.autoCheckNote': '開発サーバーが npm に問い合わせ、結果を 6 時間キャッシュします。確認に失敗しても利用には影響しません。すべてのプロジェクトで共通の設定です。',
   'update.disabledOption': 'プラグイン設定で更新チェックが無効になっています（updateCheck: false）。',
   'update.disabledEnv': '環境変数で更新チェックが無効になっています。',
   'update.disabledCi': 'CI では更新をチェックしません。',

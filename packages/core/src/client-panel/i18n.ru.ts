@@ -274,6 +274,8 @@ export const ru: MessageCatalog = {
   'update.checking': 'Проверка…',
   'update.check': 'Проверить обновления',
   'update.checkFailed': 'Сейчас не удаётся связаться с npm; попробуем снова автоматически.',
+  'update.autoCheck': 'Проверять обновления автоматически',
+  'update.autoCheckNote': 'Dev-сервер опрашивает npm и кеширует ответ на 6 часов; неудачная проверка не мешает работе. Общая настройка для всех проектов.',
   'update.disabledOption': 'Проверка обновлений отключена в настройках плагина (updateCheck: false).',
   'update.disabledEnv': 'Проверка обновлений отключена переменной окружения.',
   'update.disabledCi': 'В CI обновления не проверяются.',

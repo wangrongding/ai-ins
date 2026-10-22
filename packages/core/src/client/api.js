@@ -193,6 +193,19 @@ async function loadUpdateInfo(refresh) {
   return response.json()
 }
 
+/** The panel's update-check switch; the server reads it on every update request, so it must be saved before reloading. */
+async function saveUpdateCheckEnabled(enabled) {
+  const response = await fetch(`${base}__ai-ins-settings`, {
+    body: JSON.stringify({ updateCheck: enabled }),
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+  })
+
+  if (!response.ok) {
+    throw await readResponseError(response)
+  }
+}
+
 async function deleteAgentRun(runId) {
   const response = await fetch(`${base}__ai-ins-agent/runs?id=${encodeURIComponent(runId)}`, {
     method: 'DELETE',

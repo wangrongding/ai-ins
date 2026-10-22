@@ -6,10 +6,11 @@ export type UpdateInfo = {
   changelogUrl: string
   checkedAt?: number
   current: string
-  disabledReason?: 'ci' | 'env' | 'local' | 'option'
+  disabledReason?: 'ci' | 'env' | 'local' | 'option' | 'user'
   latest?: string
   skipped?: boolean
   status: 'available' | 'disabled' | 'unknown' | 'up-to-date'
+  userEnabled: boolean
   upgrade?: { command: string; directory: string; packageManager: string; packages: string[] }
 }
 

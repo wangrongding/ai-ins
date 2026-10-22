@@ -255,6 +255,8 @@ export const ko: MessageCatalog = {
   'update.checking': '확인 중…',
   'update.check': '업데이트 확인',
   'update.checkFailed': '지금은 npm에 연결할 수 없습니다. 잠시 후 자동으로 다시 시도합니다.',
+  'update.autoCheck': '자동으로 업데이트 확인',
+  'update.autoCheckNote': '개발 서버가 npm에 확인하고 결과를 6시간 동안 캐시합니다. 확인에 실패해도 사용에는 영향이 없습니다. 모든 프로젝트에 공통으로 적용됩니다.',
   'update.disabledOption': '플러그인 설정에서 업데이트 확인을 껐습니다(updateCheck: false).',
   'update.disabledEnv': '환경 변수로 업데이트 확인을 껐습니다.',
   'update.disabledCi': 'CI에서는 업데이트를 확인하지 않습니다.',

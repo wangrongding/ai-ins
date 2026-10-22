@@ -255,6 +255,8 @@ export const zhTW: MessageCatalog = {
   'update.checking': '檢查中…',
   'update.check': '檢查更新',
   'update.checkFailed': '暫時連不上 npm，稍後會自動重試。',
+  'update.autoCheck': '自動檢查更新',
+  'update.autoCheckNote': '由開發伺服器查詢 npm，結果快取 6 小時；查詢失敗不影響使用。所有專案共用這個設定。',
   'update.disabledOption': '已在外掛設定中關閉更新檢查（updateCheck: false）。',
   'update.disabledEnv': '已透過環境變數關閉更新檢查。',
   'update.disabledCi': 'CI 環境下不檢查更新。',

@@ -127,6 +127,7 @@ Agent 在面板里以非交互模式运行，没法像在终端里那样停下�
 - 主题、界面语言（10 种，默认跟随浏览器）、发送快捷键。
 - **完成通知**：任务完成、失败或等你授权时，如果你没在看面板，会发一条系统通知，点通知会打开对应会话。
 - Agent 权限和网络代理。
+- **版本**：有新版本时右上角提示「新版本 vX」，这里可以复制升级命令、让 Agent 升级或跳过此版本；也可以关掉「自动检查更新」。
 
 设置保存在 `~/.ai-ins/settings.json`，所有项目、端口和浏览器共用。右上角的「?」里有一份图文使用说明。
 
@@ -244,6 +245,7 @@ aiIns({
   codex: { model: 'gpt-5.5' },   // 各内置 Agent 都支持 command / model / proxy
   claude: { model: 'sonnet' },
   disableSourceAttributes: false, // 与 SSR 水合冲突时关掉源码标记
+  updateCheck: true,             // 是否检查新版本；false 时面板里的开关也打不开
 })
 ```
 
@@ -301,6 +303,10 @@ aiIns({
 | `AI_INS_CODEX_MODEL` / `AI_INS_CLAUDE_MODEL` / `AI_INS_COPILOT_MODEL` / `AI_INS_GEMINI_MODEL` / `AI_INS_CURSOR_MODEL` | 指定各 Agent 使用的模型 |
 | `AI_INS_PROXY` | 默认代理 |
 | `AI_INS_HOME` | 面板设置 `settings.json` 所在目录，默认 `~/.ai-ins` |
+| `AI_INS_UPDATE_CHECK` | `0` 关闭更新检查；`1` 在 CI 或本地 link 的 AI Ins 下也检查。`NO_UPDATE_NOTIFIER=1` 同样会关闭 |
+| `AI_INS_REGISTRY` | 检查更新时优先查询的 npm registry，查不到时回退到 npmjs 和 npmmirror |
+
+更新检查默认开启，由 dev server 查询，结果缓存 6 小时，失败不影响使用；CI 和本地 link 的 AI Ins 默认不检查。插件配置 `updateCheck: false` 和环境变量的优先级高于面板里的开关。
 
 代理按以下优先级查找，找到第一个就用：
 
@@ -317,7 +323,8 @@ Agent 命令从 `PATH` 中查找；Windows 下会优先使用 `.cmd` / `.bat` �
 | --- | --- | --- |
 | `<项目>/.ai-ins/runs/*.json` | 会话历史：每轮的需求、回复、改动文件和 diff | 默认每个项目保留 100 条，运行中和置顶的不会被清理。建议加入 `.gitignore`。 |
 | `<项目>/.ai-ins/*.log` | 每条会话的 Agent 原始输出日志 | 删除会话时一起删除。 |
-| `~/.ai-ins/settings.json` | 面板设置：主题、语言、权限、默认 Agent、代理、快捷键、通知 | Windows 为 `%USERPROFILE%\.ai-ins\settings.json`。文件仅本人可读写，因为代理地址里可能带账号密码。 |
+| `~/.ai-ins/settings.json` | 面板设置：主题、语言、权限、默认 Agent、代理、快捷键、通知、更新检查开关和跳过的版本 | Windows 为 `%USERPROFILE%\.ai-ins\settings.json`。文件仅本人可读写，因为代理地址里可能带账号密码。 |
+| `~/.ai-ins/update-check.json` | 最近一次查到的最新版本和查询时间 | 删除后下次启动重新查询。 |
 | 浏览器 `localStorage` / `sessionStorage` | 悬浮按钮位置、侧边栏当前页、输入草稿 | 只跟当前浏览器有关的小状态。 |
 
 dev server 重启后历史都还在。重启时正在跑的那一轮会标为「已中断」，只要会话已经建立，就还能接着追问。

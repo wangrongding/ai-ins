@@ -30,8 +30,13 @@ export type AiInsUpdateInfo = {
   /** Version of the AI Ins code running in this dev server. */
   current: string
   status: 'available' | 'disabled' | 'unknown' | 'up-to-date'
-  /** Why no check runs: turned off, CI, or AI Ins comes from a local workspace / link. */
-  disabledReason?: 'ci' | 'env' | 'local' | 'option'
+  /**
+   * Why no check runs: turned off in the plugin options, an environment
+   * variable or the panel (`user`), CI, or AI Ins comes from a local workspace / link.
+   */
+  disabledReason?: 'ci' | 'env' | 'local' | 'option' | 'user'
+  /** The panel's "check for updates automatically" switch (`updateCheck` in the settings file). */
+  userEnabled: boolean
   latest?: string
   checkedAt?: number
   /** The user chose "skip this version" for `latest`. */
@@ -217,9 +222,15 @@ function isFalsyEnv(value: string | undefined) {
   return value !== undefined && /^(0|false|off|no)$/iu.test(value.trim())
 }
 
-function getDisabledReason(options: AiInsPluginOptions, dependencies: ProjectDependencies | undefined): AiInsUpdateInfo['disabledReason'] {
+function getDisabledReason(
+  options: AiInsPluginOptions,
+  dependencies: ProjectDependencies | undefined,
+  userEnabled: boolean,
+): AiInsUpdateInfo['disabledReason'] {
+  // The project's own config and the environment outrank the panel: the panel cannot turn those back on.
   if (options.updateCheck === false) return 'option'
   if (isFalsyEnv(process.env.AI_INS_UPDATE_CHECK) || isTruthyEnv(process.env.NO_UPDATE_NOTIFIER)) return 'env'
+  if (!userEnabled) return 'user'
   // `AI_INS_UPDATE_CHECK=1` checks anyway, e.g. to try the notice from a linked checkout.
   if (isTruthyEnv(process.env.AI_INS_UPDATE_CHECK)) return undefined
   if (isTruthyEnv(process.env.CI)) return 'ci'
@@ -339,8 +350,10 @@ export function resetAiInsUpdateCheckForTests() {
 export async function getAiInsUpdateInfo(root: string, options: AiInsPluginOptions = {}, force = false): Promise<AiInsUpdateInfo> {
   const current = getRunningAiInsVersion()
   const dependencies = findAiInsDependencies(root)
-  const disabledReason = getDisabledReason(options, dependencies)
-  const info: AiInsUpdateInfo = { changelogUrl: aiInsChangelogUrl, current, status: 'unknown' }
+  const settings = readUserSettings().settings
+  const userEnabled = settings.updateCheck !== false
+  const disabledReason = getDisabledReason(options, dependencies, userEnabled)
+  const info: AiInsUpdateInfo = { changelogUrl: aiInsChangelogUrl, current, status: 'unknown', userEnabled }
   if (dependencies && !dependencies.local) info.upgrade = getUpgradePlan(root, dependencies)
   if (disabledReason) return { ...info, disabledReason, status: 'disabled' }
 
@@ -351,7 +364,7 @@ export async function getAiInsUpdateInfo(root: string, options: AiInsPluginOptio
     ...info,
     checkedAt: entry.checkedAt,
     latest: entry.latest,
-    skipped: available && readUserSettings().settings.updateSkipped === entry.latest,
+    skipped: available && settings.updateSkipped === entry.latest,
     status: available ? 'available' : 'up-to-date',
   }
 }

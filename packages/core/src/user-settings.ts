@@ -18,11 +18,14 @@ export type AiInsUserSettings = {
   proxyMode?: string
   submitShortcut?: string
   theme?: string
+  /** `false`: the user turned off update checks in the panel. Absent means on. */
+  updateCheck?: boolean
   /** A version the user chose to skip in the update notice. */
   updateSkipped?: string
 }
 
 const stringKeys = ['locale', 'permissionMode', 'provider', 'proxy', 'proxyMode', 'submitShortcut', 'theme', 'updateSkipped'] as const
+const booleanKeys = ['notify', 'updateCheck'] as const
 const maxValueLength = 2000
 
 export function getUserSettingsPath() {
@@ -39,7 +42,9 @@ export function sanitizeUserSettings(value: unknown): AiInsUserSettings {
     const entry = record[key]
     if (typeof entry === 'string' && entry.length <= maxValueLength) settings[key] = entry
   }
-  if (typeof record.notify === 'boolean') settings.notify = record.notify
+  for (const key of booleanKeys) {
+    if (typeof record[key] === 'boolean') settings[key] = record[key]
+  }
   return settings
 }
 

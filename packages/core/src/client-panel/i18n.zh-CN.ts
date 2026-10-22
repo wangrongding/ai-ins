@@ -260,6 +260,8 @@ export const zhCN = {
   'update.checking': '检查中…',
   'update.check': '检查更新',
   'update.checkFailed': '暂时连不上 npm，稍后会自动重试。',
+  'update.autoCheck': '自动检查更新',
+  'update.autoCheckNote': '由开发服务器查询 npm，结果缓存 6 小时；查询失败不影响使用。所有项目共用这个设置。',
   'update.disabledOption': '已在插件配置里关闭更新检查（updateCheck: false）。',
   'update.disabledEnv': '已通过环境变量关闭更新检查。',
   'update.disabledCi': 'CI 环境下不检查更新。',

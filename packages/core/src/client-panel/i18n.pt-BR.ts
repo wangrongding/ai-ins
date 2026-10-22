@@ -260,6 +260,8 @@ export const ptBR: MessageCatalog = {
   'update.checking': 'Verificando…',
   'update.check': 'Verificar atualizações',
   'update.checkFailed': 'Não foi possível acessar o npm agora; vamos tentar de novo automaticamente.',
+  'update.autoCheck': 'Verificar atualizações automaticamente',
+  'update.autoCheckNote': 'O servidor de desenvolvimento consulta o npm e guarda a resposta por 6 horas; uma falha não atrapalha o uso. Vale para todos os projetos.',
   'update.disabledOption': 'A verificação de atualizações está desativada nas opções do plugin (updateCheck: false).',
   'update.disabledEnv': 'A verificação de atualizações está desativada por uma variável de ambiente.',
   'update.disabledCi': 'No CI não há verificação de atualizações.',
