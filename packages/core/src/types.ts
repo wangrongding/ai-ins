@@ -306,4 +306,12 @@ export type AiInsPluginOptions = {
    * Defaults to the bundler dev server root.
    */
   root?: string
+  /**
+   * Check npm for a newer AI Ins and show it in the panel. Also off with
+   * `AI_INS_UPDATE_CHECK=0` or `NO_UPDATE_NOTIFIER=1`, and skipped in CI and
+   * when AI Ins is linked from local source (`AI_INS_UPDATE_CHECK=1` forces it).
+   *
+   * @default true
+   */
+  updateCheck?: boolean
 }

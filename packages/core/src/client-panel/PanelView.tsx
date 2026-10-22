@@ -24,12 +24,14 @@ import {
   sunIcon,
   terminalIcon,
   trashIcon,
+  upgradeIcon,
 } from './icons'
 import { detectBrowserLocale, getLocale, isMessageKey, type Locale, type LocalePreference, localeNames, locales, t } from './i18n'
 import { FileDiff, type FileDiffData } from './FileDiff'
 import { MarkdownView } from './markdown'
 import { getNotifySupport, type NotifySupport, readNotifyEnabled, setNotifyEnabled } from './notifications'
 import { PanelSelect, usePanelDismiss } from './PanelSelect'
+import { getUpgradePermission, type UpdateInfo } from './update'
 import type {
   AgentProvider,
   AgentRun,
@@ -292,6 +294,14 @@ type PanelViewProps = {
   onStageFiles: (paths: string[], staged: boolean) => Promise<void>
   onStopRun: (run: AgentRun) => void
   onSubmit: () => void
+  /** Newer AI Ins on npm; undefined until the first check answers. */
+  update?: UpdateInfo
+  updateChecking: boolean
+  onCheckUpdate: () => void
+  onCopyUpgradeCommand: (command: string) => Promise<void>
+  /** An empty version clears the skip. */
+  onSkipUpdate: (version: string) => void
+  onUpgradeWithAgent: () => void
 }
 
 function panelGetProxyModeOptions(): Array<{ label: string; value: ProxyMode }> {
@@ -815,6 +825,12 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     submitting,
     targetLabel,
     targetTitle,
+    update,
+    updateChecking,
+    onCheckUpdate,
+    onCopyUpgradeCommand,
+    onSkipUpdate,
+    onUpgradeWithAgent,
   } = props
   const [copied, setCopied] = useState(false)
   const [resumeCopied, setResumeCopied] = useState(false)
@@ -1117,10 +1133,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
     return (
       <button
         className={`ai-ins-proxy-chip${missing ? ' ai-ins-proxy-chip-warn' : ''}`}
-        onClick={() => {
-          setHelpOpen(false)
-          setSettingsOpen(true)
-        }}
+        onClick={openSettings}
         title={missing ? label : t('composer.proxyTitle', { proxy: address })}
         type="button"
       >
@@ -1547,6 +1560,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   function renderPanelActions() {
     return (
       <div className="ai-ins-header-actions">
+        {renderUpdateChip()}
         {renderHelp()}
         {renderSettings()}
         <IconButton label={t('panel.collapse')} onClick={onClose}>
@@ -1630,6 +1644,8 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
   function renderSettings() {
     const settingsBadge = customProxyMissing ? 'warn' : proxyMode !== 'off' ? 'on' : ''
     const settingsTitle = t('settings.triggerTitle', { proxy: getProxyModeHint(), shortcut: submitShortcutLabel })
+    // A new version not yet skipped leads the popover; otherwise it closes it.
+    const updateFirst = update?.status === 'available' && !update.skipped
 
     return (
       <div
@@ -1669,6 +1685,7 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
               </IconButton>
             </div>
             <div className="ai-ins-settings-body">
+              {updateFirst ? renderUpdateSection() : null}
               {/* Grouped like system settings: short choices sit on the row, longer ones below it. */}
               <section className="ai-ins-settings-group">
                 <h3 className="ai-ins-settings-group-title">{t('settings.general')}</h3>
@@ -1780,10 +1797,176 @@ export function PanelView(props: PanelViewProps & { getDisplayPath: (path: strin
                   </div>
                 </div>
               </section>
+              {updateFirst ? null : renderUpdateSection()}
             </div>
           </div>
         ) : null}
       </div>
+    )
+  }
+
+  function openSettings() {
+    setHelpOpen(false)
+    setSettingsOpen(true)
+  }
+
+  /** A new version shows once in the header, until it is installed or skipped. */
+  function renderUpdateChip() {
+    if (update?.status !== 'available' || update.skipped || !update.latest) return null
+    const title = t('update.chipTitle', { current: update.current, latest: update.latest })
+    return (
+      <button aria-label={title} className="ai-ins-update-chip" onClick={openSettings} title={title} type="button">
+        <Icon paths={upgradeIcon} />
+        <span>{t('update.chip', { latest: update.latest })}</span>
+      </button>
+    )
+  }
+
+  function getUpdateDisabledNote(reason: NonNullable<UpdateInfo['disabledReason']>) {
+    const keys = { ci: 'update.disabledCi', env: 'update.disabledEnv', local: 'update.disabledLocal', option: 'update.disabledOption' } as const
+    return t(keys[reason])
+  }
+
+  /** The upgrade is a new conversation, so it goes to the picker's agent even while another conversation is open. */
+  const upgradeProvider =
+    providers.find((candidate) => candidate.id === providerId) || providers.find((candidate) => candidate.enabled) || providers[0]
+
+  /** How "upgrade with agent" will run: say so when it asks for more than the saved permission. */
+  function renderUpgradePermissionNote() {
+    const provider = upgradeProvider
+    if (!provider?.enabled) return <p className="ai-ins-settings-note ai-ins-settings-note-warn">{provider?.disabledReason || t('status.agentNotConfigured')}</p>
+    const permission = getUpgradePermission(provider, permissionMode)
+    if (permission.raised === 'ask') {
+      return <p className="ai-ins-settings-note">{t('update.withAgentAsk', { mode: t(panelPermissionModeKeys.ask) })}</p>
+    }
+    if (permission.raised === 'full') {
+      return (
+        <p className="ai-ins-settings-note ai-ins-settings-note-warn">
+          {t('update.withAgentFull', { edit: t(panelPermissionModeKeys.edit), full: t(panelPermissionModeKeys.full), provider: provider.label })}
+        </p>
+      )
+    }
+    return null
+  }
+
+  function renderUpdateSection() {
+    if (!update) {
+      // The first answer has not come back yet: keep the row so the popover does not jump.
+      return (
+        <section className="ai-ins-settings-group">
+          <h3 className="ai-ins-settings-group-title">{t('update.title')}</h3>
+          <div className="ai-ins-settings-card">
+            <div className="ai-ins-settings-row">
+              <span className="ai-ins-settings-label">{t('update.version')}</span>
+              <span className="ai-ins-update-state">{updateChecking ? t('update.checking') : ''}</span>
+            </div>
+          </div>
+        </section>
+      )
+    }
+
+    const latest = update.status === 'available' ? update.latest : undefined
+    const changelog = (
+      <a className="ai-ins-update-link" href={update.changelogUrl} rel="noreferrer" target="_blank">
+        {t('update.changelog')}
+        <Icon paths={externalLinkIcon} />
+      </a>
+    )
+
+    if (!latest) {
+      const note =
+        update.status === 'disabled' && update.disabledReason
+          ? getUpdateDisabledNote(update.disabledReason)
+          : update.status === 'unknown' && !updateChecking
+            ? t('update.checkFailed')
+            : ''
+      return (
+        <section className="ai-ins-settings-group">
+          <h3 className="ai-ins-settings-group-title">{t('update.title')}</h3>
+          <div className="ai-ins-settings-card">
+            <div className="ai-ins-settings-row ai-ins-settings-row-stack">
+              <div className="ai-ins-settings-row-line">
+                <span className="ai-ins-settings-label">
+                  {t('update.version')}
+                  <span className="ai-ins-label-hint">v{update.current}</span>
+                </span>
+                {update.status === 'disabled' ? (
+                  changelog
+                ) : (
+                  <span className="ai-ins-update-actions">
+                    {update.status === 'up-to-date' && !updateChecking ? (
+                      <span className="ai-ins-update-state ai-ins-update-state-ok">
+                        <Icon paths={checkIcon} />
+                        {t('update.upToDate')}
+                      </span>
+                    ) : null}
+                    <button className="ai-ins-button ai-ins-button-small" disabled={updateChecking} onClick={onCheckUpdate} type="button">
+                      {updateChecking ? <PanelLoadingSpinner /> : <Icon paths={refreshIcon} />}
+                      {updateChecking ? t('update.checking') : t('update.check')}
+                    </button>
+                  </span>
+                )}
+              </div>
+              {note ? <p className="ai-ins-settings-note">{note}</p> : null}
+            </div>
+          </div>
+        </section>
+      )
+    }
+
+    const command = update.upgrade?.command
+    return (
+      <section className="ai-ins-settings-group">
+        <h3 className="ai-ins-settings-group-title">{t('update.title')}</h3>
+        <div className={`ai-ins-settings-card${update.skipped ? '' : ' ai-ins-update-card'}`}>
+          <div className="ai-ins-settings-row ai-ins-settings-row-stack">
+            <div className="ai-ins-settings-row-line">
+              <span className="ai-ins-settings-label">
+                <Icon paths={upgradeIcon} />
+                {t('update.available', { latest })}
+              </span>
+              {changelog}
+            </div>
+            <p className="ai-ins-settings-note">{t('update.availableNote', { current: update.current })}</p>
+            {command ? (
+              <div className="ai-ins-update-command">
+                <code title={command}>{command}</code>
+                <IconButton label={t('update.copyCommand')} onClick={() => void onCopyUpgradeCommand(command)}>
+                  <Icon paths={copyIcon} />
+                </IconButton>
+              </div>
+            ) : (
+              <p className="ai-ins-settings-note ai-ins-settings-note-warn">{t('update.noPlan')}</p>
+            )}
+            <div className="ai-ins-update-buttons">
+              <button
+                className="ai-ins-button ai-ins-button-primary ai-ins-button-small"
+                disabled={submitting || !upgradeProvider?.enabled}
+                onClick={() => {
+                  closeSettings()
+                  onUpgradeWithAgent()
+                }}
+                type="button"
+              >
+                <Icon paths={terminalIcon} />
+                {t('update.withAgent')}
+              </button>
+              {update.skipped ? (
+                <button className="ai-ins-button ai-ins-button-small" onClick={() => onSkipUpdate('')} type="button">
+                  {t('update.unskip')}
+                </button>
+              ) : (
+                <button className="ai-ins-button ai-ins-button-small ai-ins-button-danger" onClick={() => onSkipUpdate(latest)} type="button">
+                  {t('update.skip')}
+                </button>
+              )}
+            </div>
+            {command && upgradeProvider?.enabled ? <p className="ai-ins-settings-note">{t('update.withAgentNote', { provider: upgradeProvider.label })}</p> : null}
+            {renderUpgradePermissionNote()}
+            {update.skipped ? <p className="ai-ins-settings-note">{t('update.skippedNote', { latest })}</p> : null}
+          </div>
+        </div>
+      </section>
     )
   }
 

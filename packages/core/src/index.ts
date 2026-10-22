@@ -12,6 +12,7 @@ import { aiInsPermissionMiddleware } from './permissions'
 import { getClientAgentProviders, getDefaultAgentProviderId } from './providers'
 import { getConfiguredCodexProxy, normalizeProxy } from './proxy'
 import { configureAiInsRunHistory } from './run-history'
+import { aiInsUpdateMiddleware } from './update-check'
 import { aiInsSettingsMiddleware } from './user-settings'
 import type { AiInsPluginOptions, AiInsRoute } from './types'
 
@@ -27,6 +28,7 @@ export {
 } from './middleware'
 export { getClientAgentProviders, getDefaultAgentProviderId } from './providers'
 export { getConfiguredCodexProxy, normalizeProxy } from './proxy'
+export type { AiInsUpdateInfo, AiInsUpgradePlan } from './update-check'
 export type {
   AiInsAgentPermissionMode,
   AiInsAgentPermissionsInput,
@@ -49,6 +51,7 @@ export function createAiInsMiddlewares(root: string, options: AiInsPluginOptions
     { path: '/__reveal-in-folder', middleware: revealInFolderMiddleware(root) },
     { path: '/__ai-ins-config', middleware: aiInsConfigMiddleware(root, options, codexProxy) },
     { path: '/__ai-ins-settings', middleware: aiInsSettingsMiddleware() },
+    { path: '/__ai-ins-update', middleware: aiInsUpdateMiddleware(root, options) },
     { path: '/__ai-ins-agent/events', middleware: aiInsEventsMiddleware(root) },
     { path: '/__ai-ins-agent/runs', middleware: aiInsRunsMiddleware(root) },
     { path: '/__ai-ins-agent/changes', middleware: aiInsChangesMiddleware(root) },

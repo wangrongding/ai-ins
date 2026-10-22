@@ -18,9 +18,11 @@ export type AiInsUserSettings = {
   proxyMode?: string
   submitShortcut?: string
   theme?: string
+  /** A version the user chose to skip in the update notice. */
+  updateSkipped?: string
 }
 
-const stringKeys = ['locale', 'permissionMode', 'provider', 'proxy', 'proxyMode', 'submitShortcut', 'theme'] as const
+const stringKeys = ['locale', 'permissionMode', 'provider', 'proxy', 'proxyMode', 'submitShortcut', 'theme', 'updateSkipped'] as const
 const maxValueLength = 2000
 
 export function getUserSettingsPath() {

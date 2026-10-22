@@ -182,6 +182,17 @@ async function clearFinishedAgentRuns() {
   return response.json()
 }
 
+/** Newer AI Ins on npm? `refresh` asks the server to check again now instead of using its cache. */
+async function loadUpdateInfo(refresh) {
+  const response = await fetch(`${base}__ai-ins-update${refresh ? '?refresh=1' : ''}`)
+
+  if (!response.ok) {
+    throw await readResponseError(response)
+  }
+
+  return response.json()
+}
+
 async function deleteAgentRun(runId) {
   const response = await fetch(`${base}__ai-ins-agent/runs?id=${encodeURIComponent(runId)}`, {
     method: 'DELETE',
@@ -208,6 +219,7 @@ const userSettingFields = {
   'ai-ins-provider': 'provider',
   'ai-ins-proxy': 'proxy',
   'ai-ins-proxy-mode': 'proxyMode',
+  'ai-ins-update-skipped': 'updateSkipped',
 }
 let pendingUserSettings = {}
 let userSettingsTimer

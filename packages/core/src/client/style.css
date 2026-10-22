@@ -3200,6 +3200,127 @@
   color: var(--ai-ins-warning);
 }
 
+/* --------------------------------------------------------------- update */
+
+/* Header chip for a new version: quiet, but not a dot you can miss. */
+.ai-ins-update-chip {
+  display: inline-flex;
+  height: 28px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--ai-ins-border);
+  border-radius: 999px;
+  background: var(--ai-ins-success-soft);
+  padding: 0 10px 0 8px;
+  color: var(--ai-ins-success);
+  cursor: pointer;
+  font-size: var(--ai-ins-text-sm);
+  font-weight: 550;
+  white-space: nowrap;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+  animation: ai-ins-pop-in 0.18s ease-out;
+}
+
+.ai-ins-update-chip:hover {
+  border-color: var(--ai-ins-success);
+}
+
+.ai-ins-update-chip svg,
+.ai-ins-update-card .ai-ins-settings-label svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+.ai-ins-update-card {
+  border-color: var(--ai-ins-success);
+  background: var(--ai-ins-success-soft);
+}
+
+.ai-ins-update-card .ai-ins-settings-label {
+  color: var(--ai-ins-success);
+}
+
+.ai-ins-update-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ai-ins-text-secondary);
+  font-size: var(--ai-ins-text-sm);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.ai-ins-update-link:hover {
+  color: var(--ai-ins-text);
+  text-decoration: underline;
+}
+
+.ai-ins-update-link svg {
+  width: 12px;
+  height: 12px;
+}
+
+.ai-ins-update-command {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--ai-ins-space-1);
+  border: 1px solid var(--ai-ins-border);
+  border-radius: var(--ai-ins-radius-sm);
+  background: var(--ai-ins-surface);
+  padding: 2px 2px 2px var(--ai-ins-space-2);
+}
+
+.ai-ins-update-command code {
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  color: var(--ai-ins-text);
+  font-family: var(--ai-ins-mono);
+  font-size: var(--ai-ins-text-xs);
+  line-height: 28px;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+
+.ai-ins-update-buttons,
+.ai-ins-update-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ai-ins-space-2);
+}
+
+.ai-ins-update-buttons .ai-ins-button svg,
+.ai-ins-update-actions .ai-ins-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+.ai-ins-update-actions .ai-ins-output-state-spinner {
+  animation: ai-ins-spin 0.8s linear infinite;
+}
+
+.ai-ins-update-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--ai-ins-text-tertiary);
+  font-size: var(--ai-ins-text-sm);
+}
+
+.ai-ins-update-state svg {
+  width: 13px;
+  height: 13px;
+}
+
+.ai-ins-update-state-ok {
+  color: var(--ai-ins-success);
+}
+
 /* ------------------------------------------------------------------ help */
 
 .ai-ins-help-popover {

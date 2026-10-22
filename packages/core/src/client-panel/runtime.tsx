@@ -12,6 +12,7 @@ import { getLocale, getLocalePreference, isMessageKey, onLocaleChange, reloadLoc
 import type { FileDiffData } from './FileDiff'
 import { type NotifyKind, notifyRunEvent } from './notifications'
 import { PanelView } from './PanelView'
+import { buildUpgradePrompt, getUpgradePermission, type UpdateInfo } from './update'
 import type { AgentProvider, AgentRun, WorkspaceChanges, LayerTarget, PermissionDecision, PermissionMode, PermissionRequest, ProxyMode } from './types'
 
 declare global {
@@ -78,6 +79,7 @@ declare function stopRun(run: AgentRun): Promise<void>
 declare function pinRun(run: AgentRun, pinned: boolean): Promise<void>
 declare function openInEditor(layerPath: string): Promise<void>
 declare function loadAgentFileDiff(runId: string, turnIndex: number, path: string): Promise<FileDiffData>
+declare function loadUpdateInfo(refresh?: boolean): Promise<UpdateInfo>
 declare function loadWorkspaceChanges(): Promise<WorkspaceChanges>
 declare function loadWorkspaceFileDiff(path: string, staged: boolean): Promise<FileDiffData>
 declare function stageWorkspaceFiles(paths: string[], staged: boolean): Promise<unknown>
@@ -111,6 +113,12 @@ let proxyValue = ''
 let permissionModeValue: PermissionMode = readPermissionMode()
 // Bumped when the settings file changes what the panel read at mount; remounts it.
 let settingsVersion = 0
+let updateInfo: UpdateInfo | undefined
+let updateChecking = false
+let updateLoadedAt = 0
+// The panel asks again on open at most this often; the server caches the npm answer far longer.
+const updateReloadAfterMs = 10 * 60 * 1000
+const updateSkippedStorageKey = 'ai-ins-update-skipped'
 const statusRef = {
   get textContent() {
     return panelStatus
@@ -135,6 +143,63 @@ function getSelectedRun() {
  */
 function getContinueRun() {
   return getSelectedRun()
+}
+
+function readSkippedUpdate() {
+  try {
+    return window.localStorage.getItem(updateSkippedStorageKey) || ''
+  } catch {
+    return ''
+  }
+}
+
+/** The server's answer, with a skip made in this browser applied before the settings file catches up. */
+function getUpdateInfo() {
+  if (!updateInfo || updateInfo.status !== 'available') return updateInfo
+  return { ...updateInfo, skipped: readSkippedUpdate() === updateInfo.latest }
+}
+
+/** Quietly in the background on open; `refresh` is the "check for updates" button. Failures leave the last answer. */
+async function refreshUpdateInfo(refresh = false) {
+  if (updateChecking || (!refresh && updateInfo && Date.now() - updateLoadedAt < updateReloadAfterMs)) return
+  updateChecking = true
+  renderAiInsPanel()
+  try {
+    updateInfo = await loadUpdateInfo(refresh)
+    updateLoadedAt = Date.now()
+  } catch (error) {
+    console.warn('[ai-ins] update check failed:', error)
+  } finally {
+    updateChecking = false
+    renderAiInsPanel()
+  }
+}
+
+function skipUpdate(version: string) {
+  globalThis.aiInsRememberSetting?.(updateSkippedStorageKey, version)
+  renderAiInsPanel()
+}
+
+/** A fresh, project-wide conversation that asks the agent to run the upgrade. */
+function upgradeWithAgent() {
+  const info = getUpdateInfo()
+  if (!info?.latest || submitting) return
+  const provider = getCurrentProvider()
+  if (!provider?.enabled) {
+    setPanelStatus(provider?.disabledReason || t('status.agentNotConfigured'))
+    return
+  }
+
+  const permission = getUpgradePermission(provider, permissionModeValue)
+  if (
+    permission.raised === 'full' &&
+    !window.confirm(t('update.withAgentFullConfirm', { full: t('settings.permissionFull'), provider: provider.label }))
+  ) {
+    return
+  }
+
+  startNewConversation()
+  void sendTurn(buildUpgradePrompt(info), undefined, undefined, permission.mode)
 }
 
 /*
@@ -489,6 +554,21 @@ function renderAiInsPanel() {
       runsLoading={!runsHydrated}
       selectedRunId={selectedRunId}
       onDismissStatus={() => setPanelStatus('')}
+      onCheckUpdate={() => {
+        void refreshUpdateInfo(true)
+      }}
+      onCopyUpgradeCommand={async (command) => {
+        try {
+          await copyTextToClipboard(command)
+          setPanelStatus(t('update.copied'))
+        } catch (error) {
+          setPanelStatus(error instanceof Error ? error.message : String(error))
+        }
+      }}
+      onSkipUpdate={skipUpdate}
+      onUpgradeWithAgent={upgradeWithAgent}
+      update={getUpdateInfo()}
+      updateChecking={updateChecking}
       status={getPanelStatus()}
       submitting={submitting}
       targetLabel={targetLabel}
@@ -571,6 +651,8 @@ async function sendTurn(
   prompt: string,
   continueRun: AgentRun | undefined,
   submitTarget: { layer: LayerTarget; layers: LayerTarget[] } | undefined,
+  // This turn only (the upgrade asks for more than "edit"); the saved choice stays.
+  permissionMode: PermissionMode = permissionModeValue,
 ) {
   // A follow-up turn belongs to the session's own agent; the picker is locked
   // to match, so never let a stale selection retarget it.
@@ -612,7 +694,7 @@ async function sendTurn(
       proxyModeValue,
       proxy,
       continueRun?.id,
-      permissionModeValue,
+      permissionMode,
     )
 
     rememberOpenConversation(result.runId)
@@ -854,6 +936,7 @@ function showAiInsPanel(layer?: LayerTarget, layers?: LayerTarget[]) {
 
   renderAiInsPanel()
   updateDockButton()
+  void refreshUpdateInfo()
   // A conversation restored from a previous page load has no transcript yet.
   const restored = getSelectedRun()
   if (restored && !restored.outputLoaded) {
