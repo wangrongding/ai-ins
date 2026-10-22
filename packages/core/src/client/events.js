@@ -31,6 +31,7 @@ window.addEventListener('mousemove', (event) => {
   clearOverlay()
   currentTarget = sourceTarget
   currentTarget.dataset.aiInsTarget = 'true'
+  showPickOverlay(currentTarget)
 })
 
 window.addEventListener(

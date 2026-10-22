@@ -10,12 +10,31 @@
  * hairlines, the system UI font, 14px reading text.
  */
 
-/* Element picked with Option / Alt on the host page. */
+/*
+ * Element picked with Option / Alt on the host page. Only the cursor is set on
+ * the element itself; the highlight is .ai-ins-pick-overlay, which the
+ * element's own mask, clip or overflow cannot cut off.
+ */
 [__AI_INS_TARGET_ATTRIBUTE__] {
-  outline: 2px solid rgba(24, 24, 27, 0.85) !important;
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.85) !important;
-  outline-offset: 2px !important;
   cursor: pointer !important;
+}
+
+.ai-ins-pick-overlay {
+  /* Shed the host page's styles and the popover defaults (inset, margin, border, background…). */
+  all: initial;
+  position: fixed;
+  top: 0;
+  left: 0;
+  /* Under the panel, which uses the maximum. */
+  z-index: 2147483646;
+  display: block;
+  box-sizing: border-box;
+  overflow: visible;
+  pointer-events: none;
+  outline: 2px solid rgba(24, 24, 27, 0.85);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.85);
+  will-change: transform;
 }
 
 .ai-ins-dialog,

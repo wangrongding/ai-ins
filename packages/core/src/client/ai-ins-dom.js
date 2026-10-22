@@ -1,8 +1,91 @@
+/*
+ * The pick highlight is its own fixed box drawn over the target, not an outline
+ * on the target: the host's styles on the target or its ancestors (mask-image,
+ * clip-path, overflow: hidden, outline: none !important…) would clip or hide
+ * that. Where popovers are supported the box sits in the top layer, so it also
+ * shows above the host's modals and popovers.
+ */
+let pickOverlay
+let pickOverlayFrame
+let pickOverlayBox = ''
+
+function getPickOverlay() {
+  if (pickOverlay?.isConnected) {
+    return pickOverlay
+  }
+
+  pickOverlay = document.createElement('div')
+  pickOverlay.className = 'ai-ins-pick-overlay'
+  pickOverlay.setAttribute('aria-hidden', 'true')
+  if (typeof pickOverlay.showPopover === 'function') {
+    pickOverlay.popover = 'manual'
+  }
+  // Outside <body>, so a transform or filter on the body cannot become its containing block.
+  document.documentElement.append(pickOverlay)
+  return pickOverlay
+}
+
+function showPickOverlay(target) {
+  const overlay = getPickOverlay()
+  overlay.style.display = ''
+  overlay.style.borderRadius = getComputedStyle(target).borderRadius
+  if (overlay.popover) {
+    // Re-enter the top layer, above any modal or popover the host opened since the last pick.
+    if (overlay.matches(':popover-open')) {
+      overlay.hidePopover()
+    }
+    overlay.showPopover()
+  }
+  pickOverlayBox = ''
+  window.cancelAnimationFrame(pickOverlayFrame)
+  positionPickOverlay()
+}
+
+/** Follow the target through scrolling, layout changes and transitions while the pick is shown. */
+function positionPickOverlay() {
+  pickOverlayFrame = undefined
+  if (!currentTarget || !pickOverlay) {
+    return
+  }
+
+  // The box sits in the top layer, above the panel too: never leave it over an open panel.
+  if (!currentTarget.isConnected || aiInsPanel?.isConnected) {
+    clearOverlay()
+    return
+  }
+
+  const rect = currentTarget.getBoundingClientRect()
+  const box = `${rect.left} ${rect.top} ${rect.width} ${rect.height}`
+  if (box !== pickOverlayBox) {
+    pickOverlayBox = box
+    const style = pickOverlay.style
+    style.visibility = rect.width || rect.height ? '' : 'hidden'
+    style.transform = `translate(${rect.left}px, ${rect.top}px)`
+    style.width = `${rect.width}px`
+    style.height = `${rect.height}px`
+  }
+  pickOverlayFrame = window.requestAnimationFrame(positionPickOverlay)
+}
+
+function hidePickOverlay() {
+  window.cancelAnimationFrame(pickOverlayFrame)
+  pickOverlayFrame = undefined
+  if (!pickOverlay) {
+    return
+  }
+
+  if (pickOverlay.popover && pickOverlay.matches(':popover-open')) {
+    pickOverlay.hidePopover()
+  }
+  pickOverlay.style.display = 'none'
+}
+
 function clearOverlay() {
   if (!currentTarget) {
     return
   }
 
+  hidePickOverlay()
   for (const target of document.querySelectorAll(`[${targetAttribute}]`)) {
     delete target.dataset.aiInsTarget
   }
