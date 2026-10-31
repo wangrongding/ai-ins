@@ -10,7 +10,6 @@ const clientModuleId = 'ai-ins/client'
 const resolvedClientModuleId = `\0${clientModuleId}`
 const encodedClientModulePath = `/@id/__x00__${clientModuleId}`
 const sourceAttribute = 'data-ai-ins-source'
-const sourceRangeAttribute = 'data-ai-ins-source-range'
 
 type VueSourceLocation = {
   offset: number
@@ -152,7 +151,7 @@ function hasSourceAttribute(attributes: unknown[]) {
         'type' in attribute.name &&
         attribute.name.type === 'JSXIdentifier' &&
         'name' in attribute.name &&
-        (attribute.name.name === sourceAttribute || attribute.name.name === sourceRangeAttribute),
+        attribute.name.name === sourceAttribute,
     )
   })
 }
@@ -170,24 +169,15 @@ function createAgentSourcePlugin(fileName: string): PluginObj {
         const elementLocation = path.parentPath.isJSXElement() && path.parentPath.node.loc ? path.parentPath.node.loc : node.loc
         // unshift 而非 push：让后续 {...props} 里外层调用点透传下来的属性覆盖本地注入，
         // 最终 DOM 上留下的是最外层（应用侧）的源位置，而不是包装组件内部的。
-        node.attributes.unshift(
-          {
-            name: { name: sourceAttribute, type: 'JSXIdentifier' },
-            type: 'JSXAttribute',
-            value: {
-              type: 'StringLiteral',
-              value: `${fileName}:${node.loc.start.line}:${node.loc.start.column + 1}`,
-            },
+        // One attribute holds the whole element range, `file:line:column-line:column`; its start is the pick position.
+        node.attributes.unshift({
+          name: { name: sourceAttribute, type: 'JSXIdentifier' },
+          type: 'JSXAttribute',
+          value: {
+            type: 'StringLiteral',
+            value: `${fileName}:${elementLocation.start.line}:${elementLocation.start.column + 1}-${elementLocation.end.line}:${elementLocation.end.column + 1}`,
           },
-          {
-            name: { name: sourceRangeAttribute, type: 'JSXIdentifier' },
-            type: 'JSXAttribute',
-            value: {
-              type: 'StringLiteral',
-              value: `${fileName}:${elementLocation.start.line}:${elementLocation.start.column + 1}-${elementLocation.end.line}:${elementLocation.end.column + 1}`,
-            },
-          },
-        )
+        })
       },
     },
   }
@@ -242,11 +232,11 @@ function getLocationFromOffset(offsets: number[], offset: number) {
 }
 
 function hasVueSourceAttribute(props: Array<{ name?: string; type: number }>) {
-  return props.some((prop) => prop.type === NodeTypes.ATTRIBUTE && (prop.name === sourceAttribute || prop.name === sourceRangeAttribute))
+  return props.some((prop) => prop.type === NodeTypes.ATTRIBUTE && prop.name === sourceAttribute)
 }
 
 function hasSvelteSourceAttribute(attributes: Array<{ name?: string; type?: string }>) {
-  return attributes.some((attribute) => attribute.type === 'Attribute' && (attribute.name === sourceAttribute || attribute.name === sourceRangeAttribute))
+  return attributes.some((attribute) => attribute.type === 'Attribute' && attribute.name === sourceAttribute)
 }
 
 function getTemplateContentStartOffset(source: string, block: { content: string; loc: { end: VueSourceLocation; start: VueSourceLocation } }) {
@@ -269,11 +259,10 @@ function collectVueSourceInsertions(nodes: VueNode[], fileName: string, template
         const start = getLocationFromOffset(lineOffsets, startOffset)
         const end = getLocationFromOffset(lineOffsets, endOffset)
         const insertionOffset = startOffset + node.tag.length + 1
-        const sourceValue = escapeHtmlAttribute(`${fileName}:${start.line}:${start.column}`)
-        const rangeValue = escapeHtmlAttribute(`${fileName}:${start.line}:${start.column}-${end.line}:${end.column}`)
+        const sourceValue = escapeHtmlAttribute(`${fileName}:${start.line}:${start.column}-${end.line}:${end.column}`)
 
         insertions.push({
-          content: ` ${sourceAttribute}="${sourceValue}" ${sourceRangeAttribute}="${rangeValue}"`,
+          content: ` ${sourceAttribute}="${sourceValue}"`,
           offset: insertionOffset,
         })
       }
@@ -311,11 +300,10 @@ function collectSvelteSourceInsertions(node: SvelteNode, fileName: string, lineO
     const start = getLocationFromOffset(lineOffsets, startOffset)
     const end = getLocationFromOffset(lineOffsets, endOffset)
     const insertionOffset = startOffset + node.name.length + 1
-    const sourceValue = escapeHtmlAttribute(`${fileName}:${start.line}:${start.column}`)
-    const rangeValue = escapeHtmlAttribute(`${fileName}:${start.line}:${start.column}-${end.line}:${end.column}`)
+    const sourceValue = escapeHtmlAttribute(`${fileName}:${start.line}:${start.column}-${end.line}:${end.column}`)
 
     insertions.push({
-      content: ` ${sourceAttribute}="${sourceValue}" ${sourceRangeAttribute}="${rangeValue}"`,
+      content: ` ${sourceAttribute}="${sourceValue}"`,
       offset: insertionOffset,
     })
   }

@@ -3,7 +3,6 @@ const transformReactJsx = require('@babel/plugin-transform-react-jsx')
 const transformTypeScript = require('@babel/plugin-transform-typescript')
 
 const sourceAttribute = 'data-ai-ins-source'
-const sourceRangeAttribute = 'data-ai-ins-source-range'
 
 function isNativeJsxElementName(name) {
   return Boolean(name && name.type === 'JSXIdentifier' && typeof name.name === 'string' && /^[a-z]/u.test(name.name))
@@ -38,7 +37,7 @@ function hasSourceAttribute(attributes) {
         attribute.type === 'JSXAttribute' &&
         attribute.name &&
         attribute.name.type === 'JSXIdentifier' &&
-        (attribute.name.name === sourceAttribute || attribute.name.name === sourceRangeAttribute),
+        attribute.name.name === sourceAttribute,
     )
   })
 }
@@ -56,24 +55,15 @@ function createAgentSourcePlugin(fileName) {
         const elementLocation = path.parentPath.isJSXElement() && path.parentPath.node.loc ? path.parentPath.node.loc : node.loc
         // unshift 而非 push：让后续 {...props} 里外层调用点透传下来的属性覆盖本地注入，
         // 最终 DOM 上留下的是最外层（应用侧）的源位置，而不是包装组件内部的。
-        node.attributes.unshift(
-          {
-            name: { name: sourceAttribute, type: 'JSXIdentifier' },
-            type: 'JSXAttribute',
-            value: {
-              type: 'StringLiteral',
-              value: `${fileName}:${node.loc.start.line}:${node.loc.start.column + 1}`,
-            },
+        // One attribute holds the whole element range, `file:line:column-line:column`; its start is the pick position.
+        node.attributes.unshift({
+          name: { name: sourceAttribute, type: 'JSXIdentifier' },
+          type: 'JSXAttribute',
+          value: {
+            type: 'StringLiteral',
+            value: `${fileName}:${elementLocation.start.line}:${elementLocation.start.column + 1}-${elementLocation.end.line}:${elementLocation.end.column + 1}`,
           },
-          {
-            name: { name: sourceRangeAttribute, type: 'JSXIdentifier' },
-            type: 'JSXAttribute',
-            value: {
-              type: 'StringLiteral',
-              value: `${fileName}:${elementLocation.start.line}:${elementLocation.start.column + 1}-${elementLocation.end.line}:${elementLocation.end.column + 1}`,
-            },
-          },
-        )
+        })
       },
     },
   }

@@ -399,10 +399,12 @@ function getPickTarget(element) {
   return getFiberLayers(element).length ? element : undefined
 }
 
+const sourceRangeEndPattern = /(:\d+:\d+)-\d+:\d+$/u
+
 function getSourcePath(element) {
-  const path = element.getAttribute(sourceAttribute)
-  if (path) {
-    return path
+  const source = element.getAttribute(sourceAttribute)
+  if (source) {
+    return source.replace(sourceRangeEndPattern, '$1')
   }
 
   // 依赖包（如主题、组件库）里的 .astro 不作为定位目标，交给外层应用侧元素。
@@ -416,8 +418,8 @@ function getSourcePath(element) {
 }
 
 function getSourceRange(element) {
-  const range = element.getAttribute(sourceRangeAttribute)
-  return range || undefined
+  const source = element.getAttribute(sourceAttribute)
+  return source && sourceRangeEndPattern.test(source) ? source : undefined
 }
 
 function getElementName(element) {

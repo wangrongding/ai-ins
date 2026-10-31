@@ -4,8 +4,9 @@ const defaultProxy = __AI_INS_AGENT_PROXY__
 const agentProviders = __AI_INS_AGENT_PROVIDERS__
 const defaultAgentProviderId = __AI_INS_DEFAULT_AGENT_PROVIDER__
 const targetAttribute = 'data-ai-ins-target'
+// `file:line:column-line:column`: the element's source range, whose start is its pick position.
+// Where the end is unknown (Astro void elements) it is just `file:line:column`.
 const sourceAttribute = 'data-ai-ins-source'
-const sourceRangeAttribute = 'data-ai-ins-source-range'
 // v2: anchored to the nearest edges. The old key held a top-left point that
 // window resizes overwrote; it is ignored, so docks moved by that return to the corner.
 const dockPositionStorageKey = 'ai-ins-dock-anchor'

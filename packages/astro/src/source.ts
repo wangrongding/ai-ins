@@ -2,7 +2,6 @@ import { parse } from '@astrojs/compiler'
 import type { HmrContext, Plugin } from 'vite'
 
 const sourceAttribute = 'data-ai-ins-source'
-const sourceRangeAttribute = 'data-ai-ins-source-range'
 
 // 这些元素加属性会改变 Astro 的处理语义（如带属性的 <script> 会变成 is:inline），
 // 或者本身不渲染可点选的内容，统一跳过。
@@ -71,7 +70,7 @@ function createLocator(bytes: Buffer) {
 }
 
 function hasSourceAttribute(node: AstroNode) {
-  return Boolean(node.attributes?.some((attribute) => attribute.name === sourceAttribute || attribute.name === sourceRangeAttribute))
+  return Boolean(node.attributes?.some((attribute) => attribute.name === sourceAttribute))
 }
 
 function collectAstroSourceInsertions(node: AstroNode, fileName: string, bytes: Buffer, locate: ReturnType<typeof createLocator>, insertions: Array<{ content: string; offset: number }>) {
@@ -85,17 +84,16 @@ function collectAstroSourceInsertions(node: AstroNode, fileName: string, bytes: 
     // 位置与源码对不上时（极端语法）宁可不注入，也不破坏模板。
     if (bytes.subarray(tagStart, insertionOffset).toString('utf-8') === `<${node.name}`) {
       const start = locate(tagStart)
-      const sourceValue = escapeHtmlAttribute(`${fileName}:${start.line}:${start.column}`)
-      let content = ` ${sourceAttribute}="${sourceValue}"`
+      let sourceValue = `${fileName}:${start.line}:${start.column}`
 
-      // void / 自闭合元素的 end 不可靠，只在 end 恰好落在 '>' 之后时输出范围。
+      // void / 自闭合元素的 end 不可靠，只在 end 恰好落在 '>' 之后时带上范围终点。
       const endOffset = node.position?.end?.offset
       if (Number.isInteger(endOffset) && endOffset! > insertionOffset && bytes[endOffset! - 1] === 62) {
         const end = locate(endOffset!)
-        content += ` ${sourceRangeAttribute}="${escapeHtmlAttribute(`${fileName}:${start.line}:${start.column}-${end.line}:${end.column}`)}"`
+        sourceValue += `-${end.line}:${end.column}`
       }
 
-      insertions.push({ content, offset: insertionOffset })
+      insertions.push({ content: ` ${sourceAttribute}="${escapeHtmlAttribute(sourceValue)}"`, offset: insertionOffset })
     }
   }
 

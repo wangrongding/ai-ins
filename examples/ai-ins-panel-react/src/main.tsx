@@ -136,17 +136,21 @@ function getElementName(element: HTMLElement) {
   return `${tag}${id}${className}`
 }
 
+const sourceRangeEndPattern = /(:\d+:\d+)-\d+:\d+$/u
+
 function getLayersForElement(element: HTMLElement) {
   let instance: HTMLElement | null = element
   const layers: LayerTarget[] = []
 
   while (instance) {
-    const path = instance.getAttribute('data-ai-ins-source')
-    if (path) {
+    // `file:line:column-line:column`: the start is the element's position, the whole value its range.
+    const source = instance.getAttribute('data-ai-ins-source')
+    if (source) {
+      const isRange = sourceRangeEndPattern.test(source)
       layers.push({
         name: getElementName(instance),
-        path,
-        range: instance.getAttribute('data-ai-ins-source-range') || undefined,
+        path: source.replace(sourceRangeEndPattern, '$1'),
+        range: isRange ? source : undefined,
       })
     }
 
