@@ -13,12 +13,13 @@ window.addEventListener('mousemove', (event) => {
   }
 
   // Element 而非 HTMLElement：svg/path 等图形元素也常是事件目标。
-  if (!(event.target instanceof Element) || event.target.closest('.ai-ins-dialog, .ai-ins-dock')) {
+  const target = getComposedEventTarget(event)
+  if (!target || target.closest('.ai-ins-dialog, .ai-ins-dock')) {
     clearOverlay()
     return
   }
 
-  const sourceTarget = getPickTarget(event.target)
+  const sourceTarget = getPickTarget(target)
   if (!(sourceTarget instanceof Element)) {
     clearOverlay()
     return
@@ -54,8 +55,8 @@ window.addEventListener(
       return
     }
 
-    const target = event.target
-    if (!(target instanceof Element) || target.closest('.ai-ins-dialog, .ai-ins-dock')) {
+    const target = getComposedEventTarget(event)
+    if (!target || target.closest('.ai-ins-dialog, .ai-ins-dock')) {
       return
     }
 

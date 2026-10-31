@@ -54,7 +54,7 @@ function getPickOverlay() {
 function getParentPickTarget(element) {
   let current = element
   while (true) {
-    const parent = current.parentElement
+    const parent = getComposedParent(current)
     if (!parent || parent === document.body || parent === document.documentElement) {
       return undefined
     }
@@ -248,6 +248,8 @@ function clearOverlay() {
   }
 
   hidePickOverlay()
+  // The query cannot see into shadow roots; the current target may be inside one.
+  delete currentTarget.dataset.aiInsTarget
   for (const target of document.querySelectorAll(`[${targetAttribute}]`)) {
     delete target.dataset.aiInsTarget
   }
@@ -282,8 +284,46 @@ const astroSourceFileAttribute = 'data-astro-source-file'
 const astroSourceLocAttribute = 'data-astro-source-loc'
 const sourceElementSelector = `[${sourceAttribute}], [${astroSourceFileAttribute}]`
 
+/*
+ * Hosts may render part of the page into an open shadow root (to keep a busy
+ * subtree away from extensions' observers, for one). Events reaching window are
+ * retargeted to the shadow host, and `closest()` / `parentElement` stop at the
+ * shadow root, so picking reads the composed path and walks the composed tree.
+ * Closed shadow roots stay opaque: their host is the deepest pick.
+ */
+function getComposedEventTarget(event) {
+  const target = event.composedPath()[0] ?? event.target
+  return target instanceof Element ? target : undefined
+}
+
+/** The parent element, crossing from a shadow root to its host. */
+function getComposedParent(element) {
+  if (element.parentElement) {
+    return element.parentElement
+  }
+
+  const root = element.parentNode
+  return root instanceof ShadowRoot ? root.host : null
+}
+
+/** `closest()` that keeps going past shadow roots into their hosts' trees. */
+function closestComposed(element, selector) {
+  let node = element
+  while (node) {
+    const match = node.closest(selector)
+    if (match) {
+      return match
+    }
+
+    const root = node.getRootNode()
+    node = root instanceof ShadowRoot ? root.host : null
+  }
+
+  return null
+}
+
 function getSourceElement(element) {
-  return element.closest(sourceElementSelector)
+  return closestComposed(element, sourceElementSelector)
 }
 
 // —— React fiber 兜底 ——
@@ -306,7 +346,7 @@ function findReactFiber(element) {
     if (fiber) {
       return fiber
     }
-    node = node.parentElement
+    node = getComposedParent(node)
   }
 }
 
@@ -397,7 +437,8 @@ function getLayersForElement(element) {
       layers.push({ name: getElementName(instance), path, range: getSourceRange(instance) })
     }
 
-    instance = instance.parentElement?.closest(sourceElementSelector)
+    const parent = getComposedParent(instance)
+    instance = parent ? getSourceElement(parent) : null
   }
 
   // 属性链完全没命中（portal / 不透传 props 的组件）时退回 fiber 解析。
