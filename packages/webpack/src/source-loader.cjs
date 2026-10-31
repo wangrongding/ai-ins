@@ -1,3 +1,4 @@
+const { isAbsolute, relative, sep } = require('path')
 const { transformSync } = require('@babel/core')
 const transformReactJsx = require('@babel/plugin-transform-react-jsx')
 const transformTypeScript = require('@babel/plugin-transform-typescript')
@@ -42,6 +43,17 @@ function hasSourceAttribute(attributes) {
   })
 }
 
+// Same as toSourceAttributeFile in @ai-ins/core: relative to the root the client
+// resolves it against, absolute when there is no root or it cannot be reached.
+function toSourceAttributeFile(fileName, root) {
+  if (!root) {
+    return fileName
+  }
+
+  const relativePath = relative(root, fileName)
+  return relativePath && !isAbsolute(relativePath) ? relativePath.split(sep).join('/') : fileName
+}
+
 function createAgentSourcePlugin(fileName) {
   return {
     name: 'ai-ins-source-attribute',
@@ -69,6 +81,11 @@ function createAgentSourcePlugin(fileName) {
   }
 }
 
+function getLoaderOptions(loaderContext) {
+  const options = typeof loaderContext.getOptions === 'function' ? loaderContext.getOptions() : loaderContext.query
+  return options && typeof options === 'object' ? options : {}
+}
+
 module.exports = function aiInsSourceLoader(code, inputMap) {
   const callback = this.async()
   const fileName = this.resourcePath
@@ -90,7 +107,7 @@ module.exports = function aiInsSourceLoader(code, inputMap) {
         sourceType: 'module',
       },
       plugins: [
-        createAgentSourcePlugin(fileName),
+        createAgentSourcePlugin(toSourceAttributeFile(fileName, getLoaderOptions(this).root)),
         [transformTypeScript, { allowDeclareFields: true, allExtensions: true, isTSX: true }],
         [transformReactJsx, { runtime: 'automatic' }],
       ],

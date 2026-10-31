@@ -146,7 +146,12 @@ function startAiInsServer(root: string, options: AiInsNextPluginOptions) {
   return promise
 }
 
-function appendWebpackRule(config: WebpackConfig) {
+function getSourceLoader(root: string) {
+  // The root the AI Ins server resolves against, so injected paths can be relative to it.
+  return { loader: sourceLoaderPath, options: { root } }
+}
+
+function appendWebpackRule(config: WebpackConfig, root: string) {
   if (!config.module) config.module = {}
   const rules = config.module.rules ?? []
   config.module.rules = [
@@ -155,12 +160,12 @@ function appendWebpackRule(config: WebpackConfig) {
       enforce: 'pre',
       exclude: /node_modules/u,
       test: /\.[cm]?[jt]sx$/u,
-      use: sourceLoaderPath,
+      use: getSourceLoader(root),
     },
   ]
 }
 
-function withWebpackConfig(config: NextConfig, options: AiInsNextPluginOptions): NextConfig {
+function withWebpackConfig(config: NextConfig, options: AiInsNextPluginOptions, root: string): NextConfig {
   const previousWebpack = config.webpack as ((config: WebpackConfig, context: WebpackContext) => WebpackConfig) | null | undefined
 
   return {
@@ -171,14 +176,14 @@ function withWebpackConfig(config: NextConfig, options: AiInsNextPluginOptions):
         nextWebpackConfig.entry = prependEntry(nextWebpackConfig.entry, clientEntryPath)
       }
       if (context.dev && !options.disableSourceAttributes) {
-        appendWebpackRule(nextWebpackConfig)
+        appendWebpackRule(nextWebpackConfig, root)
       }
       return nextWebpackConfig
     },
   }
 }
 
-function withTurbopackConfig(config: NextConfig, options: AiInsNextPluginOptions): NextConfig {
+function withTurbopackConfig(config: NextConfig, options: AiInsNextPluginOptions, root: string): NextConfig {
   if (options.disableSourceAttributes) {
     return config
   }
@@ -194,7 +199,7 @@ function withTurbopackConfig(config: NextConfig, options: AiInsNextPluginOptions
         ...rules,
         '*.{jsx,tsx}': {
           as: '*.js',
-          loaders: [sourceLoaderPath],
+          loaders: [getSourceLoader(root)],
         },
       },
     },
@@ -243,7 +248,7 @@ export function withAiIns(nextConfig: NextConfigExport = {}, options: AiInsNextP
   return async (phase: string, context?: unknown) => {
     const resolvedConfig = typeof nextConfig === 'function' ? await nextConfig(phase, context) : nextConfig
     const root = normalizeRoot(typeof context === 'object' && context && 'dir' in context ? String((context as { dir?: unknown }).dir ?? '') : undefined)
-    const config = withTurbopackConfig(withWebpackConfig(resolvedConfig, options), options)
+    const config = withTurbopackConfig(withWebpackConfig(resolvedConfig, options, root), options, root)
 
     if (phase !== developmentPhase) {
       return config

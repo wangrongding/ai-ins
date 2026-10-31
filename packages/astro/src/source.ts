@@ -1,5 +1,6 @@
 import { parse } from '@astrojs/compiler'
 import type { HmrContext, Plugin } from 'vite'
+import { toSourceAttributeFile } from '@ai-ins/core'
 
 const sourceAttribute = 'data-ai-ins-source'
 
@@ -102,7 +103,7 @@ function collectAstroSourceInsertions(node: AstroNode, fileName: string, bytes: 
   }
 }
 
-export async function injectAstroSourceAttributes(code: string, fileName: string) {
+export async function injectAstroSourceAttributes(code: string, fileName: string, root?: string) {
   let ast: AstroNode
 
   try {
@@ -113,7 +114,7 @@ export async function injectAstroSourceAttributes(code: string, fileName: string
 
   const bytes = Buffer.from(code, 'utf-8')
   const insertions: Array<{ content: string; offset: number }> = []
-  collectAstroSourceInsertions(ast, fileName, bytes, createLocator(bytes), insertions)
+  collectAstroSourceInsertions(ast, toSourceAttributeFile(fileName, root), bytes, createLocator(bytes), insertions)
 
   if (!insertions.length) {
     return null
@@ -132,11 +133,16 @@ export async function injectAstroSourceAttributes(code: string, fileName: string
 
 // Astro 自己的 astro:build 插件同为 enforce: 'pre' 且排在用户插件之前，
 // 这里用 order: 'pre' 抢在它编译 .astro 之前注入定位属性。
-export function astroSourcePlugin(): Plugin {
+export function astroSourcePlugin(options: { root?: string } = {}): Plugin {
+  // Same root as the @ai-ins/vite plugin, which the client resolves relative source files against.
+  let root = options.root
   return {
     name: 'ai-ins:astro-source',
     enforce: 'pre',
     apply: 'serve',
+    configResolved(config) {
+      root = options.root || config.root
+    },
     handleHotUpdate: {
       order: 'pre',
       handler(ctx: HmrContext) {
@@ -149,7 +155,7 @@ export function astroSourcePlugin(): Plugin {
         const read = ctx.read.bind(ctx)
         ctx.read = async () => {
           const code = await read()
-          return (await injectAstroSourceAttributes(code, ctx.file)) ?? code
+          return (await injectAstroSourceAttributes(code, ctx.file, root)) ?? code
         }
       },
     },
@@ -161,7 +167,7 @@ export function astroSourcePlugin(): Plugin {
           return null
         }
 
-        const transformedCode = await injectAstroSourceAttributes(code, getSourceFileId(id))
+        const transformedCode = await injectAstroSourceAttributes(code, getSourceFileId(id), root)
         return transformedCode ? { code: transformedCode, map: null } : null
       },
     },

@@ -8,6 +8,7 @@ export type { AiInsPluginOptions }
 export type AiInsWebpackPluginOptions = AiInsPluginOptions & { clientPath?: string }
 
 type WebpackCompiler = {
+  context?: string
   options?: {
     devServer?: { setupMiddlewares?: (middlewares: unknown[], devServer: WebpackDevServerLike) => unknown[] }
     entry?: unknown
@@ -86,11 +87,13 @@ function hasSourceLoader(use: unknown): boolean {
   return Boolean(isPlainObject(use) && use.loader === sourceLoaderPath)
 }
 
-function appendSourceLoader(use: unknown) {
-  return hasSourceLoader(use) ? use : [...(Array.isArray(use) ? use : [use]), sourceLoaderPath]
+type SourceLoaderUse = { loader: string; options: { root: string } }
+
+function appendSourceLoader(use: unknown, sourceLoader: SourceLoaderUse) {
+  return hasSourceLoader(use) ? use : [...(Array.isArray(use) ? use : [use]), sourceLoader]
 }
 
-function injectSourceLoaderIntoRules(rules: unknown[]): boolean {
+function injectSourceLoaderIntoRules(rules: unknown[], sourceLoader: SourceLoaderUse): boolean {
   let didInject = false
 
   for (const rule of rules) {
@@ -98,11 +101,11 @@ function injectSourceLoaderIntoRules(rules: unknown[]): boolean {
       continue
     }
 
-    if (Array.isArray(rule.oneOf) && injectSourceLoaderIntoRules(rule.oneOf)) {
+    if (Array.isArray(rule.oneOf) && injectSourceLoaderIntoRules(rule.oneOf, sourceLoader)) {
       didInject = true
     }
 
-    if (Array.isArray(rule.rules) && injectSourceLoaderIntoRules(rule.rules)) {
+    if (Array.isArray(rule.rules) && injectSourceLoaderIntoRules(rule.rules, sourceLoader)) {
       didInject = true
     }
 
@@ -111,7 +114,7 @@ function injectSourceLoaderIntoRules(rules: unknown[]): boolean {
     }
 
     if ('use' in rule) {
-      rule.use = appendSourceLoader(rule.use)
+      rule.use = appendSourceLoader(rule.use, sourceLoader)
       didInject = true
       continue
     }
@@ -120,7 +123,7 @@ function injectSourceLoaderIntoRules(rules: unknown[]): boolean {
       const { loader, options } = rule
       delete rule.loader
       delete rule.options
-      rule.use = appendSourceLoader(options === undefined ? loader : { loader, options })
+      rule.use = appendSourceLoader(options === undefined ? loader : { loader, options }, sourceLoader)
       didInject = true
     }
   }
@@ -139,7 +142,9 @@ export class AiInsWebpackPlugin {
       compiler.options.entry = prependEntry(compiler.options.entry, clientEntryPath)
       if (!compiler.options.module) compiler.options.module = {}
       const rules = compiler.options.module.rules || []
-      const didInject = injectSourceLoaderIntoRules(rules)
+      // The root the dev server middleware below resolves against, so injected paths can be relative to it.
+      const sourceLoader = { loader: sourceLoaderPath, options: { root: this.options.root || compiler.context || process.cwd() } }
+      const didInject = injectSourceLoaderIntoRules(rules, sourceLoader)
       compiler.options.module.rules = didInject
         ? rules
         : [
@@ -147,7 +152,7 @@ export class AiInsWebpackPlugin {
               enforce: 'pre',
               exclude: /node_modules/u,
               test: /\.[jt]sx$/u,
-              use: sourceLoaderPath,
+              use: sourceLoader,
             },
             ...rules,
           ]

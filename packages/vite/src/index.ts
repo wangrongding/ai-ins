@@ -3,7 +3,7 @@ import { transformAsync, type PluginObj } from '@babel/core'
 import { parse as parseSvelte } from 'svelte/compiler'
 import { ElementTypes, NodeTypes, parse as parseVueTemplate } from '@vue/compiler-dom'
 import { parse as parseVueSfc } from '@vue/compiler-sfc'
-import { createAiInsMiddlewares, ensureLaunchEditor, getAiInsClientCode, getAiInsClientWatchFiles, normalizeProxy } from '@ai-ins/core'
+import { createAiInsMiddlewares, ensureLaunchEditor, getAiInsClientCode, getAiInsClientWatchFiles, normalizeProxy, toSourceAttributeFile } from '@ai-ins/core'
 import type { AiInsPluginOptions } from '@ai-ins/core'
 
 const clientModuleId = 'ai-ins/client'
@@ -324,7 +324,7 @@ function collectSvelteSourceInsertions(node: SvelteNode, fileName: string, lineO
   }
 }
 
-async function injectJsxSourceAttributes(code: string, fileName: string) {
+async function injectJsxSourceAttributes(code: string, fileName: string, sourceFile: string) {
   const result = await transformAsync(code, {
     babelrc: false,
     code: true,
@@ -334,14 +334,14 @@ async function injectJsxSourceAttributes(code: string, fileName: string) {
       plugins: ['jsx', 'typescript'],
       sourceType: 'module',
     },
-    plugins: [createAgentSourcePlugin(fileName)],
+    plugins: [createAgentSourcePlugin(sourceFile)],
     sourceMaps: true,
   })
 
   return result?.code ? { code: result.code, map: result.map } : null
 }
 
-function injectVueTemplateSourceAttributes(code: string, fileName: string) {
+function injectVueTemplateSourceAttributes(code: string, fileName: string, sourceFile: string) {
   const { descriptor, errors } = parseVueSfc(code, { filename: fileName })
 
   if (errors.length || !descriptor.template) {
@@ -357,7 +357,7 @@ function injectVueTemplateSourceAttributes(code: string, fileName: string) {
   const lineOffsets = getLineStartOffsets(code)
   const insertions: Array<{ content: string; offset: number }> = []
 
-  collectVueSourceInsertions(templateAst.children as VueNode[], fileName, templateOffset, lineOffsets, insertions)
+  collectVueSourceInsertions(templateAst.children as VueNode[], sourceFile, templateOffset, lineOffsets, insertions)
 
   if (!insertions.length) {
     return null
@@ -374,7 +374,7 @@ function injectVueTemplateSourceAttributes(code: string, fileName: string) {
   }
 }
 
-function injectSvelteSourceAttributes(code: string, fileName: string) {
+function injectSvelteSourceAttributes(code: string, fileName: string, sourceFile: string) {
   let ast: { html?: SvelteNode }
 
   try {
@@ -390,7 +390,7 @@ function injectSvelteSourceAttributes(code: string, fileName: string) {
   const lineOffsets = getLineStartOffsets(code)
   const insertions: Array<{ content: string; offset: number }> = []
 
-  collectSvelteSourceInsertions(ast.html, fileName, lineOffsets, insertions)
+  collectSvelteSourceInsertions(ast.html, sourceFile, lineOffsets, insertions)
 
   if (!insertions.length) {
     return null
@@ -462,14 +462,16 @@ export function aiIns(options: AiInsPluginOptions = {}): Plugin {
     async transform(code, id) {
       const fileName = getSourceFileId(id)
       if (!isServe || options.disableSourceAttributes) return null
+      // Relative to the root the client resolves it against; see toSourceAttributeFile.
+      const sourceFile = toSourceAttributeFile(fileName, aiInsRoot || root)
       if (shouldInjectJsxSourceAttributes(id)) {
-        return injectJsxSourceAttributes(code, fileName)
+        return injectJsxSourceAttributes(code, fileName, sourceFile)
       }
       if (shouldInjectVueSourceAttributes(id)) {
-        return injectVueTemplateSourceAttributes(code, fileName)
+        return injectVueTemplateSourceAttributes(code, fileName, sourceFile)
       }
       if (shouldInjectSvelteSourceAttributes(id)) {
-        return injectSvelteSourceAttributes(code, fileName)
+        return injectSvelteSourceAttributes(code, fileName, sourceFile)
       }
       return null
     },

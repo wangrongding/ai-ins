@@ -401,8 +401,30 @@ function getPickTarget(element) {
 
 const sourceRangeEndPattern = /(:\d+:\d+)-\d+:\d+$/u
 
-function getSourcePath(element) {
+/**
+ * The injected value with its file made absolute. Plugins write files relative
+ * to the root (`src/App.tsx:…`, `../ui/Button.tsx:…`) to keep the dev DOM small;
+ * everything past this point — layers, runs, the editor — works with absolute paths.
+ */
+function getSourceValue(element) {
   const source = element.getAttribute(sourceAttribute)
+  if (!source || /^(?:\/|[A-Za-z]:[\\/]|\\\\|file:)/u.test(source)) {
+    return source || undefined
+  }
+
+  const segments = root.replace(/[\\/]+$/u, '').split(/[\\/]/u)
+  for (const segment of source.split('/')) {
+    if (segment === '..') {
+      segments.pop()
+    } else if (segment && segment !== '.') {
+      segments.push(segment)
+    }
+  }
+  return segments.join('/')
+}
+
+function getSourcePath(element) {
+  const source = getSourceValue(element)
   if (source) {
     return source.replace(sourceRangeEndPattern, '$1')
   }
@@ -418,7 +440,7 @@ function getSourcePath(element) {
 }
 
 function getSourceRange(element) {
-  const source = element.getAttribute(sourceAttribute)
+  const source = getSourceValue(element)
   return source && sourceRangeEndPattern.test(source) ? source : undefined
 }
 

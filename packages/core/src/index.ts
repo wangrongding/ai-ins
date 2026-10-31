@@ -27,6 +27,7 @@ export {
   revealInFolderMiddleware,
 } from './middleware'
 export { getClientAgentProviders, getDefaultAgentProviderId } from './providers'
+export { toSourceAttributeFile } from './source'
 export { getConfiguredCodexProxy, normalizeProxy } from './proxy'
 export type { AiInsUpdateInfo, AiInsUpgradePlan } from './update-check'
 export type {

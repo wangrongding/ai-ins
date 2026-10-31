@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs'
 import type { IncomingMessage } from 'http'
-import { isAbsolute, relative, resolve } from 'path'
+import { isAbsolute, relative, resolve, sep } from 'path'
 import { fileURLToPath } from 'url'
 
 export function parseOpenInEditorTarget(rawTarget: string, root: string) {
@@ -13,6 +13,20 @@ export function parseOpenInEditorTarget(rawTarget: string, root: string) {
     fileName: isAbsolute(fileName) ? fileName : resolve(root, fileName),
     lineNumber: match?.[1] ? Number(match[1]) : 1,
   }
+}
+
+/**
+ * The file part of an injected `data-ai-ins-source`: relative to the root the
+ * client resolves it against (shorter DOM in dev), absolute when there is no
+ * root or the file cannot be reached from it (another drive). Always `/`-separated.
+ */
+export function toSourceAttributeFile(fileName: string, root: string | undefined) {
+  if (!root) {
+    return fileName
+  }
+
+  const relativePath = relative(root, fileName)
+  return relativePath && !isAbsolute(relativePath) ? relativePath.split(sep).join('/') : fileName
 }
 
 function parseSourceRangeTarget(rawTarget: string, root: string) {

@@ -6,6 +6,7 @@ const defaultAgentProviderId = __AI_INS_DEFAULT_AGENT_PROVIDER__
 const targetAttribute = 'data-ai-ins-target'
 // `file:line:column-line:column`: the element's source range, whose start is its pick position.
 // Where the end is unknown (Astro void elements) it is just `file:line:column`.
+// The file is relative to `root` unless it lies out of reach (then absolute).
 const sourceAttribute = 'data-ai-ins-source'
 // v2: anchored to the nearest edges. The old key held a top-left point that
 // window resizes overwrote; it is ignored, so docks moved by that return to the corner.
