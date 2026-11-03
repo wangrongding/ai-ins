@@ -15,7 +15,7 @@ AI Ins 是一个只在本地开发时生效的工具：在你正在开发的网�
 
 演示视频：
 
-https://github.com/user-attachments/assets/f909f905-3297-49da-8881-8b48689c015c
+https://github.com/user-attachments/assets/5c474323-2c3e-43ea-a4dd-f39b6e74b06a
 
 ## 工作原理
 
